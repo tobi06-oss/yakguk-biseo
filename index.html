@@ -1,0 +1,1505 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2F5597"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="약국비서">
+<title>참바른약국 비서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Mono:wght@400;600;700&display=swap">
+<style>
+/* 디자인: 무매데스크(Dw02)와 같은 폰트·색·카드 스타일 */
+:root{
+  --sans:"Jua","Gaegu","IBM Plex Sans KR","IBM Plex Sans",system-ui,sans-serif;
+  --display:"Jua","Gaegu","IBM Plex Sans KR",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Jua",monospace;
+  --bg:#F5F6F9; --surface:#FFFFFF; --surface-2:#F0F2F6; --line:#E1E4EB; --line-2:#CDD2DC;
+  --ink:#1C2130; --ink-2:#6B7280; --ink-3:#9AA1B0;
+  --accent:#2F5597; --accent-soft:#E8EEF9; --on-accent:#FFFFFF;
+  --bad:#D6304A; --bad-soft:#FBE1E5; --info:#2F6FE0; --info-soft:#E4ECFB;
+  --warn:#B8860B; --warn-soft:#FBF2DC; --ok:#1B9E6B; --ok-soft:#E3F6EC; --price:#2F9E8F;
+  --shadow:0 1px 2px rgba(20,24,38,0.05),0 8px 24px -12px rgba(20,24,38,0.12);
+  --shadow-lg:0 2px 6px rgba(20,24,38,.06),0 24px 60px -20px rgba(20,24,38,.3);
+  --scrim:rgba(16,20,29,.4);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#10141D; --surface:#171C28; --surface-2:#1D2330; --line:#2A3141; --line-2:#3A4356;
+    --ink:#E9ECF4; --ink-2:#9BA3B5; --ink-3:#6B7385;
+    --accent:#7EA6E0; --accent-soft:#1E2A3E; --on-accent:#10141D;
+    --bad:#F0596E; --bad-soft:#3A2029; --info:#6FA0F0; --info-soft:#1E2A3E;
+    --warn:#E0B84D; --warn-soft:#33291A; --ok:#3DCB8F; --ok-soft:#163024; --price:#4DC2B0;
+    --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px -12px rgba(0,0,0,0.5);
+    --shadow-lg:0 2px 6px rgba(0,0,0,.3),0 24px 60px -20px rgba(0,0,0,.7);
+    --scrim:rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#10141D; --surface:#171C28; --surface-2:#1D2330; --line:#2A3141; --line-2:#3A4356;
+  --ink:#E9ECF4; --ink-2:#9BA3B5; --ink-3:#6B7385;
+  --accent:#7EA6E0; --accent-soft:#1E2A3E; --on-accent:#10141D;
+  --bad:#F0596E; --bad-soft:#3A2029; --info:#6FA0F0; --info-soft:#1E2A3E;
+  --warn:#E0B84D; --warn-soft:#33291A; --ok:#3DCB8F; --ok-soft:#163024; --price:#4DC2B0;
+  --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px -12px rgba(0,0,0,0.5);
+  --shadow-lg:0 2px 6px rgba(0,0,0,.3),0 24px 60px -20px rgba(0,0,0,.7);
+  --scrim:rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;padding:0 16px;word-break:keep-all}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.app{max-width:760px;height:100%;margin:0 auto;display:flex;flex-direction:column}
+
+/* 머리 */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:20px 14px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-family:var(--display);font-size:19px;box-shadow:var(--shadow)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(20px,4vw,26px);letter-spacing:-.01em;margin:0;line-height:1.2}
+.subtitle{font-size:12px;color:var(--ink-2);margin-top:2px}
+.iconbtn{border:1px solid transparent;background:transparent;border-radius:10px;width:38px;height:38px;font-size:18px;line-height:1;color:var(--ink-2);display:grid;place-items:center}
+.iconbtn:hover{background:var(--surface);border-color:var(--line);color:var(--ink)}
+
+/* 오늘의 재고 */
+.today{display:grid;grid-template-columns:auto 1fr;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:0;margin-bottom:10px;box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s}
+.today:hover{border-color:var(--line-2)}
+.today .d{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px;font-size:13px;letter-spacing:.04em;color:var(--ink-2)}
+.today .d .num{letter-spacing:0;color:var(--ink-3);font-weight:500}
+.today .ks{grid-column:1/-1;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.today .k{background:var(--surface);display:flex;flex-direction:column;gap:2px;padding:9px 14px 11px;min-width:0}
+.today .k em{font-style:normal;font-size:11.5px;color:var(--ink-2);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.today .k b{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.today .k i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.today .go{font-size:12px;color:var(--accent);letter-spacing:0}
+.today.empty{grid-template-columns:1fr auto;padding:13px 14px}
+.today.empty .d{grid-column:auto;padding:0;font-size:14px;letter-spacing:0;color:var(--ink-2)}
+.dot-bad{background:var(--bad)}.dot-warn{background:var(--warn)}.dot-ok{background:var(--ok)}
+
+
+/* 즐겨찾기 */
+.favlabel{font-size:13px;letter-spacing:.04em;color:var(--ink-2);margin:0 2px 8px}
+.favs{display:flex;flex-wrap:wrap;gap:7px;padding-bottom:12px}
+.fav{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 14px;font-size:14px;color:var(--ink);box-shadow:var(--shadow);transition:border-color .15s,background .15s}
+.fav:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.fav.edit{border-style:dashed;color:var(--ink-3);background:transparent;box-shadow:none}
+.fav.edit:hover{color:var(--accent);background:transparent}
+
+/* 대화 */
+.chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 2px 16px}
+.msg{max-width:88%;border-radius:14px;padding:10px 14px;font-size:14.5px}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:5px}
+.msg.me img{display:block;max-width:180px;border-radius:10px;margin-bottom:6px}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px;box-shadow:var(--shadow)}
+.msg.bot.thinking{color:var(--ink-3)}
+.msg.err{border-color:var(--bad)}
+.msg p{margin:0 0 .5em}.msg p:last-child{margin-bottom:0}
+.msg ul{margin:.2em 0 .5em;padding-left:1.2em}
+.msg .src{display:block;margin-top:8px;padding-top:7px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3)}
+.msg .acts{display:flex;gap:6px;margin-top:8px}
+.msg .acts button{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:2px 9px;font-size:12px;color:var(--ink-2)}
+.msg .acts button[aria-pressed="true"]{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.welcome{color:var(--ink-3);font-size:13.5px;text-align:center;margin:auto 0;padding:28px 8px}
+.welcome b{display:block;color:var(--ink);font-family:var(--display);font-size:20px;margin-bottom:6px}
+
+.chip-img{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);padding:0 2px 6px}
+.chip-img img{width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.chip-img button{border:0;background:none;color:var(--ink-3);font-size:12.5px;text-decoration:underline}
+.composer{position:sticky;bottom:0;background:linear-gradient(to bottom,transparent,var(--bg) 14px);padding-block:14px calc(14px + env(safe-area-inset-bottom,0px))}
+.composer .box{display:flex;gap:6px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:var(--shadow);transition:border-color .15s}
+.composer .box:focus-within{border-color:var(--accent)}
+.composer textarea{flex:1;min-width:0;resize:none;max-height:140px;padding:9px 8px;border:0;background:transparent;font-size:16px;line-height:1.45}
+.composer textarea:focus{outline:none}
+.composer textarea::placeholder{color:var(--ink-3)}
+.attach{border:0;background:var(--surface-2);border-radius:10px;width:40px;height:40px;display:grid;place-items:center;font-size:16px;line-height:1;cursor:pointer}
+.attach input{position:absolute;width:1px;height:1px;opacity:0}
+.send{border:0;background:var(--accent);color:var(--on-accent);border-radius:8px;height:40px;padding:0 18px;font-size:14px}
+.send:active{transform:translateY(1px)}
+.send:disabled{opacity:.45;cursor:default}
+.stop{border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);border-radius:8px;height:40px;padding:0 14px;font-size:13px}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:14px;padding:12px 16px;font-size:13px;margin-bottom:10px}
+
+/* 패널 */
+.scrim{position:fixed;inset:0;background:var(--scrim);display:flex;justify-content:flex-end;z-index:10;animation:fade .18s ease}
+.panel{width:min(720px,100%);height:100%;background:var(--bg);display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:slide .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes fade{from{opacity:0}}
+@keyframes slide{from{transform:translateX(24px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.scrim,.panel{animation:none}}
+.panel-top{padding:calc(16px + env(safe-area-inset-top,0px)) 16px 0;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.panel-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel-h h2{font-family:var(--display);font-weight:800;font-size:clamp(20px,4vw,24px);letter-spacing:-.01em;margin:0}
+.panel-h .row{gap:6px;flex-wrap:nowrap}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 14px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 14px;font-size:13.5px;color:var(--ink);box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:6px;transition:border-color .15s}
+.tab:hover{border-color:var(--line-2);color:var(--ink)}
+.tab[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent),var(--shadow);color:var(--accent)}
+.tab .n{font-family:var(--mono);font-size:11.5px;font-weight:600;background:var(--surface-2);color:var(--ink-2);border-radius:999px;padding:0 7px;line-height:18px}
+.tab[aria-selected="true"] .n{background:var(--accent);color:var(--on-accent)}
+.panel-body{flex:1;overflow-y:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.card h3{font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--ink-2);text-transform:uppercase;margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 .c{font-size:11.5px;color:var(--ink-3);font-weight:500;letter-spacing:0;text-transform:none}
+.muted{color:var(--ink-3);font-size:12.5px;margin:0}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 16px;font-weight:600;font-size:13px;color:var(--ink-2);transition:border-color .15s,color .15s}
+.btn:hover{border-color:var(--accent);color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.05);color:var(--on-accent)}
+.btn.primary:active{transform:translateY(1px)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.btn.danger{background:var(--bad-soft);color:var(--bad);border-color:var(--bad);font-weight:700}
+.btn.danger:hover{background:var(--bad);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-2)}
+.field input,.field select,.field textarea,.search{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-size:14px;transition:border-color .15s,background .15s}
+.field input[type=number]{font-family:var(--mono)}
+.field textarea{min-height:110px;resize:vertical;line-height:1.55}
+.search{width:100%}
+.field input:focus,.field select:focus,.field textarea:focus,.search:focus{border-color:var(--accent);background:var(--surface);outline:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat .k{font-size:11px;color:var(--ink-2);margin-bottom:3px}
+.stat .v{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.3}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11px;color:var(--ink-2);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-family:var(--mono);font-size:13px}
+td:first-child{font-family:var(--sans);font-size:13.5px;white-space:normal}
+td:not(:first-child){white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+.short{color:var(--bad);font-weight:600}
+.sub{font-size:12px;color:var(--ink-3)}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;box-shadow:var(--shadow)}
+.item .nm{font-weight:600}
+.item .q{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.item .q b{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px}
+.p-low{background:var(--bad-soft);color:var(--bad)}.p-ok{background:var(--ok-soft);color:var(--ok)}.p-none{background:var(--surface-2);color:var(--ink-3)}
+.alts{grid-column:1/-1;border-top:1px dashed var(--line-2);margin-top:8px;padding-top:8px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.alts .alt{display:flex;justify-content:space-between;gap:8px}
+.mitem{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.mitem:first-of-type{border-top:0;padding-top:0}
+.mitem .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.mitem .t b{font-size:14px}
+.mitem .b{white-space:pre-wrap;font-size:13.5px}
+
+/* 수첩 */
+.cat{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 16px;font-size:15px;box-shadow:var(--shadow);transition:border-color .15s}
+.cat::after{content:'›';color:var(--ink-3);font-size:18px;margin-left:10px}
+.cat:hover{border-color:var(--accent)}
+.cat .c{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-2);font-weight:600;background:var(--surface-2);border-radius:999px;padding:1px 9px}
+.acc{border:1px solid var(--line);background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.acc[data-open="1"]{border-color:var(--line-2)}
+.acc>button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;border:0;background:none;padding:13px 15px;font-size:14.5px}
+.acc>button::after{content:'›';color:var(--ink-3);transition:transform .15s}
+.acc[data-open="1"]>button::after{transform:rotate(90deg)}
+.acc .ab{padding:2px 15px 14px;white-space:pre-wrap;font-size:13.5px;color:var(--ink);border-top:1px solid var(--line);padding-top:12px}
+.acc .ab .row{margin-top:10px}
+
+.exc{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:6px;align-items:center;border-top:1px solid var(--line);padding-top:8px;font-size:13.5px}
+.exc input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-family:var(--mono)}
+.favrow{display:grid;grid-template-columns:1fr auto;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.favrow input[type=text]{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-size:13.5px}
+.favrow .ctrl{display:flex;flex-direction:column;gap:4px}
+.favrow label{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.preset{display:flex;flex-wrap:wrap;gap:6px}
+.preset button{border:1px dashed var(--line-2);background:transparent;border-radius:20px;padding:5px 11px;font-size:12.5px;color:var(--ink-2)}
+.preset button:hover{border-color:var(--accent);color:var(--accent)}
+.upload input{position:absolute;width:1px;height:1px;opacity:0}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:12.5px;z-index:20;max-width:90%;box-shadow:var(--shadow-lg)}
+textarea.fb{width:100%;height:120px;font-size:12.5px;font-family:var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:8px}
+mark{background:var(--warn-soft);color:inherit;border-radius:3px}
+
+/* ===== 앱 스타일 ===== */
+body{background:radial-gradient(120% 340px at 50% -80px,var(--glow),transparent 70%) no-repeat,var(--bg)}
+:root{--brand:#E0424F;--brand-2:#C42A3A;--glow:rgba(47,85,151,.13);--hero-1:#3563AE;--hero-2:#23427A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--brand:#E8505D;--brand-2:#B7303F;--glow:rgba(126,166,224,.12);--hero-1:#2C4C84;--hero-2:#1B2F55}}
+:root[data-theme="dark"]{--brand:#E8505D;--brand-2:#B7303F;--glow:rgba(126,166,224,.12);--hero-1:#2C4C84;--hero-2:#1B2F55}
+header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
+.mark{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,var(--brand),var(--brand-2));color:#fff;font-size:21px;box-shadow:0 6px 16px -6px rgba(214,48,74,.55),inset 0 1px 0 rgba(255,255,255,.25)}
+.iconbtn.round{width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);color:var(--ink-2)}
+.iconbtn.round:hover{color:var(--accent);border-color:var(--accent)}
+/* 오늘의 재고: 앱 위젯 */
+.today{background:linear-gradient(135deg,var(--hero-1),var(--hero-2));border:0;color:#fff;border-radius:20px;box-shadow:0 14px 30px -14px rgba(35,66,122,.6);position:relative;margin-bottom:12px}
+.today::after{content:'';position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}
+.today:hover{border-color:transparent;filter:brightness(1.04)}
+.today .d{color:rgba(255,255,255,.85);padding:14px 16px 10px;font-size:14px}
+.today .d .num{color:rgba(255,255,255,.6)}
+.today .go{color:#fff;background:rgba(255,255,255,.16);border-radius:999px;padding:3px 10px;font-size:12px;position:relative;z-index:1}
+.today .ks{background:transparent;border:0;gap:8px;padding:0 12px 12px}
+.today .k{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;position:relative;z-index:1}
+.today .k em{color:rgba(255,255,255,.78)}
+.today .k b{color:#fff;font-size:24px}
+.today .k i{box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.today.empty{background:var(--surface);color:var(--ink);border:1px dashed var(--line-2);box-shadow:none}
+.today.empty::after{display:none}
+.today.empty .d{color:var(--ink-2)}
+.today.empty .go{color:var(--accent);background:var(--accent-soft)}
+/* 즐겨찾기 */
+.favlabel{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);margin:4px 2px 10px}
+.favlabel::after{content:'';flex:1;height:1px;background:var(--line)}
+.fav{border-radius:14px;padding:9px 14px}
+.fav:active,.tile:active,.today:active,.cat:active{transform:scale(.98)}
+.fav,.tile,.today,.cat{transition:transform .12s ease,border-color .15s,background .15s,filter .15s}
+/* 대화 */
+.msg{border-radius:18px;padding:10px 15px}
+.msg.me{background:linear-gradient(135deg,var(--hero-1),var(--hero-2));color:#fff;border-bottom-right-radius:6px;box-shadow:0 8px 18px -10px rgba(35,66,122,.55)}
+.msg.bot{border-bottom-left-radius:6px}
+.welcome .wi{width:64px;height:64px;margin:0 auto 12px;border-radius:20px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+/* 입력창: 알약 모양 */
+.composer .box{border-radius:999px;padding:6px 6px 6px 8px;align-items:center}
+.composer textarea{padding:9px 6px;max-height:120px}
+.attach{width:38px;height:38px;border-radius:50%;background:transparent;color:var(--ink-2)}
+.attach:hover{background:var(--surface-2);color:var(--accent)}
+.send{width:42px;height:42px;padding:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--hero-1),var(--hero-2));color:#fff;box-shadow:0 6px 14px -6px rgba(35,66,122,.6)}
+.stop{height:38px;border-radius:999px}
+/* 패널: 아래에서 올라오는 시트(폰) */
+.panel-top{padding-top:calc(18px + env(safe-area-inset-top,0px))}
+.panel-h .iconbtn{width:36px;height:36px;border-radius:50%;background:var(--surface-2)}
+.card,.item,.acc,.cat{border-radius:16px}
+.tab{border-radius:999px}
+@media (max-width:600px){
+  .scrim{align-items:flex-end}
+  .panel{height:calc(100% - 28px);border-radius:22px 22px 0 0;animation:sheet .26s cubic-bezier(.2,.8,.2,1)}
+  .panel-top{padding-top:10px;border-radius:22px 22px 0 0}
+  .panel-top::before{content:'';width:40px;height:5px;border-radius:3px;background:var(--line-2);align-self:center;margin-bottom:4px}
+}
+@keyframes sheet{from{transform:translateY(40px);opacity:.5}}
+@media (prefers-reduced-motion:reduce){.panel{animation:none}.fav:active,.tile:active,.today:active,.cat:active{transform:none}}
+
+/* 타일 (업무 수첩 · 메모·알림) */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:14px;box-shadow:var(--shadow);min-width:0;position:relative}
+.tile:hover{border-color:var(--accent)}
+.tile .ti{width:42px;height:42px;border-radius:13px;color:#fff;display:grid;place-items:center;margin-bottom:8px}
+.t-book{background:linear-gradient(145deg,#F6B04A,#E58A1F);box-shadow:0 6px 14px -6px rgba(229,138,31,.6)}
+.t-memo{background:linear-gradient(145deg,#FFD84D,#F2B705);color:#5A4300!important;box-shadow:0 6px 14px -6px rgba(242,183,5,.6)}
+.tile .tt{font-family:var(--display);font-size:16.5px}
+.tile .ts{font-size:12px;color:var(--ink-2);width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.ring::after{content:'';position:absolute;top:12px;right:12px;width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px rgba(224,66,79,.2);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(224,66,79,.05)}}
+/* 포스트잇 색 */
+.c-yellow{--pi:#FFF3B0;--pi-2:#F2D45C;--pi-ink:#4A3B00}
+.c-pink{--pi:#FFD9E2;--pi-2:#F29BB2;--pi-ink:#5A1428}
+.c-blue{--pi:#D8E8FF;--pi-2:#8FB6EE;--pi-ink:#14305A}
+.c-green{--pi:#D6F3DF;--pi-2:#86CFA0;--pi-ink:#12432A}
+.c-purple{--pi:#E8DDFF;--pi-2:#B49BEE;--pi-ink:#33175E}
+/* 첫 화면 고정 메모 */
+.pins{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none;margin-bottom:2px}
+.pins::-webkit-scrollbar{display:none}
+.pin{flex:0 0 auto;max-width:200px;border:0;border-top:4px solid var(--pi-2);background:var(--pi);color:var(--pi-ink);border-radius:4px 4px 12px 4px;padding:9px 12px;font-size:13px;text-align:left;box-shadow:0 6px 12px -8px rgba(0,0,0,.35);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+/* 메모 패널 */
+.memo-new{background:var(--pi);border:0;border-top:5px solid var(--pi-2);color:var(--pi-ink);border-radius:6px 6px 16px 6px}
+.memo-new h3{color:var(--pi-ink);opacity:.75}
+.memo-new textarea,.memo-new .field input,.memo-new .field select,.memo-new .field textarea{background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.08);color:#1C2130}
+.memo-new #mText{width:100%;resize:vertical;border-radius:8px;padding:10px;font-size:15px;line-height:1.5}
+.memo-new .field{color:var(--pi-ink)}
+.memo-new .field textarea{min-height:64px}
+.memo-new .muted{color:var(--pi-ink);opacity:.75}
+.memo-new .preset button{border-color:rgba(0,0,0,.18);color:var(--pi-ink)}
+.memo-new .btn{background:rgba(255,255,255,.7);color:#1C2130;border-color:rgba(0,0,0,.1)}
+.memo-new .btn.primary{background:#1C2130;color:#fff;border-color:#1C2130}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px}
+.cpick{display:flex;gap:8px}
+.cdot{width:26px;height:26px;border-radius:50%;background:var(--pi);border:2px solid var(--pi-2);cursor:pointer;display:grid;place-items:center}
+.cdot input{position:absolute;opacity:0;width:1px;height:1px}
+.cdot:has(input:checked){box-shadow:0 0 0 2px var(--surface),0 0 0 4px #1C2130}
+.cdot:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.note{background:var(--pi);color:var(--pi-ink);border-top:4px solid var(--pi-2);border-radius:4px 4px 14px 4px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 16px -10px rgba(0,0,0,.35);min-height:120px}
+.note:nth-child(3n+1){transform:rotate(-.6deg)}.note:nth-child(3n+2){transform:rotate(.5deg)}
+.note .nt{flex:1;white-space:pre-wrap;font-size:14px;word-break:break-word}
+.note .nf{display:flex;flex-direction:column;gap:6px;font-size:11px;opacity:.85}
+.note .na{display:flex;flex-wrap:wrap;gap:4px}
+.note .na button{border:0;background:rgba(255,255,255,.55);color:var(--pi-ink);border-radius:6px;padding:3px 7px;font-size:11.5px}
+.note .na button:hover{background:rgba(255,255,255,.9)}
+.note .na button.arm{background:#D6304A;color:#fff}
+.btn.big{padding:13px;font-size:15px;border-radius:14px}
+.wdays{display:flex;gap:6px;flex-wrap:wrap}
+.wd input{position:absolute;opacity:0;width:1px;height:1px}
+.wd span{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.1);cursor:pointer;font-size:14px}
+.wd.wide span{width:auto;padding:0 12px;border-radius:999px}
+.invite{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:12px;padding:10px 12px}.addok{background:var(--ok-soft,var(--accent-soft));border-radius:12px;padding:10px 12px;margin:.4em 0 .8em;line-height:1.6}.addok .row{margin:.4em 0 .2em}.invite b{font-size:24px;letter-spacing:.15em;color:var(--accent)}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px}.mrow:first-child{border-top:0;padding-top:0}.mrow select{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2)}
+.notice{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--info);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.notice.imp{border-left-color:var(--bad)}.notice.unread{background:var(--accent-soft)}
+.notice .nh{display:flex;justify-content:space-between;gap:8px}.notice .nb{white-space:pre-wrap;font-size:15px}
+.notice .nf{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.wd input:checked+span{background:#1C2130;color:#fff;border-color:#1C2130}
+.wd input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.alist{display:flex;flex-direction:column;gap:8px}
+.arow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--pi-2);border-radius:14px;padding:11px 12px;box-shadow:var(--shadow)}
+.arow.off{opacity:.55}
+.arow .ab{flex:1;min-width:0}
+.arow .at{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .am{font-size:12px;color:var(--ink-2)}
+.arow .aa{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.sw{position:relative;width:42px;height:24px;flex:0 0 auto}
+.sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:999px;background:var(--line-2);transition:background .2s}
+.sw span::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.sw input:checked+span{background:var(--ok)}
+.sw input:checked+span::after{transform:translateX(18px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:420px){.arow{flex-wrap:wrap}.arow .aa{width:100%;justify-content:flex-end}}
+/* 포스트잇 팝업 */
+.stickies{position:fixed;inset:0;z-index:30;background:rgba(16,20,29,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;overflow-y:auto;animation:fade .2s ease}
+.stickies .sticky{width:min(360px,100%);flex:0 0 auto}
+.sticky{background:var(--pi);color:var(--pi-ink);border-top:8px solid var(--pi-2);border-radius:4px 4px 22px 4px;padding:14px 16px 14px;box-shadow:0 18px 36px -14px rgba(0,0,0,.45),0 3px 8px rgba(0,0,0,.12);transform:rotate(var(--r));animation:stick .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes stick{from{transform:translateY(-30px) rotate(-6deg) scale(.9);opacity:0}}
+.st-h{display:flex;justify-content:space-between;gap:8px;font-size:12px;opacity:.85}
+.st-rep{flex:0 0 auto}
+.st-t{font-size:21px;line-height:1.45;margin:8px 0 12px;white-space:pre-wrap;word-break:break-word}
+.st-a{display:flex;gap:6px;flex-wrap:wrap}
+.st-a button{border:0;border-radius:8px;padding:7px 10px;font-size:13px;background:rgba(255,255,255,.6);color:var(--pi-ink)}
+.st-a button:hover{background:rgba(255,255,255,.9)}
+.st-a .st-ok{background:#1C2130;color:#fff;padding:7px 16px}
+@media (prefers-reduced-motion:reduce){.sticky{animation:none}.tile.ring::after{animation:none}}
+
+.kv{margin:.35em 0}.kv ul{margin:.2em 0 .2em;padding-left:1.1em}
+.kv .pre{white-space:pre-wrap;font-size:13.5px;margin-top:2px}
+.warnbox{background:var(--bad-soft);border-radius:10px;padding:8px 10px}
+.hits{display:flex;flex-direction:column;gap:8px;margin:.3em 0 .6em}
+.msg.bot{max-width:96%}
+.syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:8px;vertical-align:middle;background:var(--ink-3)}.syncdot.on{background:var(--ok)}.syncdot.err{background:var(--bad)}.syncdot.wait{background:var(--warn)}
+.banner.cta{background:var(--accent);color:var(--on-accent);cursor:pointer;font-size:13.5px}
+</style></head><body>
+
+
+<div class="app">
+  <header>
+    <div class="brand"><div class="mark" aria-hidden="true">약</div><div><h1 id="title">참바른약국 도우미</h1><div class="subtitle"><span id="subtitle">재고 진단 · 업무 수첩 · 상담</span><span class="syncdot" id="syncDot" hidden></span></div></div></div>
+    <button class="iconbtn round" id="menuBtn" type="button" aria-label="설정 열기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+  <button class="today" id="today" type="button" hidden aria-label="오늘의 재고 열기"></button>
+  <div class="tiles">
+    <button class="tile" id="book" type="button"><span class="ti t-book"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg></span><span class="tt">업무 수첩</span><span class="ts" id="bookSub">프로그램 사용법 · 반품 · 거래처</span></button>
+    <button class="tile" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></button>
+  </div>
+  <div class="pins" id="pins" hidden aria-label="고정한 메모"></div>
+  <div class="favlabel">자주 쓰는 질문</div>
+  <nav class="favs" id="favs" aria-label="즐겨찾기"></nav>
+  <main class="chat" id="chat" aria-live="polite">
+    <div class="welcome" id="welcome"><span class="wi"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><b>무엇을 찾을까요?</b>약 이름을 치면 재고가, 거래처 이름을 치면 수첩이 나와요.<br>"세파클러 12kg"은 용량 계산, "내일 3시 반품 알림"은 알림 등록이 돼요.</div>
+  </main>
+  <div class="chip-img" id="imgChip" hidden><img id="imgThumb" alt="첨부한 사진"><span id="imgName"></span><button type="button" id="imgDel">빼기</button></div>
+  <form class="composer" id="form"><div class="box">
+    <label class="attach" id="attachLbl" title="사진 첨부 (약 포장·약봉투)" hidden><input type="file" id="img" accept="image/*" aria-label="사진 첨부"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></label>
+    <textarea id="input" rows="1" placeholder="약 이름 · 거래처 · 알림 등록" aria-label="질문 입력"></textarea>
+    <button class="stop" id="stopBtn" type="button" hidden>멈추기</button>
+    <button class="send" id="sendBtn" type="submit" aria-label="보내기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  </div></form>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="stickies" id="stickies" hidden aria-live="assertive"></div>
+
+<script src="vendor/xlsx.full.min.js"></script><script src="vendor/firebase.js"></script>
+<script>
+/* ===== 고정 자료: OTC 상담 기준, 환자 오해 대응 카드 ===== */
+const AGES=[{id:'infant',label:'2세 미만'},{id:'child',label:'2–11세'},{id:'adult',label:'12–64세'},{id:'elder',label:'65세 이상'}];
+const FLAG_GROUPS=[
+ {label:'상태',items:[['preg','임신'],['lact','수유'],['drive','운전·기계 조작'],['alcohol','매일 음주']]},
+ {label:'기저질환',items:[['htn','고혈압'],['heart','심장질환'],['dm','당뇨'],['liver','간질환'],['kidney','신장질환'],['ulcer','위궤양·위장출혈 이력'],['glaucoma','녹내장'],['bph','전립선비대'],['asthma','천식'],['thyroid','갑상선질환']]},
+ {label:'복용 중인 약',items:[['anticoag','항응고·항혈소판제 (와파린, 아스피린 등)'],['antidep','항우울제 (SSRI·MAOI 등)']]}
+];
+const FLAG_LABEL={};FLAG_GROUPS.forEach(g=>g.items.forEach(([k,v])=>FLAG_LABEL[k]=v));AGES.forEach(a=>FLAG_LABEL[a.id]=a.label);
+
+// level: 'a' = 피함, 'c' = 주의
+const ING={
+ apap:{n:'아세트아미노펜',c:'해열진통제',note:'위장 부담이 적어 1차 선택. 1일 최대 4,000mg(허가사항). 종합감기약과 중복되지 않는지 확인.',x:[['liver','a','간질환: 사용 자제, 의사와 상의'],['alcohol','c','매일 음주: 간독성 위험 증가, 복용 자제 권고'],['infant','c','영유아: 시럽·좌제로 체중 기반 용량 계산']]},
+ nsaid:{n:'이부프로펜·덱시부프로펜',c:'소염진통제 (NSAID)',note:'염증을 동반한 통증·발열에. 식후 복용, 최단기간 사용.',x:[['preg','a','임신: 사용 자제 (특히 임신 20주 이후)'],['ulcer','a','위궤양·출혈 이력: 재발·출혈 위험'],['kidney','a','신장질환: 신기능 악화 위험'],['anticoag','a','항응고·항혈소판제 병용: 출혈 위험 증가'],['htn','c','고혈압: 혈압 상승, 혈압약 효과 감소 가능'],['heart','c','심장질환: 심혈관 위험, 단기 최소 용량'],['asthma','c','천식: 아스피린 천식 병력 확인'],['elder','c','고령: 위장·신장 부작용 위험, 외용제 우선 고려'],['alcohol','c','매일 음주: 위장출혈 위험 증가'],['infant','c','영유아: 허가 연령·체중 확인']]},
+ ah1:{n:'클로르페니라민',c:'1세대 항히스타민',note:'콧물·재채기에 효과적이지만 졸림이 흔함.',x:[['glaucoma','a','녹내장: 안압 상승 위험'],['bph','a','전립선비대: 배뇨곤란 악화'],['infant','a','2세 미만: 감기약 임의 사용 자제'],['elder','c','고령: 졸림·혼동·낙상 위험, 2세대 우선'],['drive','c','운전·기계 조작: 졸음, 복용 시간 조정'],['alcohol','c','음주: 진정 작용 증강'],['child','c','소아: 허가 용량 확인, 흥분 반응 가능'],['preg','c','임신: 사용 전 상담'],['lact','c','수유: 영아 진정 가능']]},
+ ah2:{n:'세티리진·로라타딘·펙소페나딘',c:'2세대 항히스타민',note:'졸림이 적음. 맑은 콧물·재채기, 알레르기 양상일 때 적합.',x:[['kidney','c','신장질환: 세티리진은 감량 필요'],['infant','c','영유아: 허가 연령 확인'],['preg','c','임신: 사용 전 상담'],['drive','c','운전: 세티리진은 드물게 졸림']]},
+ decong:{n:'슈도에페드린·페닐레프린',c:'경구 비충혈제거제',note:'코막힘 완화. 종합감기약에 흔히 포함되니 성분표 확인.',x:[['htn','a','고혈압: 혈압 상승'],['heart','a','심장질환: 빈맥·부정맥 위험'],['antidep','a','MAOI 복용 중이면 병용 금기 (고혈압 위기)'],['infant','a','2세 미만: 사용 자제'],['thyroid','c','갑상선기능항진: 증상 악화 가능'],['dm','c','당뇨: 혈당 상승 가능'],['glaucoma','c','녹내장: 안압 상승 가능'],['bph','c','전립선비대: 배뇨곤란'],['elder','c','고령: 불면·혈압 상승'],['preg','c','임신: 초기 사용 자제, 상담']]},
+ nasal:{n:'옥시메타졸린·자일로메타졸린',c:'비강 분무제',note:'효과가 빠름. 연속 사용은 수일 이내로 제한 (반동성 코막힘).',x:[['infant','a','영유아: 사용 자제, 소아용 농도 별도'],['htn','c','고혈압: 과량 사용 시 전신 흡수'],['glaucoma','c','녹내장: 사용 전 확인'],['antidep','c','MAOI 복용 중: 사용 전 확인']]},
+ saline:{n:'생리식염수 비강 세척·분무',c:'비약물',note:'코막힘·콧물에 연령 제한 없이 병행 가능.',x:[]},
+ dxm:{n:'덱스트로메토르판',c:'진해제',note:'가래 없는 마른기침에. 가래가 많으면 단독 사용 피함.',x:[['antidep','a','SSRI·MAOI 병용: 세로토닌 증후군 위험'],['infant','a','2세 미만: 사용 자제'],['asthma','c','천식: 발작성 기침은 진료 권유'],['child','c','소아: 허가 연령·용량 확인']]},
+ expect:{n:'암브록솔·아세틸시스테인·구아이페네신',c:'거담제',note:'가래를 묽게 해 배출을 도움. 물을 충분히 마시도록 안내.',x:[['ulcer','c','위궤양: 아세틸시스테인·암브록솔 위장 자극'],['infant','c','2세 미만: 허가 연령 확인']]},
+ ivy:{n:'아이비엽건조엑스',c:'생약 진해거담제',note:'기침·가래가 섞인 경우. 소아용 시럽 제형이 있음.',x:[['infant','c','영유아: 제품별 허가 연령 확인']]},
+ throat:{n:'트로키·가글 (세틸피리디늄·클로르헥시딘·포비돈요오드)',c:'인후 국소제',note:'목 통증을 국소적으로 완화. 포비돈요오드는 장기 사용 피함.',x:[['infant','a','영유아: 트로키 질식 위험, 가글 불가'],['thyroid','c','갑상선질환: 포비돈요오드 가글 주의'],['preg','c','임신: 포비돈요오드 장기 사용 피함'],['lact','c','수유: 포비돈요오드 장기 사용 피함']]},
+ antacid:{n:'수산화마그네슘·수산화알루미늄·탄산칼슘',c:'제산제',note:'효과가 빠름. 다른 약과 2시간 간격을 둠.',x:[['kidney','a','신장질환: 마그네슘·알루미늄 축적 위험']]},
+ alginate:{n:'알긴산나트륨 복합제',c:'역류 방지제',note:'식후·취침 전 역류에. 임신 중 속쓰림에도 흔히 사용.',x:[['htn','c','고혈압: 나트륨 함량 확인'],['kidney','c','신장질환: 나트륨·칼슘 함량 확인']]},
+ h2:{n:'파모티딘',c:'H2 수용체 차단제',note:'지속 효과. 2주 이상 계속 필요하면 진료 권유.',x:[['infant','a','영유아: 일반의약품 사용 불가'],['child','a','소아: 일반의약품 허가 연령 확인'],['kidney','c','신장질환: 감량 필요'],['preg','c','임신: 사용 전 상담']]},
+ enzyme:{n:'소화효소제 (판크레아틴 등)',c:'소화제',note:'과식·기름진 식사 후 더부룩함에.',x:[]},
+ trime:{n:'트리메부틴',c:'위장운동 조절제',note:'더부룩함, 복부 불편감, 과민성 증상에.',x:[['preg','c','임신: 사용 전 상담'],['infant','c','영유아: 허가 연령 확인']]},
+ simeth:{n:'시메티콘',c:'가스 제거제',note:'복부 팽만·가스에. 전신 흡수가 거의 없음.',x:[]},
+ hyos:{n:'부틸스코폴라민',c:'진경제 (항콜린)',note:'쥐어짜는 듯한 복통·경련에.',x:[['glaucoma','a','녹내장: 안압 상승'],['bph','a','전립선비대: 요폐 위험'],['heart','c','심장질환: 빈맥'],['elder','c','고령: 변비·배뇨곤란·혼동'],['infant','a','영유아: 사용 불가']]},
+ ors:{n:'경구수액제 (ORS)',c:'수분·전해질 보충',note:'설사 대응의 1순위. 조금씩 자주 마시도록 안내.',x:[]},
+ smect:{n:'디옥타헤드랄스멕타이트',c:'흡착 지사제',note:'소아에도 흔히 사용. 다른 약과 2시간 이상 간격.',x:[]},
+ probio:{n:'정장생균제 (유산균)',c:'정장제',note:'항생제 복용 후 설사, 장내 환경 개선.',x:[]},
+ lope:{n:'로페라미드',c:'지사제 (장운동 억제)',note:'비감염성 급성 설사에 단기 사용. 발열·혈변 동반 시 사용하지 않음.',x:[['infant','a','영유아: 사용 금기'],['child','a','소아: 허가 연령 확인, 일반적으로 권장하지 않음'],['liver','c','간질환: 사용 전 확인'],['preg','c','임신: 사용 전 상담']]},
+ fiber:{n:'차전자피',c:'팽창성 완하제',note:'변비의 1순위. 물 한 컵 이상과 함께, 효과까지 1~3일.',x:[]},
+ osmo:{n:'락툴로오스·산화마그네슘',c:'삼투성 완하제',note:'습관성 변비에 비교적 안전하게 사용.',x:[['kidney','a','신장질환: 산화마그네슘 고마그네슘혈증 위험'],['elder','c','고령: 산화마그네슘은 신기능 확인']]},
+ glyc:{n:'글리세린 좌제·관장',c:'국소 완하제',note:'빠른 배변이 필요할 때.',x:[]},
+ stim:{n:'비사코딜·센나',c:'자극성 완하제',note:'단기·간헐적으로만. 복통이 생길 수 있음.',x:[['infant','a','영유아: 사용 자제'],['preg','c','임신: 사용 전 상담'],['elder','c','고령: 장기 사용 시 전해질 이상']]},
+ motion:{n:'디멘히드리네이트·메클리진',c:'멀미약 (항히스타민)',note:'승차 30분~1시간 전 복용.',x:[['glaucoma','a','녹내장: 안압 상승'],['bph','a','전립선비대: 배뇨곤란'],['infant','a','영유아: 사용 불가'],['drive','c','운전자 본인: 졸음'],['elder','c','고령: 졸림·혼동'],['alcohol','c','음주: 진정 작용 증강']]},
+ scopatch:{n:'스코폴라민 패치',c:'멀미약 (항콜린)',note:'귀 뒤에 붙임. 붙인 손으로 눈을 만지지 않도록 안내.',x:[['glaucoma','a','녹내장: 사용 금기'],['bph','a','전립선비대: 요폐 위험'],['child','a','소아: 허가 연령 확인'],['infant','a','영유아: 사용 불가'],['elder','c','고령: 혼동·환각 보고']]},
+ topnsaid:{n:'디클로페낙·케토프로펜·록소프로펜 외용제',c:'외용 소염진통제 (겔·파스)',note:'전신 부작용이 적어 고령자에게 우선 고려. 케토프로펜은 부착 부위 자외선 차단.',x:[['preg','c','임신: 후기 사용 자제, 케토프로펜 외용은 임신 후기 금기'],['asthma','c','천식: 아스피린 천식 병력 확인'],['infant','a','영유아: 사용 불가']]},
+ counter:{n:'멘톨·캡사이신 외용제',c:'국소 자극제',note:'근육 뭉침·가벼운 통증에. 상처 부위에는 사용하지 않음.',x:[['infant','a','영유아: 사용 불가']]},
+ gluco:{n:'글루코사민',c:'관절 보조 성분',note:'효과 근거는 제한적. 3개월 사용 후 판단. 갑각류 알레르기 확인.',x:[['anticoag','c','와파린: 효과 증강 보고, INR 확인'],['dm','c','당뇨: 혈당 모니터링']]}
+};
+
+const TABS={
+ cold:{label:'감기·호흡기',
+  red:[['fever3','39℃ 이상 고열 또는 3일 넘는 발열'],['breath','숨이 차거나 가슴 통증'],['long','증상 10일 이상 지속, 또는 나아지다 다시 악화'],['swallow','침 삼키기 어려울 정도의 인후통, 목소리 변화'],['blood','피 섞인 가래'],['neck','심한 두통과 목 뻣뻣함'],['baby','3개월 미만 영아의 발열']],
+  sym:[
+   ['fever','발열·몸살',['apap','nsaid'],'수분 섭취와 휴식을 먼저 안내.'],
+   ['rhin','콧물·재채기',['ah2','ah1','saline'],'누런 콧물이 10일 넘게 가면 부비동염 가능성을 안내.'],
+   ['cong','코막힘',['saline','nasal','decong'],'분무제는 수일 이내로만 쓰도록 안내.'],
+   ['dry','마른기침',['dxm','ivy'],'밤 기침이 심하면 가습·수분 섭취 병행.'],
+   ['wet','가래 기침',['expect','ivy'],'가래가 있을 때 진해제만 단독으로 쓰지 않음.'],
+   ['sore','인후통',['throat','apap','nsaid'],'따뜻한 물로 자주 목을 적시도록 안내.']
+  ]},
+ gi:{label:'소화기',
+  red:[['gibleed','검은 변·혈변·피를 토함'],['wtloss','의도하지 않은 체중 감소'],['dysphagia','음식을 삼키기 어려움'],['newold','50대 이후 처음 생긴 소화 증상'],['severe','심하거나 한곳에 계속되는 복통 (특히 오른쪽 아랫배)'],['febdia','38.5℃ 이상 발열을 동반한 설사'],['dehyd','탈수 징후 (소변량 감소, 어지러움, 입 마름)'],['persist','설사 3일 이상, 변비 2주 이상, 배변 습관 변화'],['vomit','반복되는 구토']],
+  sym:[
+   ['reflux','속쓰림·신트림',['antacid','alginate','h2'],'취침 3시간 전 금식, 과식·커피·술 줄이기.'],
+   ['dysp','더부룩함·소화불량',['enzyme','trime','simeth'],'천천히 먹고 기름진 음식 줄이기.'],
+   ['cramp','쥐어짜는 복통',['hyos'],'한곳에 지속되는 통증이면 진료 권유.'],
+   ['diar','설사',['ors','smect','probio','lope'],'탈수 예방이 최우선. 유제품·기름진 음식 잠시 피하기.'],
+   ['const','변비',['fiber','osmo','glyc','stim'],'하루 물 1.5L 이상, 식이섬유·걷기 병행.'],
+   ['motion','멀미',['motion','scopatch'],'차량 앞좌석, 먼 곳 바라보기.']
+  ]},
+ joint:{label:'관절·근육',
+  red:[['hotjoint','관절이 붉고 뜨겁게 부어오름 (감염·통풍 의심)'],['jfever','발열을 동반한 관절통'],['trauma','다친 뒤 체중을 싣지 못하거나 변형이 보임'],['morning','아침 강직 1시간 이상, 여러 관절이 대칭으로 아픔'],['neuro','다리 저림·힘 빠짐·배뇨 이상을 동반한 요통'],['night','밤에 심해지는 통증, 체중 감소 동반'],['long6','6주 넘게 호전되지 않음']],
+  sym:[
+   ['oa','무릎 등 만성 관절통',['topnsaid','apap','nsaid','gluco'],'체중 관리와 허벅지 근력 운동 병행.'],
+   ['sprain','삠·타박상',['topnsaid','nsaid','apap'],'첫 48시간은 냉찜질·압박·높이 올리기.'],
+   ['muscle','근육통·뭉침',['counter','topnsaid','apap'],'온찜질과 스트레칭 병행.'],
+   ['back','갑자기 생긴 허리 통증',['nsaid','apap','topnsaid'],'누워만 있기보다 가능한 범위에서 움직이기.']
+  ]}
+};
+
+const CARDS=[
+ {cat:'임의 중단',v:'over',said:'고지혈증약 먹으면 근육이 녹는다던데, 그냥 끊을래요.',
+  fact:'<b>근육통은 흔하지만, 심각한 근육 손상(횡문근융해증)은 10만 명당 수 명 수준으로 매우 드뭅니다.</b> 임의로 끊으면 심근경색·뇌졸중 예방 효과가 사라집니다.',
+  script:'근육이 좀 뻐근한 건 가끔 있을 수 있는데, 근육이 녹는 정도의 부작용은 아주 드물어요. 약을 끊으시면 혈관 보호 효과가 없어지니까, 근육통이 신경 쓰이시면 끊지 마시고 의사 선생님께 말씀하세요. 약 종류나 용량을 바꾸는 방법이 있어요.',
+  check:['근육통 부위(양쪽 허벅지·어깨 등 큰 근육인지)','시작 시기와 용량 변경 여부','같이 먹는 약 (일부 항생제·항진균제 등)'],
+  red:['콜라색처럼 짙은 소변','힘이 빠질 정도의 근육통·근력 저하'],kw:'스타틴 아토르바스타틴 로수바스타틴 콜레스테롤 근육통 횡문근'},
+ {cat:'임의 중단',v:'part',said:'고지혈증약이 당뇨를 만든다면서요?',
+  fact:'<b>당뇨 위험이 약간 늘어난다는 연구는 있습니다.</b> 주로 이미 당뇨 전 단계인 분에게서 발견 시기가 앞당겨지는 정도이고, 심혈관 예방 이득이 더 큰 경우가 대부분입니다.',
+  script:'혈당이 조금 오를 수 있다는 연구가 있긴 해요. 그런데 대부분은 원래 당뇨 경계에 있던 분들 이야기이고, 이 약이 막아주는 심장·뇌혈관 질환 이득이 훨씬 커요. 정기 검사 때 혈당도 같이 보시면 돼요.',
+  check:['최근 공복혈당·당화혈색소','체중·생활습관 변화'],red:['갈증·소변량 증가·체중 감소가 새로 생김'],kw:'스타틴 당뇨 혈당'},
+ {cat:'임의 중단',v:'false',said:'요즘 혈압이 정상이라 혈압약은 이제 안 먹어도 되죠?',
+  fact:'<b>혈압이 정상인 건 대부분 약 덕분입니다.</b> 갑자기 끊으면 혈압이 다시 오르고, 일부 약(베타차단제 등)은 반동성 상승이 생길 수 있습니다. 감량은 의사가 판단합니다.',
+  script:'지금 혈압이 좋은 건 약이 잘 듣고 있어서예요. 약을 끊으면 다시 올라가요. 운동이나 체중 조절로 좋아지면 의사 선생님이 약을 줄여주실 수 있으니, 그때까지는 꾸준히 드세요.',
+  check:['가정혈압 기록 여부','어지러움 등 저혈압 증상'],red:['일어설 때 어지러워 쓰러질 것 같음','가정혈압이 계속 100/60 이하'],kw:'혈압약 고혈압 중단 평생'},
+ {cat:'임의 중단',v:'part',said:'항생제는 좋아지면 그만 먹어도 된다던데요?',
+  fact:'<b>질환에 따라 짧게 써도 되는 경우가 있다는 연구는 맞습니다.</b> 다만 기간은 감염 부위와 균에 따라 처방의가 정한 것이라 환자가 임의로 줄이면 재발·내성 위험이 있습니다.',
+  script:'요즘은 항생제를 짧게 쓰는 경우도 많아진 건 맞아요. 그런데 며칠이 적당한지는 병마다 달라서 의사 선생님이 정해주신 거예요. 처방받은 만큼 드시고, 남은 약은 나중에 따로 드시지 마세요.',
+  check:['처방 일수와 감염 부위','설사·발진 등 부작용'],red:['물설사가 하루 여러 번 계속됨','발진·입술 부종'],kw:'항생제 내성 중단'},
+ {cat:'임의 중단',v:'false',said:'항우울제는 중독된다던데, 이제 괜찮으니 끊을래요.',
+  fact:'<b>항우울제는 중독성(갈망·용량 증가) 약이 아닙니다.</b> 다만 갑자기 끊으면 어지러움·불면·기분 변화 같은 중단 증상이 생길 수 있어 서서히 줄여야 합니다.',
+  script:'이 약은 중독되는 약은 아니에요. 다만 갑자기 끊으면 어지럽거나 잠을 못 자는 증상이 생길 수 있어서, 끊으실 때도 의사 선생님과 천천히 줄이는 게 좋아요.',
+  check:['복용 기간','최근 증상 호전 정도'],red:['기분이 급격히 가라앉거나 극단적 생각이 듦'],kw:'항우울제 SSRI 중독 의존 중단'},
+ {cat:'같이 먹어도 되나',v:'false',said:'타이레놀이랑 종합감기약 같이 먹어도 된다던데요?',
+  fact:'<b>종합감기약 대부분에 아세트아미노펜이 이미 들어 있습니다.</b> 같이 먹으면 중복되어 1일 최대량(4,000mg)을 넘기기 쉽고, 간 손상 위험이 커집니다.',
+  script:'이 감기약 안에 타이레놀 성분이 이미 들어 있어요. 같이 드시면 두 번 드시는 셈이라 간에 무리가 가요. 열이 많이 나시면 둘 중 하나만 드시고 시간 간격을 지켜주세요.',
+  check:['감기약 성분표 (아세트아미노펜 함량)','하루 총 복용 횟수','음주 여부'],red:['많이 먹은 뒤 메스꺼움·구토·오른쪽 윗배 통증'],kw:'타이레놀 아세트아미노펜 감기약 중복 간'},
+ {cat:'같이 먹어도 되나',v:'part',said:'오메가3, 은행잎 영양제는 아스피린이랑 먹어도 상관없죠?',
+  fact:'<b>출혈 경향이 더해질 수 있다는 보고가 있습니다.</b> 특히 와파린·항혈소판제 2가지 이상 복용자, 수술·시술 예정자는 먼저 알려야 합니다.',
+  script:'영양제도 피를 묽게 하는 쪽으로 작용하는 게 있어서, 아스피린이랑 같이 드시면 멍이 잘 들 수 있어요. 드시는 영양제 목록을 의사 선생님께 꼭 알려주시고, 시술 전에는 미리 말씀하세요.',
+  check:['항응고·항혈소판제 종류와 개수','시술·수술·치과 치료 예정'],red:['잇몸·코 출혈이 잘 멈추지 않음','검은 변'],kw:'오메가3 은행잎 아스피린 와파린 출혈 영양제'},
+ {cat:'같이 먹어도 되나',v:'over',said:'약 먹을 땐 자몽주스 절대 먹으면 안 된다면서요?',
+  fact:'<b>모든 약이 해당되지는 않습니다.</b> 일부 스타틴(심바스타틴 등), 일부 혈압약(펠로디핀 등), 일부 면역억제제처럼 특정 약만 영향을 받습니다.',
+  script:'자몽이 문제 되는 약은 정해져 있어요. 지금 드시는 약은 제가 확인해 드릴게요. 해당되는 약이면 자몽주스는 피하시고, 아니면 괜찮아요.',
+  check:['복용약이 해당 약물인지 (허가사항 확인)'],red:[],kw:'자몽 상호작용 음식'},
+ {cat:'같이 먹어도 되나',v:'part',said:'와파린 먹으면 푸른 채소는 먹으면 안 된다던데요?',
+  fact:'<b>끊을 필요는 없고 일정하게 먹는 게 핵심입니다.</b> 비타민K 섭취량이 갑자기 변하면 약효(INR)가 흔들립니다.',
+  script:'채소를 아예 끊으실 필요는 없어요. 평소 드시던 만큼 꾸준히 드시는 게 중요해요. 갑자기 녹즙을 많이 드시거나 확 줄이면 약 효과가 달라지니, 식단이 크게 바뀌면 병원에 말씀하세요.',
+  check:['최근 식단 변화 (녹즙·청국장 등)','새로 시작한 약·영양제'],red:['멍·출혈이 잦아짐','검은 변, 소변에 피'],kw:'와파린 비타민K 채소 INR'},
+ {cat:'같이 먹어도 되나',v:'false',said:'갑상선약은 아무 때나 커피랑 먹어도 된다던데요?',
+  fact:'<b>레보티록신은 공복 복용이 원칙입니다.</b> 아침 식사 30~60분 전 물과 함께 먹고, 커피·칼슘·철분제는 흡수를 떨어뜨리므로 간격을 둡니다.',
+  script:'이 약은 빈속에 물로 드셔야 잘 흡수돼요. 아침에 일어나서 바로 드시고 30분에서 1시간 뒤에 식사나 커피를 드세요. 칼슘이나 철분제는 4시간 정도 떨어뜨려 드시고요.',
+  check:['복용 시간·함께 먹는 것','칼슘·철분·제산제 복용'],red:['두근거림·손떨림·체중 감소','심한 피로·부종'],kw:'갑상선 레보티록신 씬지로이드 커피 공복'},
+ {cat:'부작용 걱정',v:'part',said:'위장약 오래 먹으면 치매 걸린다던데요?',
+  fact:'<b>관찰연구에서 연관성이 보고됐지만 인과관계는 확인되지 않았고</b>, 이후 연구에서는 연관이 없다는 결과도 많습니다. 다만 장기 복용은 필요성을 주기적으로 다시 보는 게 맞습니다.',
+  script:'그런 연구가 나온 적은 있는데, 약 때문이라고 확인된 건 아니에요. 그래도 오래 드시는 약이니까 계속 필요한지 의사 선생님과 가끔 확인해 보세요. 갑자기 끊으면 속쓰림이 더 심해질 수 있어요.',
+  check:['복용 기간과 처음 처방 이유','다른 위장약 중복'],red:['삼키기 어려움, 체중 감소, 검은 변'],kw:'PPI 위장약 에소메프라졸 판토프라졸 치매'},
+ {cat:'부작용 걱정',v:'false',said:'당뇨약(메트포르민)이 신장을 망가뜨린다던데요?',
+  fact:'<b>메트포르민이 신장을 손상시키지는 않습니다.</b> 신장으로 배설되기 때문에 신기능이 떨어지면 용량을 조절하는 것이고, 그래서 정기 검사를 합니다.',
+  script:'이 약이 신장을 나쁘게 하는 건 아니에요. 신장으로 빠져나가는 약이라서 신장 기능을 가끔 확인하는 거예요. 조영제 쓰는 CT 찍으실 땐 미리 이 약 드신다고 말씀하세요.',
+  check:['최근 신기능 검사(eGFR)','조영제 검사 예정'],red:['심한 구토·설사로 못 먹는 상태 (탈수)'],kw:'메트포르민 당뇨 신장 콩팥'},
+ {cat:'부작용 걱정',v:'part',said:'콧물약 먹으면 치매 생긴다고 봤어요.',
+  fact:'<b>항콜린 작용이 강한 1세대 항히스타민을 고령자가 오래 먹을 때의 연관성 이야기입니다.</b> 감기로 며칠 먹는 것과는 다르고, 2세대는 해당이 적습니다.',
+  script:'그건 어르신들이 수면유도제 같은 약을 몇 년씩 드셨을 때 이야기예요. 감기로 며칠 드시는 건 걱정 안 하셔도 돼요. 그래도 원하시면 졸음이 덜한 다른 성분으로 드릴게요.',
+  check:['연령, 복용 기간','수면유도제(디펜히드라민 등) 상시 복용'],red:[],kw:'항히스타민 콧물약 치매 수면유도제 디펜히드라민'},
+ {cat:'부작용 걱정',v:'over',said:'골다공증약 먹으면 턱뼈가 썩는다던데요?',
+  fact:'<b>턱뼈괴사는 골다공증 용량에서는 1만~10만 명 중 1명 정도로 드뭅니다.</b> 반면 약을 끊으면 골절 위험이 다시 올라갑니다.',
+  script:'그런 부작용이 있긴 한데 아주 드물어요. 뼈가 부러지는 걸 막는 효과가 훨씬 커요. 대신 이를 뽑거나 임플란트 하실 때는 치과에 이 약 드신다고 꼭 말씀하세요.',
+  check:['치과 치료 예정','복용 기간'],red:['잇몸에 뼈가 드러나거나 잘 낫지 않는 상처'],kw:'골다공증 비스포스포네이트 알렌드로네이트 턱뼈'},
+ {cat:'부작용 걱정',v:'over',said:'스테로이드 연고는 피부 얇아져서 무서워요.',
+  fact:'<b>정해진 강도·부위·기간을 지키면 안전하게 쓸 수 있습니다.</b> 실제로는 너무 조금 발라 효과를 못 보는 경우가 더 흔합니다.',
+  script:'얼굴이나 접히는 곳에 오래 바르면 문제가 될 수 있는데, 정해진 기간만 바르시면 괜찮아요. 너무 얇게 바르면 오히려 오래 쓰게 되니까 손가락 한 마디 길이로 손바닥 두 개 넓이에 바르세요.',
+  check:['바르는 부위 (얼굴·겨드랑이·사타구니)','연고 강도와 사용 기간'],red:['2주 이상 발라도 나아지지 않음','진물·고름'],kw:'스테로이드 연고 피부 위축 FTU'},
+ {cat:'부작용 걱정',v:'false',said:'진통제 자주 먹으면 내성 생겨서 나중에 안 듣는다던데요?',
+  fact:'<b>아세트아미노펜·이부프로펜 같은 진통제는 내성이 생기지 않습니다.</b> 다만 두통약을 한 달에 10~15일 이상 먹으면 오히려 두통이 잦아지는 약물과용두통이 생길 수 있습니다.',
+  script:'이 진통제는 내성이 생기는 약은 아니에요. 대신 두통약을 한 달에 열흘 넘게 드시면 두통이 더 자주 올 수 있어요. 그 정도로 자주 아프시면 원인을 한번 진료받아 보세요.',
+  check:['한 달 복용 일수','두통 양상 변화'],red:['갑자기 생긴 극심한 두통','팔다리 힘 빠짐·말 어눌함 동반'],kw:'진통제 내성 두통 약물과용'},
+ {cat:'영양제·한약',v:'false',said:'천연 성분이나 한약은 부작용이 없잖아요.',
+  fact:'<b>천연이라도 간 손상·상호작용이 보고됩니다.</b> 고용량 녹차추출물, 일부 한약재, 세인트존스워트(항우울제·피임약 상호작용) 등이 대표적입니다.',
+  script:'천연이라도 몸에서 약처럼 작용하는 건 부작용도 있을 수 있어요. 특히 처방약 드시는 분은 같이 드셔도 되는지 확인하고 드시는 게 좋아요. 드시는 제품 가져오시면 봐드릴게요.',
+  check:['제품명과 성분','간 질환 여부, 처방약 목록'],red:['눈·피부가 노래짐','소변이 짙어지고 심한 피로'],kw:'한약 건강기능식품 천연 간 녹차 세인트존스워트'},
+ {cat:'영양제·한약',v:'part',said:'비타민D는 많이 먹을수록 좋다던데요?',
+  fact:'<b>결핍일 때 보충은 도움이 되지만, 과량은 고칼슘혈증을 일으킬 수 있습니다.</b> 성인 상한섭취량은 하루 4,000IU(100μg)이며 고용량은 검사 수치를 보고 결정합니다.',
+  script:'부족하면 보충하는 게 좋지만 많이 드신다고 더 좋아지지는 않아요. 하루 4,000단위를 넘기는 건 검사 결과 보고 의사 선생님이 정하시는 게 좋아요. 다른 영양제에도 들어 있는지 같이 확인해 볼게요.',
+  check:['총 섭취량 (종합비타민·칼슘제 포함)','혈중 농도 검사 여부'],red:['메스꺼움·갈증·잦은 소변 (고칼슘 증상)'],kw:'비타민D 과량 영양제'},
+ {cat:'영양제·한약',v:'false',said:'복제약(제네릭)은 오리지널보다 효과가 떨어진다던데요?',
+  fact:'<b>제네릭은 생물학적동등성 시험으로 오리지널과 같은 흡수·효과를 확인받은 약입니다.</b> 첨가제나 모양이 다를 수는 있습니다.',
+  script:'복제약도 오리지널과 같은 효과가 나는지 시험을 통과한 약이에요. 모양이나 색만 다를 수 있어요. 바꾼 뒤 불편한 점이 있으면 말씀해 주세요.',
+  check:['약 모양이 바뀌어 혼동하지 않는지'],red:[],kw:'제네릭 복제약 오리지널 생동성'},
+ {cat:'쓰는 법',v:'false',said:'감기인데 항생제 좀 받아야 빨리 낫는다던데요?',
+  fact:'<b>감기는 대부분 바이러스 감염이라 항생제가 효과가 없습니다.</b> 불필요한 항생제는 설사 같은 부작용과 내성만 늘립니다.',
+  script:'감기는 바이러스라서 항생제로는 안 나아요. 대신 증상을 덜어주는 약으로 편하게 지내시면 보통 1~2주 안에 좋아져요. 열이 오래가거나 누런 콧물이 열흘 넘게 가면 진료 받아보세요.',
+  check:['증상 기간, 발열 양상'],red:['39℃ 이상 고열 3일 이상','호흡곤란'],kw:'감기 항생제 바이러스'},
+ {cat:'쓰는 법',v:'false',said:'밥을 못 먹었는데 당뇨약은 원래대로 먹었어요.',
+  fact:'<b>설포닐우레아(글리메피리드 등)나 인슐린은 식사를 거르면 저혈당 위험이 큽니다.</b> 약 종류에 따라 거를지 여부가 다릅니다.',
+  script:'어떤 당뇨약은 밥을 안 드시고 드시면 혈당이 너무 떨어질 수 있어요. 드시는 약이 어떤 건지 확인해 드릴게요. 식은땀이 나거나 손이 떨리면 사탕이나 주스를 바로 드세요.',
+  check:['당뇨약 종류','아플 때(식사 불가) 대처 교육 여부'],red:['식은땀·손떨림·의식 흐림'],kw:'당뇨 저혈당 글리메피리드 인슐린 식사'}
+];
+
+
+/* ===== 공통 ===== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>String(s||'').toLowerCase().replace(/[\s()\[\]_\-.,/·:]+/g,'');
+const fmt=n=>{n=+n||0;return Number.isInteger(n)?n.toLocaleString('ko-KR'):n.toLocaleString('ko-KR',{maximumFractionDigits:1})};
+const r1=n=>Math.round(n*10)/10;
+function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+function local(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function tokens(q){return String(q).split(/[\s,.?!·/()]+/).map(t=>t.replace(/(은|는|이|가|을|를|에|에서|으로|로|도|요|야|해|해줘|알려줘|어떻게|뭐|있어|몇|개|좀)$/,'')).filter(t=>t.length>=2)}
+function copyText(txt){const ok=()=>toast('복사했어요');try{navigator.clipboard.writeText(txt).then(ok,()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}}
+function fallbackCopy(txt){const ta=document.createElement('textarea');ta.className='fb';ta.value=txt;ta.style.cssText='position:fixed;left:16px;right:16px;bottom:100px;z-index:30';document.body.appendChild(ta);ta.focus();ta.select();toast('선택했어요. 복사해서 쓰세요');setTimeout(()=>ta.remove(),8000)}
+function dateLabel(d){return d?`${+d.slice(4,6)}/${+d.slice(6)}`:''}
+
+/* ===== 저장소 상태 ===== */
+const DEFAULT_SETTINGS={name:'우리 약국',tel:'',leadDays:0,bufferDays:7,periodDays:184};
+const S={stock:null,prev:null,profile:{items:{}},settings:{...DEFAULT_SETTINGS},exc:{},manual:[],ready:{}};
+let db=null,canWrite=true,M=null; // M = 계산된 재고 모델
+
+function parseName(raw){let base=raw,ing='',str='';const m=raw.match(/^(.*)_\((.*)\)$/);
+ if(m){base=m[1];const inner=m[2];const k=inner.indexOf(',');if(k>0){ing=inner.slice(0,k).trim();str=inner.slice(k+1).trim()}else str=inner.trim();
+  if(!ing){const p=base.match(/\(([^()]+)\)\s*$/);if(p&&!/^구[:：]/.test(p[1])){ing=p[1].trim();base=base.slice(0,p.index).trim()}}}
+ return{base,ing,str}}
+
+/* 적정재고 = 품목 예외 > 조제량 기반 계산 > 약국 프로그램 값 */
+function buildModel(){
+ const st=S.stock;if(!st||!st.rows)return null;
+ const set=S.settings,cover=(+set.leadDays||0)+(+set.bufferDays||7),P=(S.profile&&S.profile.items)||{};
+ const prevMap={};(S.prev&&S.prev.rows||[]).forEach(r=>prevMap[String(r[1])]={cur:+r[5]||0,name:r[0]});
+ const items=st.rows.map(r=>{const raw=String(r[0]),code=String(r[1]||''),p=parseName(raw),pf=P[code],ex=S.exc[code];
+  const cur=+r[5]||0,fileOpt=+r[6]||0,daily=pf&&pf.d||0,perrx=pf&&pf.p||0,dead=!!(pf&&pf.dead);
+  let opt,src;
+  if(ex&&ex.opt!=null&&ex.opt!==''){opt=+ex.opt;src='예외'}
+  else if(pf&&!dead&&(daily||perrx)){opt=Math.ceil(Math.max(daily*cover,perrx));src='조제량'}
+  else if(dead){opt=0;src='미조제'}
+  else{opt=fileOpt;src='프로그램'}
+  const days=daily>0?cur/daily:null;
+  return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,src,fileOpt,ws:pf&&pf.w||'',daily,perrx,n:pf&&pf.n||0,price:pf&&pf.u||0,dead,days,ex,...p,
+   prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
+ const byKey={},byIng={},byCode={};
+ items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
+ const low=items.filter(i=>!i.dead&&i.opt>0&&i.cur<i.opt);
+ const urgent=low.filter(i=>i.days!=null?i.days<Math.max(3,cover/2):i.cur<i.opt*.25);
+ const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&!byCode[c]).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]})).filter(x=>x.pf&&!x.pf.dead):[];
+ const drop=S.prev?items.filter(i=>i.prev!=null&&i.daily>0&&(i.prev-i.cur)>i.daily*3).sort((a,b)=>(b.prev-b.cur)/b.daily-(a.prev-a.cur)/a.daily):[];
+ const dead=items.filter(i=>i.dead).sort((a,b)=>b.cur-a.cur);
+ const over=items.filter(i=>!i.dead&&i.opt>0&&i.daily>0&&i.cur>i.opt*4&&i.cur>i.daily*60).sort((a,b)=>b.cur*b.price-a.cur*a.price);
+ const dm=String(st.meta||'').match(/~\s*(\d{8})/);
+ return{items,byKey,byIng,byCode,low,urgent,gone,drop,dead,over,date:st.date||(dm?dm[1]:''),prevDate:S.prev&&S.prev.date||'',cover};
+}
+
+/* ===== 오늘의 재고 한 줄 ===== */
+function renderToday(){
+ const t=$('today');M=buildModel();
+ if(!M){t.hidden=false;t.classList.add('empty');t.innerHTML='<span class="d">재고 자료가 아직 없어요</span><span class="go">파일 올리기 ›</span>';t.onclick=()=>openPanel('settings');return}
+ t.hidden=false;t.classList.remove('empty');
+ const ks=[`<span class="k"><em><i class="${M.urgent.length?'dot-bad':'dot-ok'}"></i>급한 주문</em><b>${M.urgent.length}</b></span>`,
+  `<span class="k"><em><i class="${M.low.length?'dot-warn':'dot-ok'}"></i>발주</em><b>${M.low.length}</b></span>`];
+ if(S.prev)ks.push(`<span class="k"><em><i class="${M.gone.length?'dot-bad':'dot-ok'}"></i>새로 0</em><b>${M.gone.length}</b></span>`);
+ t.innerHTML=`<span class="d"><span>오늘의 재고 · <span class="num">${dateLabel(M.date)}</span></span><span class="go">자세히 ›</span></span><span class="ks">${ks.join('')}</span>`;t.onclick=()=>openPanel('stock');
+}
+
+/* ===== 패널 ===== */
+let panelState={kind:null,tab:null},redrawPanel=null;
+function openPanel(kind,tab){
+ document.querySelector('.scrim')?.remove();
+ panelState={kind,tab:tab||{stock:'order',manual:'list',memo:'memos',settings:'basic'}[kind]};
+ const scrim=document.createElement('div');scrim.className='scrim';
+ const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
+ scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
+ const TITLES={stock:'재고',manual:'업무 수첩',memo:S.pharm?'공지·메모·알림':'메모·알림',settings:'설정'};
+ function draw(){
+  if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
+  const tabs=kind==='stock'?[['order','발주',M?M.low.length:0],['today','오늘 변화',M?M.gone.length+M.drop.length:0],['search','검색'],['dead','안 나가는 약',M?M.dead.length:0],['over','과다 재고',M?M.over.length:0]]
+   :kind==='manual'?[['list','수첩'],['add','새 항목']]
+   :kind==='memo'?(S.pharm?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on).length]])
+   :(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length],['favs','즐겨찾기'],['etc','기타']]);
+  p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${['stock','manual','memo','settings'].filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
+   <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
+  p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
+  p.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openPanel(b.dataset.go));
+  $('pClose').onclick=close;
+  const body=$('pbody');
+  if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
+ }
+ redrawPanel=draw;document.body.appendChild(scrim);draw();$('pClose').focus();
+}
+function needStock(body){if(M)return false;body.innerHTML='<div class="card"><p class="muted">재고 자료가 없어요. 설정 › 파일 올리기에서 약국 프로그램의 재고현황 엑셀을 올려 주세요.</p><button class="btn primary" type="button" id="goFiles">파일 올리러 가기</button></div>';$('goFiles').onclick=()=>openPanel('settings','files');return true}
+
+/* ----- 재고 패널 ----- */
+function groupBy(arr,f){const g={};arr.forEach(i=>{const k=f(i);(g[k]=g[k]||[]).push(i)});return Object.entries(g)}
+function orderText(groups){return `[발주 목록] ${dateLabel(M.date)} 재고 기준\n`+groups.map(([w,a])=>`\n■ ${w}\n`+a.map(i=>`- ${i.base}${i.str?' '+i.str:''}: 현재 ${fmt(i.cur)} / 적정 ${fmt(i.opt)} → 부족 ${fmt(r1(i.opt-i.cur))}${i.unit}`).join('\n')).join('\n')}
+function drawStock(body){
+ if(needStock(body))return;const t=panelState.tab;
+ if(t==='order'){
+  const urg=i=>i.days!=null?i.days:i.cur/i.opt*M.cover;
+  const groups=groupBy(M.low,i=>i.ws||'사입처 정보 없음').map(([k,a])=>[k,a.sort((x,y)=>urg(x)-urg(y))]).sort((a,b)=>(a[0]==='사입처 정보 없음')-(b[0]==='사입처 정보 없음')||b[1].length-a[1].length);
+  body.innerHTML=`<div class="stats"><div class="stat"><div class="k">발주 필요</div><div class="v">${M.low.length}</div></div><div class="stat"><div class="k">급함</div><div class="v">${M.urgent.length}</div></div><div class="stat"><div class="k">기준</div><div class="v" style="font-size:15px">${M.cover}일치</div></div></div>
+  <div class="row" style="justify-content:space-between"><p class="muted">${dateLabel(M.date)} 재고 · 남은 일수가 적은 순 · 기준은 설정에서 바꿀 수 있어요</p>${M.low.length?'<button class="btn sm" type="button" id="cpAll">전체 복사</button>':''}</div>
+  ${M.low.length?groups.map(([w,a],gi)=>`<div class="card"><h3>${esc(w)} <span class="row"><span class="c">${a.length}품목</span><button class="btn sm" type="button" data-cp="${gi}">복사</button></span></h3><div class="tablewrap"><table><thead><tr><th>약품</th><th>현재</th><th>남은 일수</th><th>적정</th><th>부족</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span></td><td>${fmt(i.cur)}</td><td>${i.days!=null?(i.days<1?'1일 미만':fmt(Math.round(i.days))+'일'):'-'}</td><td>${fmt(i.opt)}</td><td class="short">${fmt(r1(i.opt-i.cur))} ${esc(i.unit)}</td></tr>`).join('')}</tbody></table></div></div>`).join(''):'<div class="card"><p class="muted">적정재고보다 적은 약이 없어요.</p></div>'}`;
+  $('cpAll')&&($('cpAll').onclick=()=>copyText(orderText(groups)));
+  body.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>copyText(orderText([groups[+b.dataset.cp]])));
+ }else if(t==='today'){
+  if(!S.prev){body.innerHTML='<div class="card"><p class="muted">비교할 이전 재고가 없어요. 내일 재고 파일이 들어오면 어제와 비교해서 새로 0이 된 약과 평소보다 빨리 나간 약을 보여드려요.</p></div>';return}
+  body.innerHTML=`<p class="muted">${dateLabel(M.prevDate)} → ${dateLabel(M.date)} 비교</p>
+  <div class="card"><h3>새로 재고가 0이 된 약 <span class="c">${M.gone.length}</span></h3>${M.gone.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>이전 재고</th><th>사입처</th></tr></thead><tbody>${M.gone.map(g=>`<tr><td>${esc(parseName(g.name).base)}</td><td>${fmt(g.prev)}</td><td>${esc(g.pf.w||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>'}</div>
+  <div class="card"><h3>평소보다 빨리 나간 약 <span class="c">${M.drop.length}</span></h3><p class="muted">하루 사이에 평소 3일치 넘게 나간 약</p>${M.drop.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>이전</th><th>지금</th><th>평소 하루</th></tr></thead><tbody>${M.drop.slice(0,40).map(i=>`<tr><td>${esc(i.base)}</td><td>${fmt(i.prev)}</td><td>${fmt(i.cur)}</td><td>${fmt(r1(i.daily))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>'}</div>`;
+ }else if(t==='search'){
+  body.innerHTML='<input class="search" id="sq" type="search" placeholder="약 이름, 성분, 제약회사, 사입처, 약품코드" autocomplete="off"><div id="sres"></div>';
+  const run=()=>{const q=$('sq').value.trim();const out=$('sres');if(!q){out.innerHTML='<p class="muted">같은 성분·같은 함량 대체품 재고도 함께 보여드려요.</p>';return}
+   const nq=norm(q);const res=M.items.filter(i=>i.hay.includes(nq)).sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur).slice(0,40);
+   out.innerHTML=res.length?`<div style="display:flex;flex-direction:column;gap:8px">${res.map(itemCard).join('')}</div>`:'<p class="muted">찾는 약이 재고 목록에 없어요. 재고가 0이면 파일에 빠져 있을 수 있어요.</p>'};
+  $('sq').oninput=run;run();$('sq').focus();
+ }else if(t==='dead'){
+  body.innerHTML=`<p class="muted">조제약품현황 기간(${S.profile.periodDays||S.settings.periodDays}일) 동안 한 번도 조제되지 않은 전문약이에요. 적정재고는 0으로 보고 반품·정리 후보로 보세요.</p>
+  <div class="card"><div class="tablewrap"><table><thead><tr><th>약품</th><th>현재고</th><th>제약회사</th></tr></thead><tbody>${M.dead.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span></td><td>${fmt(i.cur)} ${esc(i.unit)}</td><td>${esc(i.co)}</td></tr>`).join('')||'<tr><td>없어요</td></tr>'}</tbody></table></div></div>`;
+ }else if(t==='over'){
+  body.innerHTML=`<p class="muted">적정재고의 4배가 넘고 60일치 넘게 쌓인 약이에요 (단가 × 재고 순). 일부러 쌓아둔 약이면 설정 › 품목 예외에 넣어 두세요.</p>
+  <div class="card"><div class="tablewrap"><table><thead><tr><th>약품</th><th>현재고</th><th>적정</th><th>남은 일수</th><th>금액</th></tr></thead><tbody>${M.over.map(i=>`<tr><td>${esc(i.base)}</td><td>${fmt(i.cur)}</td><td>${fmt(i.opt)}</td><td>${fmt(Math.round(i.days))}일</td><td>${i.price?fmt(Math.round(i.cur*i.price))+'원':'-'}</td></tr>`).join('')||'<tr><td>없어요</td></tr>'}</tbody></table></div></div>`;
+ }
+}
+function itemCard(i){
+ const same=(M.byKey[i.key]||[]).filter(x=>x!==i).sort((a,b)=>b.cur-a.cur),other=i.ikey?(M.byIng[i.ikey]||[]).filter(x=>x.key!==i.key).sort((a,b)=>b.cur-a.cur).slice(0,5):[];
+ const st=i.dead?'<span class="pill p-none">6개월 미조제</span>':i.opt>0?(i.cur<i.opt?'<span class="pill p-low">적정 미만</span>':'<span class="pill p-ok">여유</span>'):'<span class="pill p-none">적정 없음</span>';
+ return `<div class="item"><div><div class="nm">${esc(i.base)}</div><div class="sub">${i.ing?esc(i.ing)+' · ':''}${i.str?esc(i.str)+' · ':''}${esc(i.co)}${i.ws?' · 사입 '+esc(i.ws):''}</div>${i.daily?`<div class="sub">하루 평균 ${fmt(r1(i.daily))}${esc(i.unit)} · ${daysWord(i.days)} · 적정 근거: ${i.src}</div>`:''}</div>
+ <div class="q"><b>${fmt(i.cur)}</b> <span class="sub">${esc(i.unit)}</span><div class="sub">적정 ${i.opt?fmt(i.opt):'-'}</div>${st}</div>
+ ${same.length||other.length?`<div class="alts">${same.length?'<span class="sub">같은 성분·같은 함량</span>'+same.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.co)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}${other.length?'<span class="sub">같은 성분·다른 함량</span>'+other.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.str)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}</div>`:''}</div>`}
+function daysWord(d){if(d==null)return '';return d>=365?'1년치 이상':d<1?'1일치 미만':`약 ${fmt(Math.round(d))}일치`}
+
+/* ----- 수첩 패널 ----- */
+let editId=null;
+let manualCat=null,openItem=null;
+function drawManual(body){
+ if(panelState.tab==='add'){editId=null;body.appendChild(manualForm(null));return}
+ body.innerHTML='<input class="search" id="mq" type="search" placeholder="수첩 검색 (예: 반품, 누락청구, 지오영)"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
+ const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
+  if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">수첩이 비어 있어요. "새 항목"에서 약국 규칙을 적어 두면 도우미가 그걸로 답해요.</p></div>';return}
+  const cats=groupBy(S.manual,m=>m.sec||'기타');
+  if(!q&&!manualCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-cat="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
+   list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;run()});return}
+  const items=q?S.manual.filter(m=>norm(m.sec+' '+m.h+' '+m.body).includes(nq)):S.manual.filter(m=>(m.sec||'기타')===manualCat);
+  const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>`;
+  list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${openItem===m.id||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${openItem===m.id||!!q}">${esc(m.h)}${q?` <span class="sub">${esc(m.sec)}</span>`:''}</button>${openItem===m.id||q?`<div class="ab">${esc(m.body)}${canWrite?`<div class="row"><button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button></div>`:''}</div>`:''}</div>`).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+  $('mBack')&&($('mBack').onclick=()=>{manualCat=null;openItem=null;run()});
+  list.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{openItem=openItem===b.dataset.item?null:b.dataset.item;run()});
+  list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editId=b.dataset.edit;run()});
+  list.querySelectorAll('[data-form]').forEach(d=>{const m=S.manual.find(x=>x.id===d.dataset.form);d.replaceWith(manualForm(m,run))});
+ };
+ $('mq').oninput=run;run();
+}
+function manualForm(m,after){
+ const secs=[...new Set(S.manual.map(x=>x.sec).filter(Boolean))];
+ const f=document.createElement('div');f.className='card';
+ f.innerHTML=`<div class="field">분류<input id="mfSec" list="mfSecs" value="${esc(m?m.sec:'')}" placeholder="예: 반품"><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+ <div class="field">제목<input id="mfH" value="${esc(m?m.h:'')}" placeholder="예: 세화 반품 보내는 법"></div>
+ <div class="field">내용<textarea id="mfB" placeholder="한 줄에 하나씩 적으면 읽기 쉬워요">${esc(m?m.body:'')}</textarea></div>
+ <div class="row"><button class="btn primary" type="button" id="mfSave">저장</button>${m?'<button class="btn" type="button" id="mfCancel">취소</button><button class="btn danger" type="button" id="mfDel">지우기</button>':''}</div>`;
+ const q=s=>f.querySelector(s);
+  q('#mfSave').onclick=async()=>{const h=q('#mfH').value.trim(),b=q('#mfB').value.trim(),sec=q('#mfSec').value.trim()||'기타';if(!h){toast('제목을 적어 주세요');return}
+   const items=S.manual.map(x=>({...x}));if(m){const t=items.find(x=>x.id===m.id);Object.assign(t,{h,body:b,sec})}else items.push({id:'m'+Date.now().toString(36),sec,h,body:b});
+   if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('수첩에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
+  m&&(q('#mfCancel').onclick=()=>{editId=null;after&&after()});
+  m&&(q('#mfDel').onclick=async()=>{const b=q('#mfDel');if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='한 번 더 누르면 지워져요';return}
+   const items=S.manual.filter(x=>x.id!==m.id);if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('지웠어요');after&&after()}});
+ return f}
+
+/* ----- 설정 패널 ----- */
+function drawSettings(body){
+ const t=panelState.tab,s=S.settings;
+ if(t==='account'){body.innerHTML=accountView();bindAccount(body);return}
+ if(t==='basic'){
+  body.innerHTML=`<div class="card"><h3>약국 정보</h3><div class="grid2"><div class="field">약국 이름<input id="sName" value="${esc(s.name)}"></div><div class="field">전화번호<input id="sTel" value="${esc(s.tel)}"></div></div></div>
+  <div class="card"><h3>적정재고 기준</h3><p class="muted">적정재고 = 하루 평균 조제량 × (입고 일수 + 여유일수)와 처방 1건 평균 중 큰 값. 품목 예외가 있으면 그 값이 우선해요.</p>
+  <div class="grid2"><div class="field">주문하면 들어오기까지<select id="sLead">${[[0,'당일'],[1,'다음 날'],[2,'2일'],[3,'3일']].map(([v,l])=>`<option value="${v}" ${+s.leadDays===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field">여유일수<select id="sBuf">${[3,5,7,10,14].map(v=>`<option value="${v}" ${+s.bufferDays===v?'selected':''}>${v}일치</option>`).join('')}</select></div></div>
+  <div class="field">조제약품현황 기간(일)<input id="sPer" type="number" min="30" max="400" value="${esc(s.periodDays)}"></div>
+  ${M?`<p class="muted">지금 기준으로 발주 필요 ${M.low.length}품목.</p>`:''}<div class="row"><button class="btn primary" type="button" id="sSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
+  $('sSave').onclick=async()=>{const n={...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim(),leadDays:+$('sLead').value,bufferDays:+$('sBuf').value,periodDays:Math.max(30,+$('sPer').value||184)};
+   if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast('기준을 저장했어요');redrawPanel&&redrawPanel()}};
+ }else if(t==='files'){
+  body.innerHTML=`<div class="card"><h3>재고현황 (매일)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
+   <p class="muted">이팜: 재고관리 → 재고현황 및 재고 수정 → 사용약품전체 → 재고조회구분 <b>전체</b> → 조회 → 미리보기 → 출력 → 변환 → XLSX</p>
+   <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
+  <div class="card"><h3>조제약품현황 (한 달에 한 번)</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>!x.dead).length}품목 · ${S.profile.periodDays}일 기준`:'아직 없음'}. 최근 6개월로 뽑아 주세요. 하루 평균 조제량, 처방 1건 크기, 사입처를 여기서 얻어요.</p>
+   <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">조제약품현황 올리기</label></div></div>
+  ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
+  $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
+  body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
+ }else if(t==='exc'){
+  const rows=Object.entries(S.exc);
+  body.innerHTML=`<div class="card"><h3>품목 예외</h3><p class="muted">일부러 많이 두거나(품절이 잦은 약) 적게 두고 싶은 약의 적정재고를 직접 정해요. 계산값보다 우선해요.</p>
+   <div id="excList">${rows.length?rows.map(([c,e])=>{const i=M&&M.byCode[c];return `<div class="exc"><span>${esc(i?i.base:e.name||c)}<br><span class="sub">${esc(e.note||'')}</span></span><input type="number" min="0" value="${esc(e.opt)}" data-exc="${esc(c)}" aria-label="적정재고"><button class="btn sm danger" type="button" data-excdel="${esc(c)}">빼기</button></div>`}).join(''):'<p class="muted">아직 없어요.</p>'}</div>
+   <input class="search" id="excQ" type="search" placeholder="예외로 둘 약 찾기"><div id="excRes"></div>
+   <div class="row"><button class="btn primary" type="button" id="excSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
+  $('excQ').oninput=()=>{const q=norm($('excQ').value);const out=$('excRes');if(!q||!M){out.innerHTML='';return}
+   out.innerHTML=M.items.filter(i=>i.hay.includes(q)&&!S.exc[i.code]).slice(0,8).map(i=>`<div class="exc"><span>${esc(i.base)} <span class="sub">현재 적정 ${fmt(i.opt)}</span></span><span></span><button class="btn sm" type="button" data-excadd="${esc(i.code)}">추가</button></div>`).join('');
+   out.querySelectorAll('[data-excadd]').forEach(b=>b.onclick=()=>{const i=M.byCode[b.dataset.excadd];S.exc={...S.exc,[i.code]:{opt:i.opt,name:i.base,note:'직접 정함'}};redrawPanel()})};
+  body.querySelectorAll('[data-excdel]').forEach(b=>b.onclick=()=>{const n={...S.exc};delete n[b.dataset.excdel];S.exc=n;redrawPanel()});
+  $('excSave').onclick=async()=>{const n={};body.querySelectorAll('[data-exc]').forEach(inp=>{const c=inp.dataset.exc;n[c]={...S.exc[c],opt:Math.max(0,+inp.value||0)}});
+   if(await saveDoc('exceptions/main',{items:n})){S.exc=n;renderToday();toast('품목 예외를 저장했어요');redrawPanel()}};
+ }else if(t==='favs'){drawFavEdit(body)}
+ else{
+  const bl=local(BAD_KEY)||[];
+  body.innerHTML=`<div class="card"><h3>틀린 답 모음 <span class="c">${bl.length}건</span></h3><p class="muted">답 아래 "틀림"을 누른 질문과 답이에요. 복사해서 Claude에게 보내주시면 고칩니다.</p><div class="row"><button class="btn" type="button" id="badCopy" ${bl.length?'':'disabled'}>복사</button><button class="btn" type="button" id="badClear" ${bl.length?'':'disabled'}>비우기</button></div></div>
+  <div class="card"><h3>대화</h3><div class="row"><button class="btn" type="button" id="clearChat">대화 지우기</button></div></div>
+  <div class="card"><h3>이 도우미가 아는 것</h3><p class="muted">재고현황과 조제약품현황으로 계산한 재고·적정재고·대체품, 업무 수첩(약국이 직접 고침), OTC 상담 기준(감기·소화기·관절), 환자 오해 대응 카드, 소아 시럽 용량 계산(해열제 3종·항생제 5종, 허가사항 기준). 답은 AI가 만든 것이라 숫자와 절차는 한 번 확인하세요. 환자 이름은 입력하지 마세요.</p></div>`;
+  $('badCopy').onclick=()=>copyText(bl.map((b,i)=>`#${i+1} (${b.at})\n[질문] ${b.q}\n[답] ${b.a}`).join('\n\n'));
+  $('badClear').onclick=()=>{local(BAD_KEY,[]);redrawPanel();toast('비웠어요')};
+  $('clearChat').onclick=()=>{turns=[];$('chat').innerHTML='';$('chat').appendChild(welcomeEl);welcomeEl.hidden=false;toast('대화를 지웠어요')};
+  window.deskEtc&&deskEtc(body);
+ }
+}
+
+/* ===== 파일 읽기 ===== */
+function readAoa(buf){const wb=XLSX.read(buf,{type:'array'});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+const H=s=>String(s).replace(/\s+/g,'');
+async function onStockFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
+ if(!window.XLSX){toast('엑셀 읽기 도구를 불러오지 못했어요. 새로고침 후 다시 해 주세요');return}
+ await importStock(new Uint8Array(await f.arrayBuffer()),'upload')}
+async function importStock(buf,source){
+ try{const aoa=readAoa(buf);const h=aoa.findIndex(r=>H(r[0])==='약품명');
+  if(h<0)throw new Error('약품명 열을 찾지 못했어요. 재고현황 파일인지 확인해 주세요.');
+  const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);if(hdr.some(x=>/처방전교부번호|수진자|주민/.test(x)))throw new Error('환자 정보가 있는 파일이라 받지 않아요.');
+  const c={code:col('약품코드'),co:col('제약회사'),unit:col('재고단위'),base:col('기본수량'),cur:col('현재고'),opt:col('적정재고')};if(c.cur<0)throw new Error('현재고 열이 없어요.');
+  const rows=[];for(let i=h+1;i<aoa.length;i++){const r=aoa[i];if(!String(r[0]).trim())continue;rows.push([String(r[0]).trim(),c.code>=0?String(r[c.code]):'',c.co>=0?String(r[c.co]):'',c.unit>=0?String(r[c.unit]):'',c.base>=0?+r[c.base]||1:1,+r[c.cur]||0,c.opt>=0?+r[c.opt]||0:0])}
+  if(!rows.length)throw new Error('품목을 읽지 못했어요.');
+  const meta=String(aoa.slice(0,h).flat().find(x=>/검색기간|재고금액/.test(String(x)))||'');const dm=meta.match(/~\s*(\d{8})/);
+  const d=new Date();const date=dm?dm[1]:`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const doc={meta,date,rows,source:source||'upload',savedAt:new Date().toISOString()};
+  if(S.stock&&S.stock.date&&S.stock.date!==date){if(!await saveDoc('stock/previous',S.stock))return;S.prev=S.stock}
+  if(await saveDoc('stock/current',doc)){S.stock=doc;renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,date}}
+  return{ok:false}
+ }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
+async function onDispFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
+ if(!window.XLSX){toast('엑셀 읽기 도구를 불러오지 못했어요');return}
+ await importDisp(new Uint8Array(await f.arrayBuffer()))}
+async function importDisp(buf){
+ try{const aoa=readAoa(buf);const h=aoa.findIndex(r=>H(r[0])==='약품명');
+  if(h<0)throw new Error('약품명 열을 찾지 못했어요. 조제약품현황 파일인지 확인해 주세요.');
+  const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);const c={code:col('약품코드'),ws:col('사입거래처'),price:col('약품단가'),qty:col('조제수량'),cnt:col('조제건수')};
+  if(c.qty<0||c.cnt<0)throw new Error('조제수량·조제건수 열이 없어요.');
+  const per=+S.settings.periodDays||184;const items={};let cur=null;
+  for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[0]).trim();
+   if(nm&&isNaN(+nm)){const code=String(r[c.code]).trim();cur=items[code]=items[code]||{w:c.ws>=0?String(r[c.ws]).trim():'',u:+r[c.price]||0,q:0,n:0};cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
+   else if(!nm&&cur&&r[c.qty]!==''){cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
+   else if(nm&&!isNaN(+nm))break}
+  const out={};Object.entries(items).forEach(([code,x])=>{if(!code)return;out[code]={w:x.w,u:x.u,n:x.n,d:Math.round(x.q/per*1000)/1000,p:x.n?Math.round(x.q/x.n*100)/100:0}});
+  (S.stock&&S.stock.rows||[]).forEach(r=>{const code=String(r[1]);if(String(r[0]).includes('_(')&&!out[code])out[code]={w:'',u:0,n:0,d:0,p:0,dead:1}});
+  const doc={periodDays:per,items:out,savedAt:new Date().toISOString()};
+  if(await saveDoc('profile/current',doc)){S.profile=doc;renderToday();toast(`조제 ${Object.keys(items).length}품목으로 적정재고를 다시 계산했어요`);redrawPanel&&redrawPanel();return{ok:true,kind:'disp',n:Object.keys(items).length}}
+  return{ok:false}
+ }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
+
+/* ===== 저장 ===== */
+async function saveDoc(path,data){
+ if(!db){toast('저장소를 쓸 수 없는 화면이에요');return false}
+ try{await db.doc(path).set(data);return true}
+ catch(e){if(e&&e.code==='invalid_argument'){canWrite=false;toast('이 계정은 보기만 할 수 있어요')}else if(e&&e.code==='quota_exceeded')toast('저장 공간이 가득 찼어요');else toast('저장하지 못했어요. 잠시 뒤 다시 해 주세요');return false}}
+function renderBook(){const n=S.manual.length;const secs=[...new Set(S.manual.map(m=>m.sec))].slice(0,3).join(' · ');$('bookSub').textContent=n?`${secs}${n?` 등 ${n}개`:''}`:'약국 규칙을 적어 두세요'}
+function applySettings(){$('title').textContent=(S.settings.name||'우리 약국')+' 도우미';document.title=$('title').textContent;const n=new Date(),h=n.getHours();$('subtitle').textContent=`${h<11?'좋은 아침이에요':h<17?'오늘도 힘내세요':'수고 많으셨어요'} · ${n.getMonth()+1}월 ${n.getDate()}일 (${'일월화수목금토'[n.getDay()]})`}
+
+/* ===== 즐겨찾기 ===== */
+const FAV_KEY='cb-web-favs-v1',BAD_KEY='cb-helper-bad-v1';
+const DEFAULT_FAVS=[
+ {label:'오늘 발주 목록',prompt:'오늘 발주해야 할 약을 사입처별로 알려줘',send:true},
+ {label:'재고 찾기',prompt:'재고 확인: ',send:false},
+ {label:'반품 방법',prompt:'도매상별 반품 보내는 방법 알려줘',send:true},
+ {label:'누락청구',prompt:'누락청구 하는 방법 알려줘',send:true},
+ {label:'OTC 상담',prompt:'OTC 상담: ',send:false},
+ {label:'환자 오해 대응',prompt:'환자가 이렇게 말해요: ',send:false},
+ {label:'알림 등록',prompt:'내일 9시 ',send:false},
+ {label:'소아 시럽 용량',prompt:'소아 시럽 용량 (해열제·항생제): 약 이름, 체중 kg = ',send:false}
+];
+const PRESETS=[
+ {label:'오늘 변화',prompt:'어제보다 새로 품절되거나 빨리 나간 약 알려줘',send:true},
+ {label:'안 나가는 약',prompt:'6개월 동안 안 나간 약 중 재고 많은 것 10개 알려줘',send:true},
+ {label:'복용약 점검',prompt:'복용약 점검 (성분 중복·1일 총량·상호작용): ',send:false},
+ {label:'영양제 상담',prompt:'영양제 상담 (나이·증상·복용약, 우리 약국 제품으로): ',send:false},
+ {label:'영어 복약안내',prompt:'다음 약 복용법을 외국인 환자용 쉬운 영어로 써줘: ',send:false},
+ {label:'입고 안내 문자',prompt:'주문하신 약이 들어왔다는 고객 안내 문자를 짧고 정중하게 써줘. 약 이름: ',send:false},
+ {label:'거래처 번호',prompt:'담당자 연락처: ',send:false}
+];
+let FAVS=(local(FAV_KEY)||local('cb-helper-favs-v1')||DEFAULT_FAVS.map(f=>({...f}))).map(f=>/소아 해열제 용량/.test(f.label)?{label:'소아 시럽 용량',prompt:'소아 시럽 용량 (해열제·항생제): 약 이름, 체중 kg = ',send:false}:f).filter(f=>!/^업무 수첩$/.test(f.label));
+function renderFavs(){const n=$('favs');n.innerHTML='';
+ FAVS.forEach(f=>{const b=document.createElement('button');b.type='button';b.className='fav';b.textContent=f.label;b.title=f.prompt;
+  b.onclick=()=>{if(f.send)ask(f.prompt);else{const i=$('input');i.value=f.prompt;i.focus();i.setSelectionRange(i.value.length,i.value.length);autosize()}};n.appendChild(b)});
+ const e=document.createElement('button');e.type='button';e.className='fav edit';e.textContent='＋ 편집';e.onclick=()=>openPanel('settings','favs');n.appendChild(e)}
+function drawFavEdit(body){
+ const c=document.createElement('div');c.className='card';c.innerHTML='<p class="muted">단추 이름과 눌렀을 때 들어갈 질문을 정하세요. "바로 보내기"를 끄면 질문창에 글만 채워져요. 이 기기에만 저장돼요.</p>';
+ FAVS.forEach((f,i)=>{const r=document.createElement('div');r.className='favrow';
+  r.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px"><input type="text" id="fl${i}" value="${esc(f.label)}" aria-label="단추 이름"><input type="text" id="fp${i}" value="${esc(f.prompt)}" aria-label="질문"><label><input type="checkbox" id="fs${i}" ${f.send?'checked':''}> 바로 보내기</label></div><div class="ctrl"><button class="btn sm" type="button" data-up="${i}" aria-label="위로">↑</button><button class="btn sm" type="button" data-down="${i}" aria-label="아래로">↓</button><button class="btn sm" type="button" data-del="${i}">삭제</button></div>`;c.appendChild(r)});
+ const act=document.createElement('div');act.className='row';act.innerHTML='<button class="btn" type="button" id="fAdd">＋ 빈 단추</button><button class="btn primary" type="button" id="fSave">저장</button><button class="btn" type="button" id="fReset">처음 상태로</button>';c.appendChild(act);body.appendChild(c);
+ const pc=document.createElement('div');pc.className='card';pc.innerHTML='<h3>추천 단추</h3><div class="preset" id="presets"></div>';body.appendChild(pc);
+ const read=()=>FAVS.forEach((f,i)=>{f.label=$('fl'+i).value.trim()||f.label;f.prompt=$('fp'+i).value;f.send=$('fs'+i).checked});
+ PRESETS.filter(x=>!FAVS.some(f=>f.label===x.label)).forEach(x=>{const b=document.createElement('button');b.type='button';b.textContent='＋ '+x.label;b.onclick=()=>{read();FAVS.push({...x});redrawPanel()};$('presets').appendChild(b)});
+ c.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{read();const i=+b.dataset.up;if(i>0){[FAVS[i-1],FAVS[i]]=[FAVS[i],FAVS[i-1]];redrawPanel()}});
+ c.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>{read();const i=+b.dataset.down;if(i<FAVS.length-1){[FAVS[i+1],FAVS[i]]=[FAVS[i],FAVS[i+1]];redrawPanel()}});
+ c.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{read();FAVS.splice(+b.dataset.del,1);redrawPanel()});
+ $('fAdd').onclick=()=>{read();FAVS.push({label:'새 단추',prompt:'',send:false});redrawPanel()};
+ $('fSave').onclick=()=>{read();FAVS=FAVS.filter(f=>f.label);local(FAV_KEY,FAVS);renderFavs();toast('즐겨찾기를 저장했어요')};
+ $('fReset').onclick=()=>{FAVS=DEFAULT_FAVS.map(f=>({...f}));redrawPanel()};
+}
+
+/* ===== 소아 해열진통제 용량 (계산은 코드로) ===== */
+const PED={
+ '아세트아미노펜':{conc:32,mg:[10,15],interval:'4~6시간 (필요할 때)',maxTimes:5,maxPerKg:75,maxAbs:4000,form:'현탁액 32mg/mL (예: 어린이타이레놀현탁액, 만 12세 이하)',note:'생후 3개월 미만 발열은 바로 진료. 종합감기약의 아세트아미노펜과 중복 확인.'},
+ '이부프로펜':{conc:20,mg:[5,10],interval:'6~8시간 (1일 3~4회)',maxTimes:4,maxPerKg:40,maxAbs:1000,form:'시럽 20mg/mL (예: 어린이부루펜시럽)',note:'체중 기준은 일반적인 소아 용량(5~10mg/kg)입니다. 어린이부루펜시럽 허가 용량표는 연령별: 1~2세 1회 2.5~5mL(1일 최대 20mL), 3~6세 5~7.5mL(30mL), 7~10세 7.5~10mL(40mL), 11~14세 10~12.5mL(50mL). 공복 복용 피함. 탈수·구토 심할 때, 수두 의심 시 피함.'},
+ '덱시부프로펜':{conc:12,mg:[5,7],interval:'4~6시간',maxTimes:4,maxPerKg:28,maxAbs:1200,cap30:300,form:'시럽 12mg/mL (예: 맥시부펜시럽, 0.4~0.6mL/kg)',note:'생후 6개월 미만은 사용하지 않음(안전성 미확립). 체중 30kg 이하는 1일 최대 300mg(25mL). 이부프로펜과 같은 계열이라 함께 쓰지 않음.'}
+};
+/* 항생제 시럽: 처방 용량 확인용. 농도가 제품마다 달라 흔한 농도별 mL를 함께 보여줌 */
+const ABX={
+ '세파클러':{alias:/세파클러|오라클러|시클러/,day:[20,40],div:3,every:'8시간마다 (1일 3회)',maxDay:1000,concs:[[25,'125mg/5mL'],[50,'250mg/5mL']],note:'1일 20mg/kg이 기본, 중증은 1일 40mg/kg. 중이염·인두염은 1일량을 12시간마다(1일 2회)로 나눠도 됨. 1일 최대 1g.',src:'세파클러 건조시럽 허가사항 (약학정보원)'},
+ '아목시실린·클라불란산(7:1)':{alias:/오구멘틴|클라불란|아목시클라|듀오/,day:[25,45],div:2,every:'12시간마다 (1일 2회), 식사 시작할 때',concs:[[40,'228mg/5mL (아목시실린 200mg)'],[80,'457mg/5mL (아목시실린 400mg)']],basis:'아목시실린 기준',note:'경증·중등도 1일 25mg/kg, 중증 1일 45mg/kg (아목시실린 기준). 생후 2개월 미만, 신장애 소아에는 7:1 제형이 맞지 않음.',src:'오구멘틴듀오시럽 허가사항 (약학정보원)'},
+ '아지스로마이신':{alias:/아지스로|지스로|아지트로/,azi:true,concs:[[40,'조제 후 40mg/mL']],note:'3일 요법: 10mg/kg 1일 1회 3일. 5일 요법: 첫날 10mg/kg, 이후 4일간 5mg/kg. 급성 중이염 1회 요법: 30mg/kg 1회. 체중 45kg 이상은 성인 용량.',src:'지스로맥스건조시럽 허가사항 (약학정보원)'},
+ '클래리트로마이신':{alias:/클래리|클라리스로|클래리스로/,day:[15,15],div:2,every:'12시간마다 (1일 2회)',maxDose:500,concs:[[25,'125mg/5mL'],[50,'250mg/5mL']],note:'1회 7.5mg/kg, 12시간마다 (1일 15mg/kg). 1회 500mg을 넘지 않음.',src:'클래리시드건조시럽 허가사항 (약학정보원)'},
+ '세프디니르':{alias:/세프디니르|옴니세프|애니세프/,day:[9,18],div:3,every:'1일 3회',concs:[],note:'1일 9~18mg/kg을 3회로 나눠 복용. 세립은 제품마다 g당 함량이 달라 mg으로만 계산함.',src:'세프디니르세립 허가사항 (약학정보원)'}
+};
+function abxDose(key,w,conc){
+ const d=ABX[key],down=x=>Math.floor(x*10)/10,concs=+conc>0?[[+conc,`입력 농도 ${+conc}mg/mL`]]:d.concs;
+ const ml=mg=>concs.length?concs.map(([c,l])=>`${l}: ${down(mg/c)}mL`).join(' / '):'mL 계산은 제품 농도가 필요함';
+ if(d.azi){const a=10*w,b=5*w,c=30*w;return{성분:key,체중kg:w,'3일 요법':`1일 1회 ${Math.round(a)}mg → ${ml(a)}, 3일`,'5일 요법':`첫날 ${Math.round(a)}mg → ${ml(a)}, 이후 ${Math.round(b)}mg → ${ml(b)}`,'중이염 1회 요법':`${Math.round(c)}mg → ${ml(c)}`,주의:d.note,용도:'처방 용량이 허가 범위 안인지 확인하는 용도. 항생제 용량은 처방의가 정함',근거:d.src}}
+ const per=x=>x*w/d.div;let lo=per(d.day[0]),hi=per(d.day[1]);if(d.maxDose){lo=Math.min(lo,d.maxDose);hi=Math.min(hi,d.maxDose)}
+ if(d.maxDay){lo=Math.min(lo,d.maxDay/d.div);hi=Math.min(hi,d.maxDay/d.div)}
+ return{성분:key+(d.basis?` (${d.basis})`:''),체중kg:w,'1회 용량':lo===hi?`${Math.round(lo)}mg → ${ml(lo)}`:!concs.length?`${Math.round(lo)}~${Math.round(hi)}mg (제품 농도를 알려주면 mL로 계산)`:`${Math.round(lo)}~${Math.round(hi)}mg → 기본 ${ml(lo)} · 중증 ${ml(hi)}`,복용:d.every,계산식:`1일 ${d.day[0]===d.day[1]?d.day[0]:d.day[0]+'~'+d.day[1]}mg/kg × ${w}kg ÷ ${d.div}회`,주의:d.note,용도:'처방 용량이 허가 범위 안인지 확인하는 용도. 항생제 용량은 처방의가 정함',근거:d.src};
+}
+function pediatricDose(drug,kg,conc){
+ const ak=Object.keys(ABX).find(k=>ABX[k].alias.test(String(drug)));if(ak){const w=+kg;if(!(w>0&&w<60))return{오류:'체중(kg)을 1~60 사이로 알려주세요.'};return abxDose(ak,w,conc)}
+ const key=Object.keys(PED).find(k=>String(drug).includes(k.slice(0,4)))||(/타이레놀|세토펜|챔프/.test(drug)?'아세트아미노펜':/맥시|덱시/.test(drug)?'덱시부프로펜':/부루펜|이부/.test(drug)?'이부프로펜':null);
+ const w=+kg;if(!key)return{오류:'계산할 수 있는 약: 해열진통제(아세트아미노펜·이부프로펜·덱시부프로펜), 항생제(세파클러·아목시실린/클라불란산 7:1·아지스로마이신·클래리트로마이신·세프디니르)'};if(!(w>0&&w<60))return{오류:'체중(kg)을 1~60 사이로 알려주세요.'};
+ const d=PED[key],c=+conc>0?+conc:d.conc,up=x=>Math.ceil(x*2)/2,down=x=>Math.floor(x*2)/2;
+ const lo=d.mg[0]*w,hi=d.mg[1]*w,dayMax=Math.min(d.maxPerKg*w,d.maxAbs,d.cap30&&w<=30?d.cap30:Infinity);
+ let mlLo=up(lo/c),mlHi=down(hi/c);if(mlLo>mlHi)mlLo=mlHi;
+ return{성분:key,체중kg:w,기준제형:`${d.form}${+conc>0?` → 입력 농도 ${c}mg/mL로 계산`:''}`,'1회 용량':`${Math.round(lo)}~${Math.round(hi)}mg → ${mlLo===mlHi?mlLo:mlLo+'~'+mlHi}mL (0.5mL 단위, 범위 안쪽으로 맞춤)`,간격:d.interval,'1일 최대':`${d.maxTimes}회, ${Math.round(dayMax)}mg (${down(dayMax/c)}mL) 이내`,계산식:`1회 ${d.mg[0]}~${d.mg[1]}mg/kg × ${w}kg ÷ ${c}mg/mL, 1일 최대 ${d.maxPerKg}mg/kg`,주의:d.note,확인:'제품 허가사항의 연령·용량표와 반드시 대조'};
+}
+
+/* ===== 도우미가 쓰는 조회 기능 ===== */
+function stockView(i,withAlt){const o={약품:i.base,성분:i.ing||undefined,함량:i.str||undefined,현재고:r1(i.cur),단위:i.unit,적정재고:i.opt||'없음',적정근거:i.src,사입처:i.ws||undefined,
+  하루평균조제:i.daily?r1(i.daily):undefined,남은일수:i.days!=null?Math.round(i.days):undefined,상태:i.dead?'6개월간 조제 없음':i.opt>0?(i.cur<i.opt?'적정 미만':'여유'):'적정 없음',제약회사:i.co};
+ if(withAlt&&i.key){const alt=(M.byKey[i.key]||[]).filter(x=>x!==i).sort((a,b)=>b.cur-a.cur).slice(0,6).map(x=>`${x.base} ${fmt(x.cur)}${x.unit}`);if(alt.length)o.같은성분같은함량=alt}
+ return o}
+function searchStock(q){if(!M)return{안내:'재고 자료가 없음. 설정에서 재고현황을 올려야 함'};
+ const nq=norm(q);let res=M.items.filter(i=>i.hay.includes(nq));
+ if(!res.length){const ts=tokens(q).map(norm);res=M.items.filter(i=>ts.some(t=>i.hay.includes(t)))}
+ res.sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur);
+ return{기준일:dateLabel(M.date),찾은개수:res.length,결과:res.slice(0,8).map((i,k)=>stockView(i,k<3)),안내:res.length?undefined:'재고 파일에 없음. 재고가 0이면 파일에 없을 수 있음'}}
+function orderList(ws){if(!M)return{안내:'재고 자료가 없음'};let low=M.low;if(ws){const n=norm(ws);low=low.filter(i=>norm(i.ws).includes(n)||norm(i.co).includes(n))}
+ return{기준일:dateLabel(M.date),기준:`적정재고 = 하루 평균 조제량 × ${M.cover}일과 처방 1건 평균 중 큰 값 (품목 예외 우선)`,품목수:low.length,
+  사입처별:Object.fromEntries(groupBy(low,i=>i.ws||'사입처 정보 없음').map(([k,a])=>[k,a.map(i=>`${i.base}${i.str?' '+i.str:''}: 현재 ${fmt(i.cur)} / 적정 ${fmt(i.opt)} (부족 ${fmt(r1(i.opt-i.cur))}${i.unit}${i.days!=null?', 약 '+Math.round(i.days)+'일치 남음':''})`)]))}}
+function stockChanges(){if(!M)return{안내:'재고 자료가 없음'};if(!S.prev)return{안내:'비교할 이전 재고가 없음'};
+ return{비교:`${dateLabel(M.prevDate)} → ${dateLabel(M.date)}`,새로재고0:M.gone.map(g=>parseName(g.name).base),빨리나간약:M.drop.slice(0,15).map(i=>`${i.base}: ${fmt(i.prev)} → ${fmt(i.cur)} (평소 하루 ${fmt(r1(i.daily))})`),
+  안나가는약상위:M.dead.slice(0,10).map(i=>`${i.base} ${fmt(i.cur)}${i.unit}`),과다재고상위:M.over.slice(0,10).map(i=>`${i.base} ${fmt(i.cur)} (적정 ${fmt(i.opt)})`)}}
+function score(text,q){const t=norm(text);const ts=tokens(q).map(norm);let s=0;ts.forEach(x=>{if(t.includes(x))s+=x.length>=3?2:1});if(t.includes(norm(q)))s+=5;return s}
+function searchManual(q){const wantTel=/번호|연락처|전화|담당/.test(q);
+ const r=S.manual.map(m=>[score(m.sec+' '+m.h+' '+m.body,q)+(wantTel&&m.sec==='거래처 연락처'&&score(m.h+' '+m.body,q)>0?4:0),m]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).slice(0,6).map(([,m])=>({분류:m.sec,제목:m.h,내용:m.body}));
+ return{결과:r,안내:r.length?undefined:'수첩에 맞는 항목 없음'}}
+function searchCards(q){const r=CARDS.map(c=>[score(c.said+' '+c.kw+' '+c.cat,q),c]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).slice(0,3).map(([,c])=>({환자말:c.said,판정:{false:'사실 아님',part:'부분적 사실',over:'과장됨'}[c.v],사실:c.fact.replace(/<[^>]+>/g,''),설명문구:c.script,확인할것:c.check,진료권유신호:c.red}));return{결과:r,안내:r.length?undefined:'대응 카드에 맞는 항목 없음'}}
+const FLAGNAME={};FLAG_GROUPS.forEach(g=>g.items.forEach(([k,v])=>FLAGNAME[k]=v));AGES.forEach(a=>FLAGNAME[a.id]=a.label);
+function otcRules(group){const key=/소화|위|설사|변비|속/.test(group)?'gi':/관절|근육|허리|삠/.test(group)?'joint':'cold';const t=TABS[key];
+ return{분야:t.label,위험신호_하나라도있으면진료권유:t.red.map(r=>r[1]),증상별:t.sym.map(([k,label,ids,adv])=>({증상:label,생활안내:adv,성분:ids.map(id=>({성분:ING[id].n,분류:ING[id].c,설명:ING[id].note,주의:ING[id].x.map(([f,l,m])=>`[${FLAGNAME[f]||f}] ${l==='a'?'피함':'주의'}: ${m}`)}))}))}}
+
+const TOOLS=[
+ {name:'search_stock',description:'약 이름·성분·제약회사·약품코드·사입처로 현재 재고를 찾는다. 현재고, 적정재고와 그 근거, 하루 평균 조제량, 남은 일수, 사입처, 같은 성분 대체품 재고를 돌려준다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchStock(String(i.query||''))},
+ {name:'order_list',description:'적정재고보다 적은 약(발주 필요 목록)을 사입처별로 돌려준다. 사입처 이름을 주면 그 사입처만.',inputSchema:{type:'object',properties:{supplier:{type:'string'}}},execute:i=>orderList(i.supplier?String(i.supplier):'')},
+ {name:'stock_changes',description:'어제 재고와 비교해 새로 0이 된 약, 평소보다 빨리 나간 약, 6개월간 안 나간 약 상위, 과다 재고 상위를 돌려준다.',inputSchema:{type:'object',properties:{}},execute:()=>stockChanges()},
+ {name:'search_manual',description:'약국 업무 수첩에서 프로그램 사용법, 반품·약가인하 방법, 주문처, 품절약, 거래처 담당자 연락처를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchManual(String(i.query||''))},
+ {name:'search_cards',description:'환자가 AI·인터넷에서 보고 와서 하는 흔한 오해와 약사의 대응 문구를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchCards(String(i.query||''))},
+ {name:'pediatric_dose',description:'소아 시럽 용량을 체중으로 계산한다. 해열진통제(아세트아미노펜·이부프로펜·덱시부프로펜)와 항생제(세파클러·아목시실린/클라불란산 7:1·아지스로마이신·클래리트로마이신·세프디니르). 항생제는 흔한 농도별 mL를 함께 돌려준다. 제품 농도를 알면 conc_mg_per_ml로 준다.',inputSchema:{type:'object',properties:{drug:{type:'string'},weight_kg:{type:'number'},conc_mg_per_ml:{type:'number'}},required:['drug','weight_kg']},execute:i=>pediatricDose(String(i.drug||''),i.weight_kg,i.conc_mg_per_ml)},
+ {name:'otc_rules',description:'OTC 상담 기준: 위험 신호, 증상별 권장 성분과 환자 상태별 주의·피함 사유. 분야는 감기, 소화기, 관절 중 하나.',inputSchema:{type:'object',properties:{group:{type:'string',enum:['감기','소화기','관절']}},required:['group']},execute:i=>otcRules(String(i.group||'감기'))},
+ {name:'add_alarm',description:'알림을 등록한다. 등록하면 그 시각에 도우미 화면에 포스트잇 팝업으로 뜬다. datetime은 첫 알림의 현지 날짜·시각.',inputSchema:{type:'object',properties:{text:{type:'string'},datetime:{type:'string',description:'YYYY-MM-DDTHH:MM (한국 시간)'},repeat:{type:'string',enum:['once','daily','weekday','weekly','monthly','monthEnd']},weekdays:{type:'array',items:{type:'integer'},description:'weekly일 때 요일 번호 (0=일 … 6=토)'},day_of_month:{type:'integer',description:'monthly일 때 날짜'},color:{type:'string',enum:['yellow','pink','blue','green','purple']}},required:['text','datetime']},execute:i=>toolAddAlarm(i)},
+ {name:'add_memo',description:'메모를 붙인다. pin이 true면 첫 화면에 고정된다.',inputSchema:{type:'object',properties:{text:{type:'string'},pin:{type:'boolean'},color:{type:'string',enum:['yellow','pink','blue','green','purple']}},required:['text']},execute:i=>toolAddMemo(i)},
+ {name:'list_alarms',description:'켜져 있는 알림과 다음 알림 시각, 최근 메모를 돌려준다.',inputSchema:{type:'object',properties:{}},execute:()=>toolListAlarms()}
+];
+function rules(){return `너는 동네약국 "${S.settings.name||'우리 약국'}"의 직원과 약사가 쓰는 업무 도우미야. 한국어로 짧고 정확하게 답해.
+규칙:
+1. 제공된 도구로 찾은 자료만 근거로 답해. 자료에 없으면 추측하지 말고 "자료에 없어요"라고 말한 뒤 가까운 항목을 알려줘. 프로그램 메뉴 경로를 지어내지 마.
+2. 재고 수량·적정재고·남은 일수는 반드시 search_stock, order_list, stock_changes 결과로만 말하고 기준일을 붙여. 같은 성분 대체품이 있으면 함께 알려줘.
+3. 업무 절차·거래처 연락처는 search_manual로 찾아. 메뉴 경로는 "A > B > C"로 그대로 보여줘.
+4. 환자 오해는 search_cards로 찾아 판정, 설명 문구, 진료 권유 신호를 알려줘.
+5. OTC 상담은 otc_rules로 기준을 불러와. 위험 신호가 하나라도 해당되면 진료 권유를 먼저. 정보가 부족하면 꼭 필요한 것만 되물어. 성분은 권장/주의/피함으로 나누고 "최종 판단은 약사"를 덧붙여.
+6. 소아 시럽 용량(해열진통제·항생제)은 반드시 pediatric_dose 결과로만 답하고 직접 계산하지 마. 체중을 모르면 먼저 물어. 항생제는 처방 용량이 허가 범위 안인지 확인하는 용도라고 밝히고, 제품 농도(예: 125mg/5mL, 250mg/5mL)를 확인하게 해. 처방이 범위를 벗어나면 처방의 확인을 권해.
+7. 복용약 점검은 성분으로 풀어 중복, 1일 총량(계산식), 상호작용 후보, 고령·임신·신장/간 주의를 정리하고 "DUR과 허가사항으로 최종 확인"을 붙여.
+8. 영양제·일반약 추천은 search_stock으로 우리 약국 제품과 재고를 함께 알려줘.
+10. "알림", "~시에 알려줘", "메모해 둬"는 add_alarm·add_memo로 바로 등록하고 등록 결과(내용, 첫 알림, 반복)를 한 줄로 알려줘. 시각이 애매하면(예: "오후에") 한 번만 되물어. 등록된 알림 질문은 list_alarms로. 지금은 ${(()=>{const n=new Date();return `${n.getFullYear()}-${pad2(n.getMonth()+1)}-${pad2(n.getDate())} (${WD[n.getDay()]}) ${pad2(n.getHours())}:${pad2(n.getMinutes())}`})()}.
+9. 환자 이름·주민번호 등 개인정보가 보이면 무시하고 반복하지 마. 사진은 보이는 약 이름·함량을 먼저 말하고, 읽기 어려우면 다시 찍어 달라고 해.
+형식: 첫 줄에 결론. 그다음 필요한 숫자·단계를 "- "로. 마지막 줄에 "출처: 재고 자료/업무 수첩/OTC 상담 기준/대응 카드/용량 계산" 중 쓴 것. 표·제목(#)은 쓰지 말고 굵게는 **만.`}
+
+/* ===== 메모·알림 ===== */
+const MCOLORS={yellow:'노랑',pink:'분홍',blue:'파랑',green:'초록',purple:'보라'};
+const REP={once:'한 번',daily:'매일',weekday:'평일(월~금)',weekly:'매주',monthly:'매월',monthEnd:'매월 말일'};
+const WD='일월화수목금토';
+const ALARM_PRESETS=[
+ {text:'마감 정산',rep:'daily',time:'19:00'},
+ {text:'냉장 보관약 온도 기록',rep:'weekday',time:'09:00'},
+ {text:'반품 보낼 약 정리',rep:'weekly',days:[5],time:'16:00'},
+ {text:'사용기한 임박 약 점검',rep:'monthly',dom:1,time:'10:00'},
+ {text:'도매상 결제',rep:'monthly',dom:25,time:'11:00'},
+ {text:'청구 마감 확인',rep:'monthEnd',time:'15:00'}
+];
+S.memo={memos:[],alarms:[]};S.members=[];S.notices=[];S.pharm=null;
+const ME=()=>window.__me||'local';
+const myName=()=>{const m=S.members.find(x=>x.uid===ME());return m?m.name:''};
+const nameOf=uid=>{const m=S.members.find(x=>x.uid===uid);return m?m.name:''};
+const isFor=a=>!a.to||!a.to.length||a.to.includes(ME());
+const ackAt=a=>Math.max(a.ack||0,(a.acks||{})[ME()]||0);
+const snzAt=a=>Math.max(a.snooze||0,(a.snz||{})[ME()]||0);
+function ackAlarm(a){a.acks={...(a.acks||{}),[ME()]:Date.now()};a.snz={...(a.snz||{}),[ME()]:0}}
+function snoozeAlarm(a,t){a.snz={...(a.snz||{}),[ME()]:t}}
+function toLabel(a){if(!a.to||!a.to.length)return S.members.length>1?'모두':'';if(a.to.length===1&&a.to[0]===ME())return '나만';return a.to.map(u=>u===ME()?'나':nameOf(u)||'?').join('·')}
+const unreadNotices=()=>S.notices.filter(n=>n.by!==ME()&&!(n.reads||{})[ME()]);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pad2=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const lastDay=d=>new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+function aStart(a){const [y,m,d]=a.date.split('-').map(Number);const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(y,m-1,d,h,mi)}
+function aMatch(a,d){switch(a.rep){case 'daily':return true;case 'weekday':return d.getDay()>0&&d.getDay()<6;case 'weekly':return (a.days||[]).includes(d.getDay());
+ case 'monthly':return d.getDate()===Math.min(+a.dom||1,lastDay(d));case 'monthEnd':return d.getDate()===lastDay(d);default:return ymd(d)===a.date}}
+function occOn(a,d){const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,mi)}
+function latestOcc(a,now){const st=aStart(a);if(a.rep==='once')return st<=now?st:null;
+ for(let i=0;i<62;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);const o=occOn(a,d);if(o>now||!aMatch(a,d))continue;if(o<st)return null;return o}return null}
+function nextOcc(a,now){const st=aStart(a);if(a.rep==='once')return st>now?st:null;
+ for(let i=0;i<400;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);const o=occOn(a,d);if(o>now&&o>=st&&aMatch(a,d))return o}return null}
+function whenLabel(o){if(!o)return '';const n=new Date(),t=new Date(n.getFullYear(),n.getMonth(),n.getDate());const dd=Math.round((new Date(o.getFullYear(),o.getMonth(),o.getDate())-t)/864e5);
+ const day=dd===0?'오늘':dd===1?'내일':dd===-1?'어제':`${o.getMonth()+1}/${o.getDate()} (${WD[o.getDay()]})`;return `${day} ${pad2(o.getHours())}:${pad2(o.getMinutes())}`}
+function repLabel(a){if(a.rep==='weekly')return '매주 '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·');if(a.rep==='monthly')return `매월 ${a.dom}일${a.dom>28?'(없으면 말일)':''}`;if(a.rep==='once')return '한 번';return REP[a.rep]||''}
+function dueAlarms(now=new Date()){return S.memo.alarms.filter(a=>{if(!a.on||!isFor(a))return false;const o=latestOcc(a,now);return o&&o.getTime()>ackAt(a)&&!(snzAt(a)>now.getTime())})}
+async function saveMemo(){const ok=await saveDoc('memo/main',{memos:S.memo.memos,alarms:S.memo.alarms,savedAt:new Date().toISOString()});renderMemoHome();renderStickies();return ok}
+function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:null,by:ME(),byName:myName()};
+ if(a.rep==='weekly'&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
+function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
+
+/* 첫 화면: 타일 문구, 고정 메모 */
+function renderMemoHome(){
+ const now=new Date();const nx=S.memo.alarms.filter(a=>a.on).map(a=>[nextOcc(a,now),a]).filter(x=>x[0]).sort((x,y)=>x[0]-y[0])[0];
+ const due=dueAlarms(now).length,un=unreadNotices().length;
+ $('memoSub').textContent=un?`안 읽은 공지 ${un}개`:due?`지금 알림 ${due}개`:nx?`다음 ${whenLabel(nx[0])} ${nx[1].text}`:S.memo.memos.length?`메모 ${S.memo.memos.length}개`:'포스트잇 메모와 알림';
+ $('memoTile').classList.toggle('ring',!!(due||un));
+ $('memoTile').querySelector('.tt').textContent=S.pharm?'공지·메모·알림':'메모·알림';
+ const pins=S.memo.memos.filter(m=>m.pin);const box=$('pins');box.hidden=!pins.length;
+ box.innerHTML=pins.map(m=>`<button type="button" class="pin c-${m.color}" data-id="${m.id}">${esc(m.text)}</button>`).join('');
+ box.querySelectorAll('.pin').forEach(b=>b.onclick=()=>{memoEdit=b.dataset.id;openPanel('memo','memos')});
+}
+
+/* 포스트잇 팝업 */
+let audioCtx=null,shown=new Set(),titleTimer=null;
+document.addEventListener('pointerdown',()=>{try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}catch(e){}},{passive:true});
+function chime(){try{if(!audioCtx)return;const t=audioCtx.currentTime;[[880,0],[1175,.18],[880,.5],[1175,.68]].forEach(([f,s])=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.18,t+s+.02);g.gain.exponentialRampToValueAtTime(.001,t+s+.4);o.connect(g).connect(audioCtx.destination);o.start(t+s);o.stop(t+s+.45)})}catch(e){}}
+function flashTitle(n){clearInterval(titleTimer);const base=$('title').textContent;if(!n){document.title=base;return}let on=false;titleTimer=setInterval(()=>{on=!on;document.title=on?`🔔 알림 ${n}개`:base},1000)}
+function renderStickies(){
+ const due=dueAlarms();const box=$('stickies');const now=new Date();const nts=unreadNotices();
+ const fresh=due.filter(a=>!shown.has(a.id+':'+latestOcc(a,now).getTime())).concat(nts.filter(n=>!shown.has('n:'+n.id)).map(n=>({id:'n:'+n.id,isN:1,text:n.text})));
+ box.innerHTML=nts.map((n,i)=>`<div class="sticky c-${n.important?'pink':'blue'}" role="alertdialog" aria-label="공지" style="--r:${[.8,-1,.5][i%3]}deg"><div class="st-h"><span>📢 공지 · ${esc(n.byName||nameOf(n.by)||'')}</span><span class="st-rep">${esc(whenLabel(new Date(n.at)))}</span></div><div class="st-t">${esc(n.text)}</div><div class="st-a"><button type="button" class="st-ok" data-nread="${n.id}">확인했어요</button></div></div>`).join('')+due.map((a,i)=>{const o=latestOcc(a,now);const late=now-o>15*6e4;
+  return `<div class="sticky c-${a.color}" role="alertdialog" aria-label="알림" style="--r:${[-1.2,.8,-.4,1.1][i%4]}deg">
+   <div class="st-h"><span>🔔 ${whenLabel(o)}${late?' · 놓친 알림':''}</span><span class="st-rep">${esc(repLabel(a))}</span></div>
+   <div class="st-t">${esc(a.text)}</div>
+   <div class="st-a"><button type="button" class="st-ok" data-ok="${a.id}">확인</button><button type="button" data-sn="${a.id}" data-m="10">10분 뒤</button><button type="button" data-sn="${a.id}" data-m="60">1시간 뒤</button><button type="button" data-sn="${a.id}" data-m="tomorrow">내일</button></div></div>`}).join('');
+ box.hidden=!due.length&&!nts.length;
+ box.querySelectorAll('[data-nread]').forEach(b=>b.onclick=()=>{window.noticeRead&&noticeRead(b.dataset.nread)});
+ box.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{const a=S.memo.alarms.find(x=>x.id===b.dataset.ok);if(!a)return;ackAlarm(a);saveMemo();redrawPanel&&panelState.kind==='memo'&&redrawPanel()});
+ box.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>{const a=S.memo.alarms.find(x=>x.id===b.dataset.sn);if(!a)return;const m=b.dataset.m;
+  if(m==='tomorrow'){const t=new Date();t.setDate(t.getDate()+1);t.setHours(9,0,0,0);snoozeAlarm(a,t.getTime())}else snoozeAlarm(a,Date.now()+(+m)*6e4);
+  saveMemo();toast(m==='tomorrow'?'내일 오전 9시에 다시 알려 드릴게요':`${m==='60'?'1시간':'10분'} 뒤에 다시 알려 드릴게요`)});
+ if(fresh.length){fresh.forEach(a=>shown.add(a.isN?a.id:a.id+':'+latestOcc(a,now).getTime()));chime();
+  try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')fresh.forEach(a=>new Notification('🔔 '+(S.settings.name||'약국')+' 알림',{body:a.text}))}catch(e){}}
+ flashTitle(document.hidden?due.length+nts.length:0);
+}
+setInterval(()=>{renderStickies();renderMemoHome()},15000);
+document.addEventListener('visibilitychange',()=>{renderStickies();if(!document.hidden)flashTitle(0)});
+
+/* 패널 */
+let memoEdit=null,alarmEdit=null,memoQ='';
+function colorPick(name,sel){return `<div class="cpick" role="radiogroup" aria-label="색">${Object.entries(MCOLORS).map(([k,l])=>`<label class="cdot c-${k}" title="${l}"><input type="radio" name="${name}" value="${k}" ${k===sel?'checked':''} aria-label="${l}"></label>`).join('')}</div>`}
+function drawMemo(body){
+ if(panelState.tab==='alarms')return drawAlarms(body);
+ if(panelState.tab==='notices')return drawNotices(body);
+ const ed=memoEdit&&S.memo.memos.find(m=>m.id===memoEdit);
+ body.innerHTML=`<div class="card memo-new c-${ed?ed.color:'yellow'}" id="mNew"><textarea id="mText" rows="3" placeholder="메모를 적어 두세요 (예: 김○○님 오메가3 주문 → 입고되면 연락)">${ed?esc(ed.text):''}</textarea>
+  <div class="row" style="justify-content:space-between">${colorPick('mc',ed?ed.color:'yellow')}<label class="chk"><input type="checkbox" id="mPin" ${ed&&ed.pin?'checked':''}> 첫 화면에 고정</label></div>
+  <div class="row">${ed?'<button class="btn" type="button" id="mCancel">취소</button>':''}<button class="btn primary" type="button" id="mSave">${ed?'고치기':'메모 추가'}</button></div></div>
+  <input class="search" id="mSearch" type="search" placeholder="메모 검색" value="${esc(memoQ)}">
+  <div class="mgrid" id="mGrid"></div>`;
+ const q=s=>body.querySelector(s);
+ q('#mNew').addEventListener('change',e=>{if(e.target.name==='mc')q('#mNew').className='card memo-new c-'+e.target.value});
+ q('#mSave').onclick=async()=>{const text=q('#mText').value.trim();if(!text){toast('메모 내용을 적어 주세요');return}const color=q('input[name=mc]:checked').value,pin=q('#mPin').checked;
+  if(ed){Object.assign(ed,{text,color,pin})}else addMemo({text,color,pin});memoEdit=null;if(await saveMemo())toast(ed?'고쳤어요':'메모를 붙였어요');redrawPanel()};
+ if(q('#mCancel'))q('#mCancel').onclick=()=>{memoEdit=null;drawMemo(body)};
+ const grid=q('#mGrid');
+ const list=()=>{const k=memoQ.trim();const arr=S.memo.memos.filter(m=>!k||m.text.includes(k)).sort((a,b)=>(b.pin-a.pin));
+  grid.innerHTML=arr.length?arr.map(m=>`<div class="note c-${m.color}"><div class="nt">${esc(m.text)}</div><div class="nf"><span>${m.pin?'📌 ':''}${new Date(m.at).getMonth()+1}/${new Date(m.at).getDate()}${S.members.length>1&&m.byName?' · '+esc(m.byName):''}</span><span class="na">
+   <button type="button" data-pin="${m.id}" aria-label="${m.pin?'고정 풀기':'고정'}">${m.pin?'고정 풀기':'고정'}</button><button type="button" data-al="${m.id}">알림</button>${window.desk?`<button type="button" data-dk="${m.id}">${m.desk?'바탕화면에서 떼기':'바탕화면에 붙이기'}</button>`:''}<button type="button" data-ed="${m.id}">고치기</button><button type="button" data-del="${m.id}">삭제</button></span></div></div>`).join('')
+   :`<p class="muted">${k?'찾는 메모가 없어요':'아직 메모가 없어요. 위에 적고 메모 추가를 누르세요.'}</p>`;
+  grid.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.pin);m.pin=!m.pin;saveMemo();list()});
+  grid.querySelectorAll('[data-dk]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.dk);m.desk=m.desk?null:{top:false};saveMemo();toast(m.desk?'바탕화면에 붙였어요':'바탕화면에서 뗐어요');list()});
+  grid.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{memoEdit=b.dataset.ed;drawMemo(body);body.scrollTop=0});
+  grid.querySelectorAll('[data-al]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.al);alarmEdit={new:true,text:m.text,color:m.color};panelState.tab='alarms';redrawPanel()});
+  grid.querySelectorAll('[data-del]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';b.classList.add('arm');setTimeout(()=>{armed=false;b.textContent='삭제';b.classList.remove('arm')},3000);return}
+   S.memo.memos=S.memo.memos.filter(x=>x.id!==b.dataset.del);saveMemo();redrawPanel()}})};
+ q('#mSearch').oninput=e=>{memoQ=e.target.value;list()};list();
+}
+function alarmForm(a){
+ const now=new Date();const def=new Date(now.getTime()+60*6e4);
+ const v=Object.assign({text:'',color:'yellow',date:ymd(now),time:`${pad2(def.getHours())}:00`,rep:'once',days:[now.getDay()],dom:now.getDate()},a||{});
+ return `<div class="card memo-new c-${v.color}" id="aForm">
+  <h3>${a&&a.id?'알림 고치기':'새 알림'}</h3>
+  ${a&&a.id?'':`<div class="preset">${ALARM_PRESETS.map((p,i)=>`<button type="button" data-pre="${i}">${esc(p.text)}</button>`).join('')}</div>`}
+  <label class="field">알림 내용<textarea id="aText" rows="2" placeholder="예: 지오영 반품 기사님 오시는 날">${esc(v.text)}</textarea></label>
+  <div class="grid2"><label class="field"><span id="aDateL">${v.rep==='once'?'날짜':'시작 날짜'}</span><input type="date" id="aDate" value="${v.date}"></label><label class="field">시각<input type="time" id="aTime" value="${v.time}"></label></div>
+  <label class="field">반복<select id="aRep">${Object.entries(REP).map(([k,l])=>`<option value="${k}" ${k===v.rep?'selected':''}>${l}</option>`).join('')}</select></label>
+  <div class="wdays" id="aDays" ${v.rep==='weekly'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
+  <label class="field" id="aDomW" ${v.rep==='monthly'?'':'hidden'}>매월 며칠<input type="number" id="aDom" min="1" max="31" value="${v.dom}"></label>
+  ${S.members.length>1?`<div class="field">받는 사람<div class="wdays" id="aTo">${[{uid:'*',name:'모두'}].concat(S.members).map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${m.uid==='*'?(!v.to||!v.to.length?'checked':''):(v.to||[]).includes(m.uid)?'checked':''}><span>${esc(m.uid===ME()?m.name+'(나)':m.name)}</span></label>`).join('')}</div></div>`:''}
+  <div class="row" style="justify-content:space-between">${colorPick('ac',v.color)}</div>
+  <p class="muted" id="aPrev"></p>
+  <div class="row"><button class="btn" type="button" id="aCancel">취소</button><button class="btn primary" type="button" id="aSave">${a&&a.id?'고치기':'알림 저장'}</button></div></div>`}
+function drawAlarms(body){
+ const now=new Date();
+ const ed=alarmEdit&&alarmEdit.id?S.memo.alarms.find(x=>x.id===alarmEdit.id):alarmEdit;
+ const arr=S.memo.alarms.map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
+ body.innerHTML=(ed?alarmForm(ed):`<button class="btn primary big" type="button" id="aNew">＋ 새 알림 만들기</button>`)+
+  `<p class="muted">휴대폰에서는 이 앱이 열려 있을 때 포스트잇이 떠요. 닫혀 있던 동안 지난 알림과 새 공지는 다음에 열 때 떠요.</p>
+  <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
+   <div class="aa"><label class="sw" title="켜기/끄기"><input type="checkbox" data-on="${a.id}" ${a.on?'checked':''} aria-label="알림 켜기"><span></span></label><button class="btn sm" type="button" data-aed="${a.id}">고치기</button><button class="btn sm danger" type="button" data-adel="${a.id}">삭제</button></div></div>`).join(''):'<p class="muted">등록된 알림이 없어요.</p>'}</div>
+  ${'Notification' in window?`<div class="card"><h3>화면을 내려 둔 동안에도</h3><p class="muted">다른 창을 보고 있을 때 윈도우 알림으로도 띄우려면 아래를 눌러 허용하세요. 이 화면에서 허용이 막혀 있으면 포스트잇과 소리, 탭 제목 깜빡임으로만 알려요.</p><div class="row"><button class="btn sm" type="button" id="aPerm">윈도우 알림 허용 (${Notification.permission==='granted'?'허용됨':Notification.permission==='denied'?'막힘':'미설정'})</button><button class="btn sm" type="button" id="aTest">알림음 들어 보기</button></div></div>`:''}`;
+ const q=s=>body.querySelector(s);
+ if(q('#aNew'))q('#aNew').onclick=()=>{alarmEdit={new:true};drawAlarms(body)};
+ if(q('#aPerm'))q('#aPerm').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}drawAlarms(body)};
+ if(q('#aTest'))q('#aTest').onclick=()=>{try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}chime()};
+ const f=q('#aForm');
+ if(f){
+  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
+  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
+   if(!v.date){q('#aPrev').textContent='';return}if(v.rep==='weekly'&&!v.days.length){q('#aPrev').textContent='요일을 골라 주세요';return}const o=nextOcc(v,new Date());
+   q('#aPrev').textContent=o?`첫 알림: ${whenLabel(o)} · ${repLabel(v)}`:'이 날짜·시각은 이미 지났어요';};
+  f.addEventListener('input',prev);f.addEventListener('change',prev);prev();
+  f.querySelectorAll('#aTo input').forEach(x=>x.addEventListener('change',()=>{if(x.value==='*'&&x.checked)f.querySelectorAll('#aTo input').forEach(y=>{if(y!==x)y.checked=false});else if(x.checked)f.querySelector('#aTo input[value="*"]').checked=false}));
+  f.querySelectorAll('[data-pre]').forEach(b=>b.onclick=()=>{const p=ALARM_PRESETS[+b.dataset.pre];q('#aText').value=p.text;q('#aTime').value=p.time;q('#aRep').value=p.rep;
+   if(p.days)f.querySelectorAll('#aDays input').forEach(x=>x.checked=p.days.includes(+x.value));if(p.dom)q('#aDom').value=p.dom;prev();q('#aText').focus()});
+  q('#aCancel').onclick=()=>{alarmEdit=null;drawAlarms(body)};
+  q('#aSave').onclick=async()=>{const v=read();if(!v.text){toast('알림 내용을 적어 주세요');return}if(!v.date){toast('날짜를 골라 주세요');return}
+   if(v.rep==='weekly'&&!v.days.length){toast('요일을 하나 이상 골라 주세요');return}
+   if(v.rep==='once'&&aStart(v)<=new Date()){toast('이미 지난 시각이에요');return}
+   if(ed&&ed.id){Object.assign(ed,v,{on:true,ack:Date.now(),snooze:0,snz:{},acks:{}})}else addAlarm(v);
+   alarmEdit=null;if(await saveMemo())toast('알림을 저장했어요');redrawPanel()};
+ }
+ body.querySelectorAll('[data-on]').forEach(b=>b.onchange=()=>{const a=S.memo.alarms.find(x=>x.id===b.dataset.on);a.on=b.checked;if(a.on){a.ack=Date.now();a.snooze=0;if(a.rep==='once'&&aStart(a)<=new Date()){a.on=false;b.checked=false;toast('지난 한 번 알림이에요. 고치기로 날짜를 바꿔 주세요');return}}saveMemo();redrawPanel()});
+ body.querySelectorAll('[data-aed]').forEach(b=>b.onclick=()=>{alarmEdit={id:b.dataset.aed};drawAlarms(body);body.scrollTop=0});
+ body.querySelectorAll('[data-adel]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}
+  S.memo.alarms=S.memo.alarms.filter(x=>x.id!==b.dataset.adel);saveMemo();redrawPanel()}});
+}
+
+/* AI 도구 */
+function toolAddAlarm(i){
+ const m=String(i.datetime||'').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{1,2}):(\d{2})/);if(!m)return{오류:'datetime은 YYYY-MM-DDTHH:MM 형식이어야 해요'};
+ const v={text:i.text,date:m[1],time:`${pad2(+m[2])}:${m[3]}`,rep:i.repeat||'once',days:i.weekdays||[],dom:i.day_of_month||+m[1].slice(8),color:i.color};
+ if(!String(v.text||'').trim())return{오류:'알림 내용이 비어 있어요'};
+ if(v.rep==='once'&&aStart(v)<=new Date())return{오류:'이미 지난 시각이에요. 날짜·시각을 확인하세요'};
+ const a=addAlarm(v);saveMemo();return{저장됨:true,내용:a.text,반복:repLabel(a),첫알림:whenLabel(nextOcc(a,new Date()))}}
+function toolAddMemo(i){if(!String(i.text||'').trim())return{오류:'메모 내용이 비어 있어요'};const m=addMemo(i);saveMemo();return{저장됨:true,내용:m.text,고정:m.pin}}
+function toolListAlarms(){const now=new Date();return{지금:whenLabel(now),알림:S.memo.alarms.filter(a=>a.on).map(a=>({내용:a.text,반복:repLabel(a),다음:whenLabel(nextOcc(a,now))})),메모:S.memo.memos.slice(0,30).map(m=>({내용:m.text,고정:m.pin}))}}
+
+/* 공지 */
+function drawNotices(body){
+ const mgr=S.members.find(m=>m.uid===ME()&&(m.role==='owner'||m.role==='admin'));const total=S.members.length;
+ const list=S.notices.slice().sort((a,b)=>b.at-a.at);
+ body.innerHTML=(mgr?`<div class="card memo-new c-blue"><h3>새 공지</h3><textarea id="nText" rows="3" placeholder="직원 모두에게 보낼 공지 (예: 내일부터 점심시간 1시~2시로 변경)"></textarea>
+  <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="nImp"> 중요 (빨간 포스트잇)</label><button class="btn primary" type="button" id="nSend">공지 보내기</button></div></div>`
+  :`<p class="muted">국장님·관리자가 보낸 공지예요. 확인하면 읽음으로 표시돼요.</p>`)+
+  `<div class="alist">${list.length?list.map(n=>{const reads=n.reads||{};const readers=S.members.filter(m=>m.uid!==n.by&&reads[m.uid]);const notYet=S.members.filter(m=>m.uid!==n.by&&!reads[m.uid]);const mine=n.by===ME();const read=!!reads[ME()];
+   return `<div class="notice ${n.important?'imp':''} ${!mine&&!read?'unread':''}"><div class="nh"><b>📢 ${esc(n.byName||nameOf(n.by)||'')}</b><span class="sub">${esc(whenLabel(new Date(n.at)))}</span></div><div class="nb">${esc(n.text)}</div>
+    <div class="nf"><span class="sub">읽음 ${readers.length}/${Math.max(0,total-1)}${notYet.length&&(mine||mgr)?` · 아직: ${notYet.map(m=>esc(m.name)).join(', ')}`:''}</span>
+    <span class="row">${!mine&&!read?`<button class="btn sm primary" type="button" data-nr="${n.id}">확인했어요</button>`:''}${mgr?`<button class="btn sm danger" type="button" data-nd="${n.id}">삭제</button>`:''}</span></div></div>`}).join(''):'<p class="muted">아직 공지가 없어요.</p>'}</div>`;
+ const q=s=>body.querySelector(s);
+ if(q('#nSend'))q('#nSend').onclick=async()=>{const t=q('#nText').value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#nSend').disabled=true;if(await noticePost(t,q('#nImp').checked)){toast('공지를 보냈어요');redrawPanel()}else q('#nSend').disabled=false};
+ body.querySelectorAll('[data-nr]').forEach(b=>b.onclick=()=>noticeRead(b.dataset.nr));
+ body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}noticeDel(b.dataset.nd)}});
+}
+
+
+/* ===== 대화 ===== */
+let sample=null,useTools=false,canImg=false,turns=[],ctl=null,pendingImg=null;
+const welcomeEl=$('welcome');
+function md(t){const lines=esc(t).split('\n');let html='',inList=false;const inline=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+ lines.forEach(l=>{const m=l.match(/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/);
+  if(m){if(!inList){html+='<ul>';inList=true}html+='<li>'+inline(m[1])+'</li>'}
+  else{if(inList){html+='</ul>';inList=false}if(/^출처:/.test(l.trim()))html+='<span class="src">'+inline(l.trim())+'</span>';else if(l.trim())html+='<p>'+inline(l)+'</p>'}});
+ if(inList)html+='</ul>';return html}
+function addMsg(cls,html){welcomeEl.hidden=true;const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;$('chat').appendChild(d);$('chat').scrollTop=$('chat').scrollHeight;return d}
+function addActs(bot,q,text){const a=document.createElement('div');a.className='acts';a.innerHTML='<button type="button" data-a="copy">복사</button><button type="button" data-a="bad" aria-pressed="false">틀림</button>';
+ a.querySelector('[data-a=copy]').onclick=()=>copyText(text);
+ a.querySelector('[data-a=bad]').onclick=e=>{const b=e.currentTarget;if(b.getAttribute('aria-pressed')==='true')return;b.setAttribute('aria-pressed','true');const l=local(BAD_KEY)||[];l.push({q,a:text,at:new Date().toLocaleString('ko-KR')});local(BAD_KEY,l.slice(-50));toast('틀린 답 모음에 넣었어요')};bot.appendChild(a)}
+function contextFallback(q){const parts=[];const s=searchStock(q),m=searchManual(q),c=searchCards(q);
+ if(s.찾은개수)parts.push('[재고] '+JSON.stringify(s));if(m.결과.length)parts.push('[수첩] '+JSON.stringify(m));if(c.결과.length)parts.push('[대응 카드] '+JSON.stringify(c));
+ if(/발주|주문|부족/.test(q))parts.push('[발주] '+JSON.stringify(orderList('')));if(/어제|변화|품절|빨리|안 나|과다/.test(q))parts.push('[변화] '+JSON.stringify(stockChanges()));
+ const kg=q.match(/(\d+(?:\.\d+)?)\s*(?:kg|키로|킬로)/i);if(kg&&/아세트|타이레놀|세토펜|이부|부루펜|덱시|맥시|해열|세파클러|오라클러|오구멘틴|클라불란|지스로|아지스로|클래리|세프디니르|옴니세프|항생제/.test(q))parts.push('[용량 계산] '+JSON.stringify(pediatricDose(q,+kg[1])));
+ if(/OTC|감기|기침|콧물|코막|열|인후|소화|속쓰|설사|변비|관절|근육|허리|무릎/.test(q))parts.push('[OTC 기준] '+JSON.stringify(otcRules(q)));
+ return parts.join('\n').slice(0,40000)||'(찾은 자료 없음)'}
+function setImg(f){pendingImg=f||null;$('imgChip').hidden=!f;if(f){$('imgName').textContent=f.name||'사진';try{$('imgThumb').src=URL.createObjectURL(f)}catch(e){}}}
+async function ask(q){
+ q=String(q||'').trim();if(pendingImg&&!q)q='이 사진의 약을 확인해줘';if(!q||ctl)return;
+ if(!sample){addMsg('bot err','<p>이 화면에서는 AI 답변을 쓸 수 없어요. Claude 앱이나 claude.ai에서 열어 주세요.</p>');return}
+ $('input').value='';autosize();const img=pendingImg;let thumb='';if(img){try{thumb=`<img src="${URL.createObjectURL(img)}" alt="첨부 사진">`}catch(e){}}
+ addMsg('me',thumb+esc(q));setImg(null);
+ const heavy=!!img||/점검|중복|상호작용|총량|용량|체중|임신|수유|영양제|항생제/.test(q);
+ const bot=addMsg('bot thinking',heavy?'<p>꼼꼼히 확인하는 중… (10~40초)</p>':'<p>찾는 중…</p>');
+ ctl=new AbortController();$('sendBtn').disabled=true;$('stopBtn').hidden=false;
+ const userTurn=useTools?q:`[자료]\n${contextFallback(q)}\n\n[질문]\n${q}`;
+ const input=[{role:'user',content:rules()},...turns.slice(-8),{role:'user',content:userTurn}];
+ try{const opts={signal:ctl.signal,modelTier:heavy?'default':'quick',onText:({text})=>{bot.classList.remove('thinking');bot.innerHTML=md(text);$('chat').scrollTop=$('chat').scrollHeight}};
+  if(useTools)opts.tools=TOOLS;else opts.cache=false;if(img)opts.images=img;
+  const {text,truncated}=await sample(input,opts);
+  bot.classList.remove('thinking');bot.innerHTML=md(text)+(truncated?'<span class="src">답이 길어서 끊겼어요. 나눠서 물어보세요.</span>':'');addActs(bot,q,text);
+  turns.push({role:'user',content:q+(img?' (사진 첨부)':'')},{role:'assistant',content:text});
+ }catch(e){bot.classList.remove('thinking');const c=e&&e.code;
+  if(c==='cancelled'){bot.innerHTML=(e.text?md(e.text):'')+'<span class="src">멈췄어요.</span>'}
+  else{bot.classList.add('err');if(c==='tools_unavailable')useTools=false;if(c==='images_unavailable'){canImg=false;$('attachLbl').hidden=true}
+   const m=c==='images_unavailable'?'이 화면에서는 사진을 보낼 수 없어요.':c==='image_rejected'?'사진을 읽지 못했어요. 다른 사진으로 보내 주세요.':c==='not_granted'?'AI 사용이 허용되지 않았어요. 다시 보내면 허용 여부를 묻습니다.':c==='rate_limited'?'요청이 많아요. 잠시 뒤 다시 보내 주세요.':c==='session_expired'?'다시 로그인한 뒤 보내 주세요.':'답을 받지 못했어요. 다시 보내 주세요.';
+   bot.innerHTML=(e.text?md(e.text):'')+'<p>'+esc(m)+'</p>'}
+ }finally{ctl=null;$('sendBtn').disabled=false;$('stopBtn').hidden=true;$('input').focus()}
+}
+function autosize(){const t=$('input');t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px'}
+$('form').addEventListener('submit',e=>{e.preventDefault();ask($('input').value)});
+$('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();ask($('input').value)}});
+$('input').addEventListener('input',autosize);
+$('stopBtn').addEventListener('click',()=>ctl?.abort());
+$('menuBtn').addEventListener('click',()=>openPanel('settings'));
+$('book').addEventListener('click',()=>{manualCat=null;openItem=null;openPanel('manual')});
+$('memoTile').addEventListener('click',()=>openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
+$('img').addEventListener('change',e=>{const f=e.target.files[0];if(f)setImg(f);e.target.value=''});
+$('imgDel').addEventListener('click',()=>setImg(null));
+document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(f){setImg(f);toast('사진을 붙였어요')}});
+
+/* ===== 약국 계정 · 여러 기기 실시간 연동 · 공지 ===== */
+// 약국 비서 전용 Firebase 프로젝트 (무매데스크와 분리)
+const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
+const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous'];
+const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
+const enc=p=>p.replace('/','__'),dec=id=>id.replace('__','/');
+const SY={cloud:null,user:null,pid:null,unsub:[],dev:null,pushedAt:{},seenAt:{},base:{memos:{},alarms:{}},status:'off',lastSync:null,err:'',phase:'out'};
+SY.dev=local('cb-desk-device')||(()=>{const d='pc-'+Math.random().toString(36).slice(2,8);local('cb-desk-device',d);return d})();
+const P=()=>'pharmacies/'+SY.pid;
+const hasDesk=()=>!!(window.desk&&window.desk.setMe);
+
+function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});
+ const db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
+ return{onAuth:cb=>F.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:u.email}:null)),login:(e,p)=>F.signInWithEmailAndPassword(auth,e,p),signup:(e,p)=>F.createUserWithEmailAndPassword(auth,e,p),
+  reset:e=>F.sendPasswordResetEmail(auth,e),logout:()=>F.signOut(auth),
+  // 다른 사람 계정을 만들고 그 사람으로 잠깐 들어가 fn 실행 (내 로그인은 그대로 유지)
+  asNewUser:async(e,p,fn)=>{const app2=F.initializeApp(FB_CFG,'add-'+Date.now());
+   try{const a2=F.initializeAuth(app2,{persistence:F.inMemoryPersistence});const d2=F.initializeFirestore(app2,{experimentalAutoDetectLongPolling:true});
+    const c=await F.createUserWithEmailAndPassword(a2,e,p);await fn({set:(path,d,merge)=>F.setDoc(F.doc(d2,path),d,merge?{merge:true}:{})},c.user.uid);await F.signOut(a2)}
+   finally{F.deleteApp(app2).catch(()=>{})}},
+  changePw:async(oldP,newP)=>{const u=auth.currentUser;await F.reauthenticateWithCredential(u,F.EmailAuthProvider.credential(u.email,oldP));await F.updatePassword(u,newP)},
+  get:async p=>{const s=await F.getDoc(F.doc(db,p));return s.exists()?s.data():null},
+  getAll:async c=>{const s=await F.getDocs(F.collection(db,c));const o={};s.forEach(d=>o[d.id]=d.data());return o},
+  set:(p,d,merge)=>F.setDoc(F.doc(db,p),d,merge?{merge:true}:{}),del:p=>F.deleteDoc(F.doc(db,p)),
+  watchCol:(c,cb,err)=>F.onSnapshot(F.collection(db,c),s=>{if(s.metadata.hasPendingWrites)return;const o={};s.forEach(d=>o[d.id]=d.data());cb(o)},err),
+  watchDoc:(p,cb,err)=>F.onSnapshot(F.doc(db,p),s=>{if(s.metadata.hasPendingWrites)return;cb(s.exists()?s.data():null)},err)}}
+
+const clean=o=>JSON.parse(JSON.stringify(o));
+const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((r,x)=>(r[x]=v[x],r),{}):v);
+const stripMemo=m=>{const {desk,...r}=m;return clean(r)};
+const stripAll=m=>({memos:(m.memos||[]).map(stripMemo),alarms:clean(m.alarms||[])});
+function syStatus(s,err){SY.status=s;SY.err=err||'';if(s==='on')SY.lastSync=new Date();const el=$('syncDot');if(el){el.hidden=s==='off';el.className='syncdot '+s;el.title=s==='on'?'연동 중':s==='err'?'연동 문제: '+SY.err:'연결 중'}
+ syRedraw()}
+function syRedraw(){if(redrawPanel&&panelState.kind==='settings'&&panelState.tab==='account'&&!document.activeElement?.closest('.panel input,.panel select'))redrawPanel()}
+const errMsg=e=>e&&(e.code==='permission-denied'?'권한이 없어요 (보안 규칙 확인 필요)':e.code||e.message)||'알 수 없는 문제';
+
+/* --- 자료 올리기·받기 --- */
+async function syPushWhole(p,d){if(!SY.pid||!WHOLE.includes(p)||!d)return;const j=JSON.stringify(d);if(j.length>900000){toast('자료가 너무 커서 연동하지 못했어요: '+p);return}
+ const at=Date.now();SY.pushedAt[p]=at;SY.seenAt[enc(p)]=at;try{await SY.cloud.set(P()+'/data/'+enc(p),{j,by:SY.dev,at});syStatus('on')}catch(e){syStatus('err',errMsg(e))}}
+let memoPushT=null;
+function syPushMemo(){if(!SY.pid)return;clearTimeout(memoPushT);memoPushT=setTimeout(async()=>{const ops=[];
+ for(const kind of ['memos','alarms']){const cur={};(S.memo[kind]||[]).forEach(x=>cur[x.id]=stripMemo(x));const base=SY.base[kind];
+  for(const id in cur){const s=canon(cur[id]);if(base[id]!==s){const prev=base[id]?JSON.parse(base[id]):null;base[id]=s;
+    // 확인·다시 알림은 사람마다 따로 → 다른 사람 것과 합쳐지도록 merge
+    ops.push(SY.cloud.set(P()+'/'+kind+'/'+id,{...cur[id],_by:SY.dev},kind==='alarms'&&!!prev))}}
+  for(const id in base)if(!cur[id]){delete base[id];ops.push(SY.cloud.del(P()+'/'+kind+'/'+id))}}
+ try{await Promise.all(ops);if(ops.length)syStatus('on')}catch(e){syStatus('err',errMsg(e))}},250)}
+function syPush(p,d){if(!SY.pid)return;if(p==='memo/main')syPushMemo();else syPushWhole(p,d)}
+function syApplyWhole(o){for(const id in o){const p=dec(id),x=o[id];if(!WHOLE.includes(p)||!x||!x.j)continue;if((SY.seenAt[id]||0)>=x.at)continue;SY.seenAt[id]=x.at;
+  if(x.by===SY.dev&&SY.pushedAt[p]===x.at)continue;try{DESKDB.applyRemote(p,JSON.parse(x.j))}catch(e){}}syStatus('on')}
+function syApplyMemo(kind,o){const remote={};for(const id in o){const {_by,...r}=o[id];remote[id]=r}
+ const base=SY.base[kind],loc={};(S.memo[kind]||[]).forEach(x=>loc[x.id]=x);const out={};let pending=false;
+ for(const id in remote){const l=loc[id];
+  if(l&&base[id]!==undefined&&base[id]!==canon(stripMemo(l))){out[id]=l;pending=true}
+  else if(!l&&base[id]!==undefined&&base[id]!==canon(remote[id])){out[id]=remote[id]}
+  else if(!l&&base[id]!==undefined){pending=true}
+  else out[id]=l&&l.desk?{...remote[id],desk:l.desk}:remote[id]}
+ for(const id in loc)if(!(id in remote)){if(base[id]===undefined){out[id]=loc[id];pending=true}}
+ SY.base[kind]=Object.fromEntries(Object.entries(remote).map(([id,x])=>[id,canon(x)]));
+ const arr=Object.values(out).sort(kind==='memos'?(a,b)=>String(b.at).localeCompare(String(a.at)):(a,b)=>String(a.at).localeCompare(String(b.at)));
+ const next={memos:S.memo.memos||[],alarms:S.memo.alarms||[],[kind]:arr};
+ if(canon(stripAll(next))!==canon(stripAll(S.memo)))DESKDB.applyRemote('memo/main',{...next,savedAt:new Date().toISOString()});
+ if(pending)syPushMemo();syStatus('on')}
+
+/* --- 공지 --- */
+function syNoticesChanged(){renderMemoHome();
+ if(hasDesk())window.desk.setNotices(unreadNotices().map(n=>({id:n.id,text:n.text,byName:n.byName||nameOf(n.by),when:whenLabel(new Date(n.at)),important:!!n.important})));
+ else if(typeof renderStickies==='function')renderStickies();
+ if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()}
+async function noticePost(text,important){try{const id=uid();await SY.cloud.set(P()+'/notices/'+id,{text:text.slice(0,2000),important:!!important,by:SY.user.uid,byName:myName(),at:Date.now(),reads:{}});return true}catch(e){toast('보내지 못했어요: '+errMsg(e));return false}}
+async function noticeRead(id){const n=S.notices.find(x=>x.id===id);if(n){n.reads={...(n.reads||{}),[ME()]:Date.now()};syNoticesChanged()}
+ try{await SY.cloud.set(P()+'/notices/'+id,{reads:{[ME()]:Date.now()}},true)}catch(e){toast('읽음 표시 실패: '+errMsg(e))}}
+async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id)}catch(e){toast(errMsg(e))}}
+
+/* --- 약국 공간 시작·끝 --- */
+async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');
+ try{
+  const remote=await SY.cloud.getAll(P()+'/data');const rm=await SY.cloud.getAll(P()+'/memos'),ra=await SY.cloud.getAll(P()+'/alarms');
+  const empty=!Object.keys(remote).length&&!Object.keys(rm).length&&!Object.keys(ra).length;let down=0;
+  for(const p of WHOLE){const x=remote[enc(p)];const loc=DESKDB.get(p);
+   if(x&&x.j){SY.seenAt[enc(p)]=x.at;DESKDB.applyRemote(p,JSON.parse(x.j));down++}else if(loc)await syPushWhole(p,loc)}
+  SY.base={memos:{},alarms:{}};syApplyMemo('memos',rm);syApplyMemo('alarms',ra);syPushMemo();
+  const W=(f)=>SY.unsub.push(f);const err=e=>syStatus('err',errMsg(e));
+  W(SY.cloud.watchDoc(P(),d=>{S.pharm=d;renderMemoHome();syRedraw()},err));
+  W(SY.cloud.watchCol(P()+'/members',o=>{S.members=Object.entries(o).map(([u,m])=>({uid:u,...m})).sort((a,b)=>(a.role==='owner'?0:a.role==='admin'?1:2)-(b.role==='owner'?0:b.role==='admin'?1:2)||String(a.name).localeCompare(String(b.name)));
+   if(SY.user&&!o[SY.user.uid]){toast('약국에서 나가졌어요');syLeaveLocal();return}renderMemoHome();syRedraw()},e=>{if(e&&e.code==='permission-denied'){toast('약국에서 나가졌어요');syLeaveLocal()}else err(e)}));
+  W(SY.cloud.watchCol(P()+'/notices',o=>{S.notices=Object.entries(o).map(([id,n])=>({id,...n}));syNoticesChanged()},err));
+  W(SY.cloud.watchCol(P()+'/data',syApplyWhole,err));
+  W(SY.cloud.watchCol(P()+'/memos',o=>syApplyMemo('memos',o),err));
+  W(SY.cloud.watchCol(P()+'/alarms',o=>syApplyMemo('alarms',o),err));
+  syStatus('on');if(empty)toast('이 기기 자료를 약국 공간에 올렸어요');else if(down)toast('약국 자료를 받아 왔어요');
+ }catch(e){console.error(e);syStatus('err',errMsg(e))}}
+function syStopPharm(){SY.unsub.forEach(f=>{try{f()}catch(e){}});SY.unsub=[];SY.pid=null;S.members=[];S.notices=[];S.pharm=null;SY.base={memos:{},alarms:{}};
+ if(hasDesk())window.desk.setNotices([]);renderMemoHome();syStatus('off')}
+function syLeaveLocal(){syStopPharm();SY.phase='nopharm';syRedraw()}
+async function syOnUser(u){
+ if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
+ if(SY.user&&SY.user.uid===u.uid&&SY.pid)return;
+ syStopPharm();SY.user=u;window.__me=u.uid;if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syRedraw();
+ try{const ptr=await SY.cloud.get('users/'+u.uid);const pid=ptr&&ptr.pharmPid;
+  if(pid&&await SY.cloud.get('pharmacies/'+pid+'/members/'+u.uid))return syStartPharm(pid);
+  SY.phase='nopharm';syRedraw()}catch(e){SY.phase='nopharm';syStatus('err',errMsg(e))}}
+function syInit(){
+ try{SY.cloud=window.__fakeCloud?window.__fakeCloud():(window.FB?fbCloud():null)}catch(e){console.error(e);SY.cloud=null}
+ if(SY.cloud)SY.cloud.onAuth(u=>syOnUser(u));
+ if(hasDesk()&&window.desk.onNoticeRead)window.desk.onNoticeRead(id=>noticeRead(id))}
+const CODE_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const newCode=()=>Array.from({length:6},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join('');
+async function syCreatePharm(name,me){const u=SY.user;const pid='p'+uid();const code=newCode();
+ await SY.cloud.set('pharmacies/'+pid,{name,ownerUid:u.uid,inviteCode:code,at:Date.now()});
+ await SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{name:me,role:'owner',email:u.email||'',at:Date.now()});
+ await SY.cloud.set('invites/'+code,{pid,at:Date.now()});
+ await SY.cloud.set('users/'+u.uid,{pharmPid:pid},true);
+ S.settings={...S.settings,name};await saveDoc('settings/main',S.settings);applySettings();
+ await syStartPharm(pid)}
+async function syJoinPharm(code,me){const u=SY.user;const inv=await SY.cloud.get('invites/'+code);if(!inv||!inv.pid)throw{code:'nocode'};
+ await SY.cloud.set('pharmacies/'+inv.pid+'/members/'+u.uid,{name:me,role:'staff',email:u.email||'',code,at:Date.now()});
+ await SY.cloud.set('users/'+u.uid,{pharmPid:inv.pid},true);await syStartPharm(inv.pid)}
+const PW_CH='abcdefghjkmnpqrstuvwxyz23456789';const newTempPw=()=>Array.from({length:8},()=>PW_CH[Math.floor(Math.random()*PW_CH.length)]).join('');
+async function syAddMember(name,email,pw,role){const code=S.pharm&&S.pharm.inviteCode;if(!code)throw{code:'nocode'};const pid=SY.pid;let newUid=null;
+ await SY.cloud.asNewUser(email,pw,async(c,u)=>{newUid=u;
+  await c.set('pharmacies/'+pid+'/members/'+u,{name,role:'staff',email,code,at:Date.now(),addedBy:SY.user.uid});
+  await c.set('users/'+u,{pharmPid:pid},true)});
+ if(role==='admin')await SY.cloud.set(P()+'/members/'+newUid,{role:'admin'},true);
+ SY.lastAdded={name,email,pw,role};return newUid}
+async function syNewCode(){const old=S.pharm&&S.pharm.inviteCode;const code=newCode();
+ await SY.cloud.set('invites/'+code,{pid:SY.pid,at:Date.now()});await SY.cloud.set(P(),{inviteCode:code},true);if(old)SY.cloud.del('invites/'+old).catch(()=>{})}
+
+/* --- 계정 화면 (설정 → 약국 계정) --- */
+const AUTH_MSG={'auth/invalid-credential':'이메일이나 비밀번호가 맞지 않아요','auth/wrong-password':'비밀번호가 맞지 않아요','auth/user-not-found':'없는 계정이에요. 새 계정 만들기를 누르세요',
+ 'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요'};
+function accountView(){
+ if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
+ if(SY.phase==='out')return `<div class="card"><h3>약국 계정</h3><p class="muted">국장님은 약국을 만들고, 직원은 초대 코드로 들어와요. 각자 자기 이메일로 계정을 만드세요. 같은 계정으로 PC·휴대폰 어디서 로그인해도 같은 자료와 공지를 받아요.</p>
+  <div class="grid2"><label class="field">이메일<input id="syE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="syP" type="password" autocomplete="current-password"></label></div>
+  <div class="row"><button class="btn primary" type="button" id="syIn">로그인</button><button class="btn" type="button" id="syNew">새 계정 만들기</button><button class="btn sm" type="button" id="syReset">비밀번호 찾기</button></div><p class="muted" id="syMsg"></p></div>`;
+ if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
+ if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
+  <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·수첩·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
+   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder="예: 김국장"></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>
+  <div class="card"><h3>직원: 초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
+   <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder="예: 박약사"></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
+ const me=S.members.find(m=>m.uid===SY.user.uid)||{};const mgr=me.role==='owner'||me.role==='admin';const owner=me.role==='owner';
+ return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
+  <p class="muted">나: <b>${esc(me.name||'')}</b> (${ROLE[me.role]||''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
+  <div class="row"><label class="field" style="flex:1">내 이름 바꾸기<input id="myName" value="${esc(me.name||'')}"></label><button class="btn sm" type="button" id="myNameSave" style="align-self:flex-end">바꾸기</button></div>
+  ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
+ </div>
+ <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${ROLE[m.role]||''}</span><br><span class="sub">${esc(m.email||'')}</span></span>
+  ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
+  <p class="muted">관리자는 공지를 보내고 직원을 부를 수 있어요.</p></div>
+ ${mgr?`<div class="card"><h3>직원 바로 추가</h3><p class="muted">여기서 계정을 만들면 직원은 받은 이메일과 임시 비밀번호로 로그인만 하면 돼요. 초대 코드는 필요 없어요.</p>
+  ${SY.lastAdded?`<div class="addok"><b>${esc(SY.lastAdded.name)}</b> 계정을 만들었어요 (${ROLE[SY.lastAdded.role]||''})<br>이메일 <span class="num">${esc(SY.lastAdded.email)}</span> · 임시 비밀번호 <b class="num">${esc(SY.lastAdded.pw)}</b>
+   <div class="row"><button class="btn sm" type="button" id="amCopy">로그인 정보 복사</button><button class="btn sm" type="button" id="amDone">닫기</button></div>
+   <span class="sub">직원에게 알려 주고, 처음 로그인한 뒤 이 화면의 "비밀번호 바꾸기"로 바꾸게 하세요.</span></div>`:''}
+  <div class="grid2"><label class="field">이름<input id="amName" placeholder="예: 박약사"></label><label class="field">이메일 (로그인 아이디)<input id="amEmail" type="email" autocomplete="off" placeholder="예: park@gmail.com"></label>
+   <label class="field">임시 비밀번호 (6자 이상)<input id="amPw" autocomplete="off" value="${newTempPw()}" style="font-family:var(--mono)"></label>
+   <label class="field">역할<select id="amRole"><option value="staff">직원</option>${owner?'<option value="admin">관리자</option>':''}</select></label></div>
+  <div class="row"><button class="btn primary" type="button" id="amGo">계정 만들고 추가</button></div>
+  <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
+ <div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
+  <div class="row"><button class="btn" type="button" id="pwGo">바꾸기</button></div><p class="muted" id="pwMsg"></p></div>
+ <div class="card"><div class="row">${owner?'':'<button class="btn" type="button" id="syLeave">약국에서 나가기</button>'}<button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
+function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
+ const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p))});
+ if(q('#syIn'))q('#syIn').onclick=()=>auth('in');if(q('#syNew'))q('#syNew').onclick=()=>auth('new');if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
+ if(q('#syReset'))q('#syReset').onclick=()=>busy(q('#syReset'),async()=>{const e=q('#syE').value.trim();if(!e){msg('이메일을 먼저 적어 주세요');return}await SY.cloud.reset(e);msg('비밀번호 재설정 메일을 보냈어요')});
+ if(q('#syOut'))q('#syOut').onclick=async()=>{await SY.cloud.logout()};
+ if(q('#cpGo'))q('#cpGo').onclick=()=>busy(q('#cpGo'),async()=>{const n=q('#cpName').value.trim(),me=q('#cpMe').value.trim();if(!n||!me){msg('약국 이름과 내 이름을 적어 주세요');return}await syCreatePharm(n,me);toast('약국을 만들었어요. 초대 코드를 직원에게 알려 주세요')});
+ if(q('#jpGo'))q('#jpGo').onclick=()=>busy(q('#jpGo'),async()=>{const c=q('#jpCode').value.trim().toUpperCase(),me=q('#jpMe').value.trim();if(c.length!==6||!me){msg('6자리 코드와 내 이름을 적어 주세요');return}await syJoinPharm(c,me);toast('약국에 들어왔어요')});
+ if(q('#codeCopy'))q('#codeCopy').onclick=()=>copyText(`${S.pharm.name} 약국 비서 초대 코드: ${S.pharm.inviteCode}`);
+ if(q('#codeNew'))q('#codeNew').onclick=()=>busy(q('#codeNew'),async()=>{await syNewCode();toast('새 초대 코드를 만들었어요')});
+ if(q('#myNameSave'))q('#myNameSave').onclick=()=>busy(q('#myNameSave'),async()=>{const n=q('#myName').value.trim();if(!n)return;await SY.cloud.set(P()+'/members/'+SY.user.uid,{name:n},true);toast('이름을 바꿨어요')});
+ body.querySelectorAll('[data-role]').forEach(s=>s.onchange=()=>busy(s,async()=>{await SY.cloud.set(P()+'/members/'+s.dataset.role,{role:s.value},true);toast('역할을 바꿨어요')}));
+ body.querySelectorAll('[data-kick]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 내보내기';setTimeout(()=>{armed=false;b.textContent='내보내기'},3000);return}busy(b,async()=>{await SY.cloud.del(P()+'/members/'+b.dataset.kick);toast('내보냈어요')})}});
+ if(q('#amGo'))q('#amGo').onclick=()=>{const m=t=>{const x=q('#amMsg');if(x)x.textContent=t};const b=q('#amGo');
+  const name=q('#amName').value.trim(),email=q('#amEmail').value.trim().toLowerCase(),pw=q('#amPw').value,role=q('#amRole').value;
+  if(!name||!email){m('이름과 이메일을 적어 주세요');return}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){m('이메일 형식이 아니에요');return}if(pw.length<6){m('임시 비밀번호는 6자 이상');return}
+  if(S.members.some(x=>(x.email||'').toLowerCase()===email)){m('이미 약국에 있는 사람이에요');return}
+  b.disabled=true;m('계정 만드는 중…');
+  syAddMember(name,email,pw,role).then(()=>{toast(name+' 님을 추가했어요');redrawPanel&&redrawPanel()}).catch(e=>{
+   m(e&&e.code==='auth/email-already-in-use'?`이미 가입된 이메일이에요. 그분은 직접 로그인한 뒤 초대 코드 ${S.pharm&&S.pharm.inviteCode||''}로 들어오게 해 주세요`:(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e))))}).finally(()=>{if(b.isConnected)b.disabled=false})};
+ if(q('#amCopy'))q('#amCopy').onclick=()=>{const a=SY.lastAdded;copyText(`[${S.pharm&&S.pharm.name||'약국'} 약국 비서]\n이메일: ${a.email}\n임시 비밀번호: ${a.pw}\n휴대폰: https://tobi06-oss.github.io/yakguk-biseo/\n로그인 후 설정 → 약국 계정 → 비밀번호 바꾸기`)};
+ if(q('#amDone'))q('#amDone').onclick=()=>{SY.lastAdded=null;redrawPanel&&redrawPanel()};
+ if(q('#pwGo'))q('#pwGo').onclick=()=>{const m=t=>{const x=q('#pwMsg');if(x)x.textContent=t};const o=q('#pwOld').value,n=q('#pwNew').value;
+  if(!o||n.length<6){m('지금 비밀번호와 새 비밀번호(6자 이상)를 적어 주세요');return}const b=q('#pwGo');b.disabled=true;m('바꾸는 중…');
+  SY.cloud.changePw(o,n).then(()=>{q('#pwOld').value='';q('#pwNew').value='';m('비밀번호를 바꿨어요');toast('비밀번호를 바꿨어요')}).catch(e=>m(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e)))).finally(()=>{if(b.isConnected)b.disabled=false})};
+ if(q('#syLeave'))q('#syLeave').onclick=()=>busy(q('#syLeave'),async()=>{if(!confirmTwice(q('#syLeave')))return;await SY.cloud.del(P()+'/members/'+SY.user.uid);await SY.cloud.set('users/'+SY.user.uid,{pharmPid:null},true);syLeaveLocal()})}
+
+/* ===== 로컬 찾기 (PC·웹 공통) ===== */
+/* --- 한국어 알림 문장 읽기 --- */
+const WDN={일:0,월:1,화:2,수:3,목:4,금:5,토:6};
+function parseAlarm(q){
+ let s=' '+q.replace(/\s+/g,' ')+' ',now=new Date(),date=null,rep='once',days=[],dom=null,h=null,mi=0,rel=null,guess='';
+ const cut=re=>{const m=s.match(re);if(m)s=s.replace(m[0],' ');return m};
+ let m;
+ if(m=cut(/(\d+)\s*분\s*(뒤|후)/))rel=+m[1]*6e4;
+ else if(m=cut(/(\d+)\s*시간\s*(?:(\d+)\s*분\s*)?(뒤|후)/))rel=+m[1]*36e5+(+m[2]||0)*6e4;
+ else if(m=cut(/(한|두|세)\s*시간\s*(뒤|후)/))rel={한:1,두:2,세:3}[m[1]]*36e5;
+ if(cut(/매일|날마다|하루\s*한\s*번/))rep='daily';
+ else if(cut(/평일|주중|월\s*~\s*금/))rep='weekday';
+ else if(m=cut(/(?:매주|주마다)\s*([일월화수목금토](?:\s*[,·\s]\s*[일월화수목금토])*)\s*요일?/)){rep='weekly';days=[...new Set(m[1].match(/[일월화수목금토]/g).map(c=>WDN[c]))]}
+ else if(m=cut(/(?:매월|매달|달마다)\s*말일/)){rep='monthEnd'}
+ else if(m=cut(/(?:매월|매달|달마다)\s*(\d{1,2})\s*일/)){rep='monthly';dom=+m[1]}
+ if(m=cut(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/)){date=new Date(now.getFullYear(),+m[1]-1,+m[2]);if(date<new Date(now.getFullYear(),now.getMonth(),now.getDate()))date.setFullYear(date.getFullYear()+1)}
+ else if(m=cut(/(?:^|\s)(\d{1,2})\/(\d{1,2})(?=\s)/)){date=new Date(now.getFullYear(),+m[1]-1,+m[2])}
+ else if(cut(/오늘/))date=new Date(now);
+ else if(cut(/내일/))date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
+ else if(cut(/모레/))date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+2);
+ else if(cut(/글피/))date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+3);
+ else if(m=cut(/(\d+)\s*일\s*(뒤|후)/))date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(+m[1]));
+ else if(rep==='once'&&(m=cut(/(다음\s*주|담주|이번\s*주)?\s*([일월화수목금토])요일/))){const want=WDN[m[2]],t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(m[1]){const mon=new Date(t0);mon.setDate(t0.getDate()-((t0.getDay()+6)%7)+(/다음|담/.test(m[1])?7:0));date=new Date(mon);date.setDate(mon.getDate()+((want+6)%7))}
+  else{date=new Date(t0);date.setDate(t0.getDate()+((want-t0.getDay()+7)%7))}}
+ const ap=cut(/오전|아침|새벽|오후|저녁|밤|낮|점심/);
+ if(m=cut(/(\d{1,2}):(\d{2})/)){h=+m[1];mi=+m[2]}
+ else if(m=cut(/(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분|(반)(?![가-힣]))?/)){h=+m[1];mi=m[3]?30:(+m[2]||0)}
+ else if(ap&&/점심/.test(ap[0])){h=12}
+ if(h!=null&&ap){const a=ap[0];if(/오후|저녁|밤/.test(a)&&h<12)h+=12;if(/낮/.test(a)&&h<7)h+=12;if(/오전|아침|새벽/.test(a)&&h===12)h=0}
+ else if(h!=null&&h>=1&&h<=7){h+=12;guess='오후로 알아들었어요. '}
+ const text=s.replace(/(에|에는)?\s*(알림|알람)\s*(을|좀)?\s*(등록|설정|맞춰|만들어)?\s*(해\s*줘|해줘|해\s*주세요|줘|해)?/g,' ').replace(/알려\s*(줘|주세요|달라)|깨워\s*줘|리마인드/g,' ').replace(/(^|\s)(에|에는|까지|부터)(?=\s)/g,' ').replace(/[,.?!]+/g,' ').replace(/\s+/g,' ').trim();
+ if(rel){const t=new Date(now.getTime()+rel);return{text,date:ymd(t),time:`${pad2(t.getHours())}:${pad2(t.getMinutes())}`,rep:'once',days:[],dom:1,guess}}
+ if(h==null)return{text,need:'time',date:date?ymd(date):ymd(now),rep,days,dom:dom||now.getDate()};
+ if(!date){date=new Date(now);if(rep==='once'&&(h*60+mi)<=(now.getHours()*60+now.getMinutes()))date.setDate(date.getDate()+1)}
+ if(rep==='weekly'&&!days.length)days=[date.getDay()];
+ return{text,date:ymd(date),time:`${pad2(h)}:${pad2(mi)}`,rep,days,dom:dom||date.getDate(),guess}}
+
+/* --- 결과 그리기 --- */
+function fmtVal(v){if(v==null||v==='')return '';if(Array.isArray(v))return v.length?'<ul>'+v.map(x=>'<li>'+fmtVal(x)+'</li>').join('')+'</ul>':'<span class="sub">없음</span>';
+ if(typeof v==='object')return Object.entries(v).filter(([,x])=>x!=null&&x!=='').map(([k,x])=>typeof x==='object'?`<div class="kv"><b>${esc(k.replace(/_/g,' '))}</b>${fmtVal(x)}</div>`:`<div class="kv"><b>${esc(k.replace(/_/g,' '))}</b> ${esc(x)}</div>`).join('');return esc(v)}
+function botCard(title,html,src){return `<p><b>${esc(title)}</b></p>${html}${src?`<span class="src">출처: ${esc(src)}</span>`:''}`}
+const STOP=/재고|몇\s*개|개야|있어\??|남았|남은|확인|알려\s*줘|얼마|찾아\s*줘|좀|요$/g;
+function stockHits(q){if(!M)return[];const c=q.replace(STOP,' ').trim();const nq=norm(c);if(!nq)return[];let res=M.items.filter(i=>i.hay.includes(nq));
+ if(!res.length){const ts=tokens(c).map(norm).filter(t=>t.length>=2);res=M.items.filter(i=>ts.some(t=>i.hay.includes(t)))}
+ return res.sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur).slice(0,6)}
+function localAnswer(raw){
+ let q=raw.replace(/^(재고 확인|OTC 상담|환자가 이렇게 말해요|소아 시럽 용량[^:]*)\s*:\s*/,'').trim();const pre=(raw.match(/^([^:]+):/)||[])[1]||'';
+ // 알림·메모
+ if(/^메모\s*[:：]|메모\s*해\s*(둬|줘|놔)/.test(q)){const text=q.replace(/^메모\s*[:：]\s*/,'').replace(/메모\s*해\s*(둬|줘|놔)\s*$/,'').trim();if(!text)return botCard('메모','<p>무엇을 적을까요? 예: "메모: 오메가3 손님 입고되면 연락"</p>');
+  addMemo({text});saveMemo();return botCard('메모를 붙였어요',`<p>${esc(text)}</p>`,'메모·알림')}
+ if(/등록된\s*알림|알림\s*(목록|뭐|보여)/.test(q)){const r=toolListAlarms();return botCard('켜져 있는 알림',r.알림.length?'<ul>'+r.알림.map(a=>`<li>${esc(a.다음)} · ${esc(a.내용)} <span class="sub">${esc(a.반복)}</span></li>`).join('')+'</ul>':'<p>없어요.</p>','메모·알림')}
+ const TIMEISH=/\d+\s*시|\d+\s*분\s*(뒤|후)|\d+\s*시간\s*(뒤|후)|내일|모레|글피|[일월화수목금토]요일|매일|매주|매월|매달|평일|\d+:\d{2}/;
+ if((/알림|알람|리마인드|깨워\s*줘/.test(q)||(/알려\s*줘/.test(q)&&TIMEISH.test(q)))&&!/알림\s*(기능|방법)/.test(q)){const p=parseAlarm(q);
+  if(!p.text)return botCard('알림','<p>무엇을 알려 드릴까요? 예: "내일 3시 지오영 반품 알림"</p>');
+  if(p.need){alarmEdit={new:true,text:p.text,date:p.date,rep:p.rep,days:p.days,dom:p.dom};openPanel('memo','alarms');return botCard('시각을 정해 주세요',`<p>"${esc(p.text)}" 알림 창을 열었어요. 시각만 고르고 저장하세요.</p>`)}
+  if(p.rep==='once'&&aStart(p)<=new Date())return botCard('이미 지난 시각이에요',`<p>${esc(p.date)} ${esc(p.time)}은 지났어요. 날짜를 같이 적어 주세요.</p>`);
+  const a=addAlarm(p);saveMemo();return botCard('알림을 등록했어요',`<p>🔔 <b>${esc(whenLabel(nextOcc(a,new Date())))}</b> · ${esc(repLabel(a))}<br>${esc(a.text)}</p>${p.guess?`<p class="sub">${esc(p.guess)}다르면 메모·알림에서 고치세요.</p>`:''}`,'메모·알림')}
+ // 용량
+ const kg=q.match(/(\d+(?:\.\d+)?)\s*(?:kg|키로|킬로)/i);
+ if(/소아 시럽/.test(pre)||(kg&&/아세트|타이레놀|세토펜|챔프|이부|부루펜|덱시|맥시|해열|세파클러|오라클러|오구멘틴|클라불란|지스로|아지스로|클래리|세프디니르|옴니세프|항생제|시럽/.test(q))){
+  if(!kg)return botCard('소아 시럽 용량','<p>약 이름과 체중을 같이 적어 주세요. 예: "세파클러 12kg", "덱시부프로펜 15kg"</p>');
+  const conc=(q.match(/(\d+(?:\.\d+)?)\s*mg\s*\/\s*(\d+(?:\.\d+)?)\s*ml/i));const r=pediatricDose(q,+kg[1],conc?+conc[1]/+conc[2]:undefined);
+  return botCard('소아 시럽 용량',fmtVal(r),'용량 계산 (허가사항)')}
+ // 발주·변화
+ if(/발주|주문할|부족|모자라/.test(q)){const sup=M?[...new Set(M.items.map(i=>i.ws).filter(Boolean))].find(w=>q.includes(w)):'';const r=orderList(sup||'');
+  if(r.안내)return botCard('발주',`<p>${esc(r.안내)}</p>`);return botCard(`발주 필요 ${r.품목수}품목 (${r.기준일})`,fmtVal(r.사입처별)+`<p class="sub">${esc(r.기준)}</p>`,'재고 자료')}
+ if(/어제|변화|새로\s*0|빨리\s*나|안\s*나가|과다/.test(q)){const r=stockChanges();return botCard('재고 변화',fmtVal(r),'재고 자료')}
+ // OTC
+ if(/OTC 상담/.test(raw)||/감기|기침|콧물|코막|인후|목\s*아|소화|속쓰|체했|설사|변비|관절|근육|허리|무릎|어깨/.test(q)&&!stockHits(q).length){const r=otcRules(q||'감기');
+  return botCard(`OTC 상담 기준 · ${r.분야}`,`<div class="kv warnbox"><b>위험 신호 (하나라도 있으면 진료 권유)</b><ul>${r.위험신호_하나라도있으면진료권유.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul></div>`+
+   r.증상별.map(s=>`<div class="kv"><b>${esc(s.증상)}</b><ul>${s.성분.map(i=>`<li>${esc(i.성분)} <span class="sub">${esc(i.분류)}</span>${i.주의.length?`<br><span class="sub">${i.주의.map(esc).join('<br>')}</span>`:''}</li>`).join('')}</ul>${s.생활안내?`<span class="sub">${esc(s.생활안내)}</span>`:''}</div>`).join('')+'<p class="sub">최종 판단은 약사.</p>','OTC 상담 기준')}
+ // 환자 오해
+ if(/환자가/.test(pre)){const r=searchCards(q);return botCard('환자 오해 대응',r.결과.length?fmtVal(r.결과):'<p>맞는 대응 카드가 없어요.</p>','대응 카드')}
+ // 기본: 재고 + 수첩 + 대응 카드
+ const man=searchManual(q),cards=searchCards(q),howto=/번호|연락처|전화|담당|방법|어떻게|하는\s*법|절차|메뉴/.test(q)&&man.결과.length;const hits=howto?[]:stockHits(q);let html='';
+ if(hits.length)html+=`<p><b>재고</b> <span class="sub">${esc(dateLabel(M.date))} 기준</span></p><div class="hits">${hits.map(itemCard).join('')}</div>`;
+ if(man.결과.length)html+=`<p><b>업무 수첩</b></p>`+man.결과.slice(0,3).map(r=>`<div class="kv"><b>${esc(r.제목)}</b> <span class="sub">${esc(r.분류)}</span><div class="pre">${esc(r.내용)}</div></div>`).join('');
+ if(cards.결과.length&&!hits.length)html+=`<p><b>환자 오해 대응</b></p>`+fmtVal(cards.결과.slice(0,1));
+ if(!html)return botCard('찾지 못했어요',`<p>"${esc(q)}"에 맞는 재고·수첩 항목이 없어요.${M?'':' 재고 자료가 아직 없어요. 설정 → 파일 올리기에서 올려 주세요.'}</p><p class="sub">이렇게 써 보세요: 약 이름(레미피드) · 거래처 이름(지오영 번호) · "세파클러 12kg" · "내일 3시 반품 알림" · "메모: …"</p>`);
+ return html}
+async function ask(q){q=String(q||'').trim();if(!q)return;$('input').value='';autosize();addMsg('me',esc(q));
+ let html;try{html=localAnswer(q)}catch(e){console.error(e);html='<p>처리하다 문제가 생겼어요. 다르게 적어 보세요.</p>'}
+ const bot=addMsg('bot',html);const a=document.createElement('div');a.className='acts';a.innerHTML='<button type="button">복사</button>';a.firstChild.onclick=()=>copyText(bot.innerText.replace(/\n복사$/,''));bot.appendChild(a);
+ renderMemoHome();$('input').focus()}
+
+
+/* ===== 웹(휴대폰) 버전 ===== */
+let DESKDB=null;const WEB_KEY='cb-web-docs';
+async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
+ const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
+ const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
+ DESKDB={get:p=>docs[p],applyRemote:(p,d)=>{docs[p]=d;persist();fire(p,d)}};
+ return{doc:p=>({set:async d=>{docs[p]=d;persist();syPush(p,d)},onSnapshot:f=>{(subs[p]=subs[p]||[]).push(f);setTimeout(()=>f({exists:!!docs[p],data:()=>docs[p]}),0);return()=>{}}})}}
+function webBanner(){const b=$('banner');if(!b)return;const need=SY.cloud&&(SY.phase==='out'||SY.phase==='nopharm');
+ if(need){b.hidden=false;b.classList.add('cta');b.innerHTML=SY.phase==='out'?'<b>약국 계정으로 로그인하세요</b><br>공지·알림·재고를 약국 PC와 같이 받아요 ›':'<b>약국에 들어가세요</b><br>국장님께 받은 초대 코드를 넣으면 돼요 ›';b.onclick=()=>openPanel('settings','account')}
+ else if(b.classList.contains('cta')){b.hidden=true;b.classList.remove('cta');b.onclick=null}}
+function webBoot(){syInit();setInterval(webBanner,1500);setTimeout(webBanner,600);
+ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}
+
+/* ===== 시작 ===== */
+renderFavs();
+(async()=>{
+ 
+ const [dbNs,smp]=[await deskDb(),null];
+ db=dbNs;sample=smp;
+ if(sample){const lim=await sample.limits().catch(()=>null);useTools=!!(lim&&lim.tools);canImg=!!(lim&&lim.images);$('attachLbl').hidden=!canImg}
+ if(!db){$('banner').hidden=false;$('banner').textContent='이 화면에서는 약국 자료 저장소를 열 수 없어요.';return}
+ const watch=(path,fn)=>db.doc(path).onSnapshot(s=>{fn(s.exists?s.data():null);S.ready[path]=1;renderToday();if(redrawPanel&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()},()=>{});
+ watch('stock/current',d=>S.stock=d);
+ watch('stock/previous',d=>S.prev=d);
+ watch('profile/current',d=>S.profile=d||{items:{}});
+ watch('settings/main',d=>{S.settings={...DEFAULT_SETTINGS,...(d||{})};applySettings()});
+ watch('exceptions/main',d=>S.exc=(d&&d.items)||{});
+ watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
+ watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();renderStickies();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
+ webBoot();
+})();
+</script>
+
+</body></html>
