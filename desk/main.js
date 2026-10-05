@@ -202,7 +202,7 @@ app.whenReady().then(()=>{
  loadData();ensureShortcuts();createWin();buildTray();syncStickies();
  setInterval(checkAlarms,15000);setTimeout(checkAlarms,2500);
  setInterval(()=>scanFolder(),60000);
- setTimeout(()=>checkUpdate(false),20000);setInterval(()=>checkUpdate(false),6*3600e3);
+ setTimeout(()=>checkUpdate(false),20000);setInterval(()=>checkUpdate(false),3600e3);
  try{globalShortcut.register('CommandOrControl+Alt+M',()=>showWin('newMemo'));globalShortcut.register('CommandOrControl+Alt+A',()=>showWin('newAlarm'))}catch(e){}
  // 절전 후 깨어나면 바로 확인
  try{require('electron').powerMonitor.on('resume',()=>{checkAlarms();scanFolder()})}catch(e){}

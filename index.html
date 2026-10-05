@@ -1585,6 +1585,23 @@ async function ask(q){q=String(q||'').trim();if(!q)return;$('input').value='';au
  renderMemoHome();$('input').focus()}
 
 
+/* ===== 머리 줄 업데이트 단추: 새 버전이 있을 때만 파란 단추 + 빨간 점 (설정 단추 바로 앞) ===== */
+function hdrUpdBtn(onClick){
+ if($('upBtn'))return $('upBtn');const mb=$('menuBtn');if(!mb)return null;
+ if(!document.getElementById('upBtnCss')){const st=document.createElement('style');st.id='upBtnCss';st.textContent=`
+.hbtns{display:flex;align-items:center;gap:8px;flex:none}
+.upbtn{position:relative;display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 16px 0 13px;border-radius:21px;border:0;background:var(--accent);color:var(--on-accent,#fff);font:inherit;font-size:14.5px;font-family:var(--display,inherit);white-space:nowrap;cursor:pointer;box-shadow:0 6px 16px -6px rgba(47,85,151,.7);animation:upin .25s ease-out}
+.upbtn[hidden]{display:none}.upbtn:hover{filter:brightness(1.08)}.upbtn:disabled{cursor:default;filter:saturate(.7)}
+.upbtn .updot{position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--brand,#E0424F);border:2px solid var(--bg,#fff);box-shadow:0 0 0 0 rgba(224,66,79,.5);animation:updot 1.4s ease-in-out infinite}
+@keyframes updot{50%{box-shadow:0 0 0 6px rgba(224,66,79,0)}}@keyframes upin{from{transform:scale(.8);opacity:0}}
+@media (prefers-reduced-motion:reduce){.upbtn,.upbtn .updot{animation:none}}
+@media (max-width:420px){.upbtn{padding:0 13px 0 11px;font-size:13.5px}}`;document.head.appendChild(st)}
+ const w=document.createElement('div');w.className='hbtns';mb.parentNode.insertBefore(w,mb);
+ const b=document.createElement('button');b.type='button';b.id='upBtn';b.className='upbtn';b.hidden=true;
+ b.innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>업데이트</span><i class="updot" aria-hidden="true"></i>';
+ w.appendChild(b);w.appendChild(mb);b.onclick=()=>onClick(b);return b}
+function upBtnShow(b,on,title){if(!b)return;b.hidden=!on;b.disabled=false;b.title=title||'';b.setAttribute('aria-label',title||'업데이트')}
+
 /* ===== 약국 공용: 공지사항 · 국장님 전달사항 · 약국 캘린더 · 인수인계 ===== */
 S.orders=[];S.events=[];S.leaves=[];S.swaps=[];S.handover=[];S.shiftDocs={};
 const TEAM_COLS=['orders','events','leaves','swaps','handover'];
@@ -1855,7 +1872,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 `;
 
 /* ===== 웹(휴대폰) 버전 ===== */
-let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791191844';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
@@ -1864,7 +1881,10 @@ async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB
 function webBanner(){const b=$('banner');if(!b)return;const need=SY.cloud&&(SY.phase==='out'||SY.phase==='nopharm');
  if(need){b.hidden=false;b.classList.add('cta');b.innerHTML=SY.phase==='out'?'<b>약국 계정으로 로그인하세요</b><br>공지·알림·재고를 약국 PC와 같이 받아요 ›':'<b>약국에 들어가세요</b><br>국장님께 받은 초대 코드를 넣으면 돼요 ›';b.onclick=()=>openPanel('settings','account')}
  else if(b.classList.contains('cta')){b.hidden=true;b.classList.remove('cta');b.onclick=null}}
-function webBoot(){syInit();setInterval(webBanner,1500);setTimeout(webBanner,600);
+function webBoot(){syInit();
+ const ub=hdrUpdBtn(async b=>{b.disabled=true;try{const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();r&&await r.update()}catch(e){}location.reload()});
+ const chk=async()=>{try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=await r.json();upBtnShow(ub,!!(v.b&&v.b!==WEB_BUILD),'새 버전이 있어요 — 누르면 새로 불러와요')}catch(e){}};
+ setTimeout(chk,3000);setInterval(chk,10*60e3);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()});setInterval(webBanner,1500);setTimeout(webBanner,600);
  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}
 
 /* ===== 시작 ===== */

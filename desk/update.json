@@ -1,16 +1,16 @@
 {
- "version": "0.5.2",
- "notes": "대체약 유무(같은 성분·함량·제형 재고 바로 찾기), 입력란 예시 문구 지움",
+ "version": "0.5.4",
+ "notes": "업데이트가 있을 때만 파란 업데이트 단추(빨간 점)가 떠요 · 1시간마다 확인",
  "files": [
   {
    "p": "index.html",
-   "sha256": "584b55bb40c0f1d7dd142b809de5fdf78a39cf3333a4a84aa500810729680a7c",
-   "size": 250039
+   "sha256": "aaf1223bd7d2f2332ec42c2903937f98d96bd62c602b4bc57dda1cd8dd6325a3",
+   "size": 252593
   },
   {
    "p": "main.js",
-   "sha256": "58c76e7656f55fd5da07a077405e1ce0aae63f8a79651da3f230bc7ec277f8ef",
-   "size": 17400
+   "sha256": "08630dbcb876c780a141c3f9ad8095d8a52cf78c92f9e8a8b450b81c656d4446",
+   "size": 17398
   },
   {
    "p": "preload.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "24600747cc41e2bbac42649c8faa7c81513e7a9a373098b8943ec0b1b4e7aecf",
+   "sha256": "f5eb9301c2daa8f45a37fe9f350dd0b7092609c45bad35dab79c27510cf3e487",
    "size": 211
   },
   {
