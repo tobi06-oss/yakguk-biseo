@@ -1233,7 +1233,7 @@ SY.dev=local('cb-desk-device')||(()=>{const d='pc-'+Math.random().toString(36).s
 const P=()=>'pharmacies/'+SY.pid;
 const hasDesk=()=>!!(window.desk&&window.desk.setMe);
 
-function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});
+function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});try{auth.languageCode='ko'}catch(e){}
  const db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
  return{onAuth:cb=>F.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:u.email}:null)),login:(e,p)=>F.signInWithEmailAndPassword(auth,e,p),signup:(e,p)=>F.createUserWithEmailAndPassword(auth,e,p),
   reset:e=>F.sendPasswordResetEmail(auth,e),logout:()=>F.signOut(auth),
@@ -1243,6 +1243,8 @@ function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');c
     const c=await F.createUserWithEmailAndPassword(a2,e,p);await fn({set:(path,d,merge)=>F.setDoc(F.doc(d2,path),d,merge?{merge:true}:{})},c.user.uid);await F.signOut(a2)}
    finally{F.deleteApp(app2).catch(()=>{})}},
   changePw:async(oldP,newP)=>{const u=auth.currentUser;await F.reauthenticateWithCredential(u,F.EmailAuthProvider.credential(u.email,oldP));await F.updatePassword(u,newP)},
+  // 이메일 바꾸기: 비밀번호로 본인 확인 → 새 이메일로 확인 링크 (누르면 바뀜)
+  changeEmail:async(pw,newE)=>{const u=auth.currentUser;await F.reauthenticateWithCredential(u,F.EmailAuthProvider.credential(u.email,pw));await F.verifyBeforeUpdateEmail(u,newE)},
   get:async p=>{const s=await F.getDoc(F.doc(db,p));return s.exists()?s.data():null},
   getAll:async c=>{const s=await F.getDocs(F.collection(db,c));const o={};s.forEach(d=>o[d.id]=d.data());return o},
   set:(p,d,merge)=>F.setDoc(F.doc(db,p),d,merge?{merge:true}:{}),del:p=>F.deleteDoc(F.doc(db,p)),
@@ -1324,8 +1326,8 @@ async function syOnUser(u){
  if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
  if(SY.user&&SY.user.uid===u.uid&&SY.pid)return;
  syStopPharm();SY.user=u;window.__me=u.uid;if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syRedraw();
- try{const ptr=await SY.cloud.get('users/'+u.uid);const pid=ptr&&ptr.pharmPid;
-  if(pid&&await SY.cloud.get('pharmacies/'+pid+'/members/'+u.uid))return syStartPharm(pid);
+ try{const ptr=await SY.cloud.get('users/'+u.uid);const pid=ptr&&ptr.pharmPid;const mem=pid&&await SY.cloud.get('pharmacies/'+pid+'/members/'+u.uid);
+  if(mem){if(u.email&&mem.email!==u.email)SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{email:u.email},true).catch(()=>{});return syStartPharm(pid)}
   SY.phase='nopharm';syRedraw()}catch(e){SY.phase='nopharm';syStatus('err',errMsg(e))}}
 function syInit(){
  try{SY.cloud=window.__fakeCloud?window.__fakeCloud():(window.FB?fbCloud():null)}catch(e){console.error(e);SY.cloud=null}
@@ -1354,12 +1356,13 @@ async function syNewCode(){const old=S.pharm&&S.pharm.inviteCode;const code=newC
 
 /* --- 계정 화면 (설정 → 약국 계정) --- */
 const AUTH_MSG={'auth/invalid-credential':'이메일이나 비밀번호가 맞지 않아요','auth/wrong-password':'비밀번호가 맞지 않아요','auth/user-not-found':'없는 계정이에요. 새 계정 만들기를 누르세요',
- 'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요'};
+ 'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/missing-password':'비밀번호를 적어 주세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요'};
 function accountView(){
  if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
  if(SY.phase==='out')return `<div class="card"><h3>약국 계정</h3><p class="muted">국장님은 약국을 만들고, 직원은 초대 코드로 들어와요. 각자 자기 이메일로 계정을 만드세요. 같은 계정으로 PC·휴대폰 어디서 로그인해도 같은 자료와 공지를 받아요.</p>
   <div class="grid2"><label class="field">이메일<input id="syE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="syP" type="password" autocomplete="current-password"></label></div>
   <div class="row"><button class="btn primary" type="button" id="syIn">로그인</button><button class="btn" type="button" id="syNew">새 계정 만들기</button><button class="btn sm" type="button" id="syReset">비밀번호 찾기</button></div><p class="muted" id="syMsg"></p></div>`;
+ if(!SY.user)return `<div class="card"><h3>약국 계정</h3><p class="muted">확인하는 중…</p></div>`;
  if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
  if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
   <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·수첩·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
@@ -1388,6 +1391,9 @@ function accountView(){
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
  <div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
   <div class="row"><button class="btn" type="button" id="pwGo">바꾸기</button></div><p class="muted" id="pwMsg"></p></div>
+ <div class="card"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
+  <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder="예: new@gmail.com"></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
+  <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>
  <div class="card"><div class="row">${owner?'':'<button class="btn" type="button" id="syLeave">약국에서 나가기</button>'}<button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
 function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
  const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p))});
@@ -1413,6 +1419,11 @@ function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const 
  if(q('#pwGo'))q('#pwGo').onclick=()=>{const m=t=>{const x=q('#pwMsg');if(x)x.textContent=t};const o=q('#pwOld').value,n=q('#pwNew').value;
   if(!o||n.length<6){m('지금 비밀번호와 새 비밀번호(6자 이상)를 적어 주세요');return}const b=q('#pwGo');b.disabled=true;m('바꾸는 중…');
   SY.cloud.changePw(o,n).then(()=>{q('#pwOld').value='';q('#pwNew').value='';m('비밀번호를 바꿨어요');toast('비밀번호를 바꿨어요')}).catch(e=>m(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e)))).finally(()=>{if(b.isConnected)b.disabled=false})};
+ if(q('#emGo'))q('#emGo').onclick=()=>{const m=t=>{const x=q('#emMsg');if(x)x.textContent=t};const ne=q('#emNew').value.trim().toLowerCase(),pw=q('#emPw').value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ne)){m('새 이메일을 바르게 적어 주세요');return}if(ne===(SY.user.email||'').toLowerCase()){m('지금 이메일과 같아요');return}if(!pw){m('지금 비밀번호를 적어 주세요');return}
+  const b=q('#emGo');b.disabled=true;m('보내는 중…');
+  SY.cloud.changeEmail(pw,ne).then(()=>{q('#emPw').value='';m(`${ne}로 확인 메일을 보냈어요. 메일의 링크를 누르면 로그인 이메일이 바뀌어요. (메일이 안 보이면 스팸함도 확인해 주세요)`);toast('확인 메일을 보냈어요')})
+   .catch(e=>m(e&&e.code==='auth/email-already-in-use'?'이미 다른 계정이 쓰는 이메일이에요':(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e))))).finally(()=>{if(b.isConnected)b.disabled=false})};
  if(q('#syLeave'))q('#syLeave').onclick=()=>busy(q('#syLeave'),async()=>{if(!confirmTwice(q('#syLeave')))return;await SY.cloud.del(P()+'/members/'+SY.user.uid);await SY.cloud.set('users/'+SY.user.uid,{pharmPid:null},true);syLeaveLocal()})}
 
 /* ===== 로컬 찾기 (PC·웹 공통) ===== */

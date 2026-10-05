@@ -1,11 +1,11 @@
 {
- "version": "0.5.0",
- "notes": "공지사항 · 국장님 전달사항 · 약국 캘린더(근무표·휴가·근무 교환) · 인수인계 추가",
+ "version": "0.5.1",
+ "notes": "로그인 이메일 바꾸기(비밀번호 확인 후 새 이메일로 확인 링크)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "5d18014ad7ebc6629a07d53985462ca88777e906fdb87d221d13b9b6f362ec91",
-   "size": 238179
+   "sha256": "3213b12aa7d51ff4efa4c3febb2f8d0024ed36d080ea5e4b3797fc7756d2c92a",
+   "size": 240455
   },
   {
    "p": "main.js",
@@ -34,12 +34,12 @@
   },
   {
    "p": "fakecloud.js",
-   "sha256": "bde6ea59a4b37498610aec23a68f07f1a0d00637a382d071ffa8858034cb03e5",
-   "size": 1868
+   "sha256": "994649b3a77de43177bf9ced0df1dd1ff9782ec45404cf7830193a6d75955b00",
+   "size": 2044
   },
   {
    "p": "package.json",
-   "sha256": "8ad3c49f06f9154f9aca0bfdc4e3d6eea2bf7d25208caf2ab09d939036affc7e",
+   "sha256": "dc0bb8d59744c7d608190be9efa808a1afc08fa44480b0de9329589e5eb0a5a2",
    "size": 211
   },
   {
@@ -49,8 +49,8 @@
   },
   {
    "p": "vendor/firebase.js",
-   "sha256": "a936d9b4d10854d05f69bd27d354657c874c9b59147b4f70a23da6f96694b443",
-   "size": 368996
+   "sha256": "f3029970f9c809a80956ed11d9798044cb66a605ce78a81ba9a171be9c50235e",
+   "size": 369260
   },
   {
    "p": "vendor/xlsx.full.min.js",

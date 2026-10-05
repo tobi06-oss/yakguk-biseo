@@ -9,6 +9,7 @@ window.__fakeCloud=()=>{
  return{onAuth:cb=>{authCb=cb;const s=localStorage.getItem('fakeUser');setTimeout(()=>cb(s?JSON.parse(s):null),0)},
   login:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),signup:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),reset:async()=>{},logout:async()=>setU(null),
   asNewUser:async(e,p,fn)=>{if(e.includes('taken'))throw{code:'auth/email-already-in-use'};await fn({set:(path,d,merge)=>call('set',{path,data:d,merge:!!merge})},'u_'+e.replace(/\W/g,''))},changePw:async(o,n)=>{if(o!=='123456')throw{code:'auth/invalid-credential'}},
+  changeEmail:async(pw,ne)=>{if(pw!=='123456')throw{code:'auth/invalid-credential'};if(ne.includes('taken'))throw{code:'auth/email-already-in-use'};window.__fakeEmailSent=ne},
   get:p=>call('get',{path:p}),getAll:c=>call('getAll',{path:c}),set:(p,d,merge)=>call('set',{path:p,data:d,merge:!!merge}),del:p=>call('del',{path:p}),
   watchCol:(c,cb)=>{const k='c:'+c;(watchers[k]=watchers[k]||[]).push(cb);call('watch',{key:k});return()=>{watchers[k]=watchers[k].filter(f=>f!==cb)}},
   watchDoc:(p,cb)=>{const k='d:'+p;(watchers[k]=watchers[k]||[]).push(cb);call('watch',{key:k});return()=>{watchers[k]=watchers[k].filter(f=>f!==cb)}}}}})();
