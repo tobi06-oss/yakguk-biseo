@@ -276,6 +276,13 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
 .tile:hover{border-color:var(--accent)}
 .tile .ti{width:42px;height:42px;border-radius:13px;color:#fff;display:grid;place-items:center;margin-bottom:8px}
 .t-book{background:linear-gradient(145deg,#F6B04A,#E58A1F);box-shadow:0 6px 14px -6px rgba(229,138,31,.6)}
+.t-alt{background:linear-gradient(145deg,#3DBFC9,#1B8C99);box-shadow:0 6px 14px -6px rgba(27,140,153,.55)}
+.tile.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:12px 14px}.tile.wide .ti{margin-bottom:0;flex:none}.tile.wide .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.altg h3{display:flex;justify-content:space-between;align-items:center;gap:8px}.althead{margin:.2em 0 .5em;font-size:14px}.altg h3 .sub{text-transform:none;font-weight:400}.altlist .alt>b,.altother .alt>b{white-space:nowrap;flex:none}
+.altlist{display:flex;flex-direction:column;gap:5px;font-size:14px}.altlist .alt,.altother .alt{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}.altlist .alt:last-child{border-bottom:0}
+.altlist .alt.me>span:first-child{font-weight:700;color:var(--accent)}.altother{margin-top:8px;font-size:13px}.altother summary{cursor:pointer;color:var(--ink-2)}.altnote{margin:10px 2px}
+.tabs:empty{display:none}
+.p-warn{background:var(--warn-soft,#FFF1D6);color:var(--warn,#B7791F)}
 .t-memo{background:linear-gradient(145deg,#FFD84D,#F2B705);color:#5A4300!important;box-shadow:0 6px 14px -6px rgba(242,183,5,.6)}
 .tile .tt{font-family:var(--display);font-size:16.5px}
 .tile .ts{font-size:12px;color:var(--ink-2);width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -379,6 +386,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   <div class="tiles">
     <button class="tile" id="book" type="button"><span class="ti t-book"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg></span><span class="tt">업무 수첩</span><span class="ts" id="bookSub">프로그램 사용법 · 반품 · 거래처</span></button>
     <button class="tile" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></button>
+    <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">대체약 유무</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
   </div>
   <div class="pins" id="pins" hidden aria-label="고정한 메모"></div>
   <div class="favlabel">자주 쓰는 질문</div>
@@ -389,7 +397,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   <div class="chip-img" id="imgChip" hidden><img id="imgThumb" alt="첨부한 사진"><span id="imgName"></span><button type="button" id="imgDel">빼기</button></div>
   <form class="composer" id="form"><div class="box">
     <label class="attach" id="attachLbl" title="사진 첨부 (약 포장·약봉투)" hidden><input type="file" id="img" accept="image/*" aria-label="사진 첨부"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></label>
-    <textarea id="input" rows="1" placeholder="약 이름 · 거래처 · 세파클러 12kg · 내일 3시 반품 알림" aria-label="질문 입력"></textarea>
+    <textarea id="input" rows="1" placeholder="약 이름 · 거래처 · 용량 계산 · 알림 등록" aria-label="질문 입력"></textarea>
     <button class="stop" id="stopBtn" type="button" hidden>멈추기</button>
     <button class="send" id="sendBtn" type="submit" aria-label="보내기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   </div></form>
@@ -634,10 +642,11 @@ function openPanel(kind,tab){
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
  const teamOn=!!(window.drawTeam&&S.pharm);
- const TITLES={stock:'재고',manual:'업무 수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
+ const TITLES={alt:'대체약',stock:'재고',manual:'업무 수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
   const tabs=kind==='stock'?[['order','발주',M?M.low.length:0],['today','오늘 변화',M?M.gone.length+M.drop.length:0],['search','검색'],['dead','안 나가는 약',M?M.dead.length:0],['over','과다 재고',M?M.over.length:0]]
+   :kind==='alt'?[]
    :kind==='manual'?[['list','수첩'],['add','새 항목']]
    :kind==='team'?teamTabs()
    :kind==='memo'?(S.pharm&&!teamOn?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on).length]])
@@ -648,7 +657,7 @@ function openPanel(kind,tab){
   p.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openPanel(b.dataset.go));
   $('pClose').onclick=close;
   const body=$('pbody');
-  if(kind==='team')drawTeam(body);else if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
+  if(kind==='team')drawTeam(body);else if(kind==='alt')drawAlt(body);else if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
  }
  redrawPanel=draw;document.body.appendChild(scrim);draw();$('pClose').focus();
 }
@@ -692,6 +701,66 @@ function itemCard(i){
  return `<div class="item"><div><div class="nm">${esc(i.base)}</div><div class="sub">${i.ing?esc(i.ing)+' · ':''}${i.str?esc(i.str)+' · ':''}${esc(i.co)}${i.ws?' · 사입 '+esc(i.ws):''}</div>${i.daily?`<div class="sub">하루 평균 ${fmt(r1(i.daily))}${esc(i.unit)} · ${daysWord(i.days)} · 적정 근거: ${i.src}</div>`:''}</div>
  <div class="q"><b>${fmt(i.cur)}</b> <span class="sub">${esc(i.unit)}</span><div class="sub">적정 ${i.opt?fmt(i.opt):'-'}</div>${st}</div>
  ${same.length||other.length?`<div class="alts">${same.length?'<span class="sub">같은 성분·같은 함량</span>'+same.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.co)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}${other.length?'<span class="sub">같은 성분·다른 함량</span>'+other.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.str)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}</div>`:''}</div>`}
+/* ----- 대체약 유무: 같은 성분·같은 함량·같은 제형 (병원 전화용) ----- */
+const ALT_MOD=[[/서방|지속|오로스|이알|에스알|씨알|엑스알|엑스엘|지알|(?<![A-Za-z])(SR|CR|XR|ER|XL|ZR|OROS|LA)(?![A-Za-z])/i,'서방'],[/장용|(?<![A-Za-z])EC(?![A-Za-z])/i,'장용'],[/구강붕해|오디티|오디|(?<![A-Za-z])ODT(?![A-Za-z])/i,'구강붕해'],[/츄어블|저작/,'츄어블'],[/발포/,'발포'],[/설하/,'설하'],[/분산/,'분산'],[/연질|소프트/,'연질'],[/건조시럽|건조현탁/,'건조']];
+const ALT_BASE=[[/캡슐|캅셀|켑슐|캅슐/,'캡슐'],[/시럽/,'시럽'],[/현탁/,'현탁액'],[/과립/,'과립'],[/점안/,'점안액'],[/점비|비강|나잘/,'점비액'],[/흡입|에어로솔|에어로졸/,'흡입제'],[/주사|주(?=\d|$|_)/,'주사제'],[/크림/,'크림'],[/연고/,'연고'],[/겔|젤/,'겔'],[/로션/,'로션'],[/패취|패치|플라스타|카타플라스마/,'패취'],[/좌제|좌약|좌(?=\d|$)/,'좌제'],[/질정/,'질정'],[/액|용액|드링크/,'액'],[/산(?=\d|$|_)/,'산'],[/정/,'정']];
+function altForm(i){const n=String(i.base||'');let base='';for(const [re,f] of ALT_BASE)if(re.test(n)){base=f;break}
+ if(!base){const u=String(i.unit||'');base=/^정/.test(u)?'정':/캡슐|켑슐|캅셀/.test(u)?'캡슐':''}
+ if(!base)return '';const mods=ALT_MOD.filter(([re])=>re.test(n)).map(([,m])=>m);return mods.join('')+base}
+const ALT_U=[[/밀리그램|밀리그람|㎎/gi,'mg'],[/마이크로그램|마이크로그람|㎍|μg|mcg/gi,'mcg'],[/밀리리터|㎖/gi,'ml'],[/그램|그람/g,'g'],[/국제단위/g,'iu']];
+function altUnit(s){s=String(s||'').toLowerCase().replace(/\s+/g,'');ALT_U.forEach(([a,b])=>s=s.replace(a,b));return s}
+function altStr(i){let s=altUnit(i.str).replace(/\/1(정|캡슐|캅셀|켑슐|t|c|tab|cap|포|매|개)$/,'');
+ if(!/\d(mg|mcg|g|ml|iu|%|단위)/.test(s)){const m=altUnit(i.base).match(/(\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)*)(mg|mcg|g|ml|iu)/);s=m?m[1]+m[2]:''}
+ return s}
+const ALT_NOTING=/^(\d|1회용|일회용|무보존|수출명|구[:：]|\d+\s*(매|T|C|정|포|개))/i;
+function altIngRaw(i){let g=String(i.ing||'').trim();if(g&&!ALT_NOTING.test(g))return g;
+ const ps=[...String(i.base||'').matchAll(/\(([^()]+)\)/g)].map(m=>m[1].trim()).filter(p=>!ALT_NOTING.test(p)&&/[가-힣]{2}/.test(p));return ps[0]||''}
+function altIng(i){const g=altIngRaw(i);return g?g.split(/[,+]/).map(x=>norm(x)).filter(Boolean).sort().join('+'):''}
+function altNums(i){return (altUnit(i.str)+' '+altUnit(i.base)).match(/\d+(?:\.\d+)?/g)?.map(Number)||[]}
+let altCache=null;
+function altModel(){
+ if(altCache&&altCache.M===M)return altCache;
+ const all=M.items.map(i=>({i,cur:i.cur}));
+ const seen=new Set(M.items.map(i=>i.code));
+ (S.prev&&S.prev.rows||[]).forEach(r=>{const code=String(r[1]||'');if(!code||seen.has(code))return;seen.add(code);const p=parseName(String(r[0]));all.push({i:{code,raw:String(r[0]),co:String(r[2]||''),unit:String(r[3]||''),cur:0,...p},cur:0,gone:true})});
+ const groups={};
+ all.forEach(x=>{const i=x.i;x.ingK=altIng(i);x.strK=altStr(i);x.form=altForm(i);x.key=x.ingK&&x.strK&&x.form?x.ingK+'|'+x.strK+'|'+x.form:'';x.nums=altNums(i);
+  x.hay=norm(i.base+' '+altIngRaw(i)+' '+i.co+' '+i.code);x.nb=norm(i.base);if(x.key)(groups[x.key]=groups[x.key]||[]).push(x)});
+ const byIng={};all.forEach(x=>{if(x.ingK)(byIng[x.ingK]=byIng[x.ingK]||[]).push(x)});
+ altCache={M,all,groups,byIng};return altCache}
+function altSearch(q){
+ const A=altModel();const toks=String(q).trim().split(/\s+/).filter(Boolean);
+ const nums=[],txt=[];toks.forEach(t=>{const m=altUnit(t).match(/^(\d+(?:\.\d+)?)(mg|mcg|g|ml|밀리|미리)?$/);if(m)nums.push(+m[1]);else{const n=norm(t);if(n)txt.push(n)}});
+ if(!txt.length&&!nums.length)return null;
+ const hit=A.all.filter(x=>txt.every(t=>x.hay.includes(t))&&nums.every(n=>x.nums.includes(n)));
+ const nq=txt[0]||'';
+ const keys=[],loose=[];hit.forEach(x=>{if(x.key){if(!keys.includes(x.key))keys.push(x.key)}else loose.push(x)});
+ const groups=keys.map(k=>{const g=A.groups[k];const hits=g.filter(x=>hit.includes(x));
+  const s=hits.some(x=>x.nb.startsWith(nq))?0:hits.some(x=>norm(x.i.ing).startsWith(nq))?1:2;
+  return{k,items:g.slice().sort((a,b)=>(hit.includes(b)-hit.includes(a))||b.cur-a.cur),hits,score:s,stock:g.filter(x=>x.cur>0).length}})
+  .sort((a,b)=>a.score-b.score||b.stock-a.stock).slice(0,8);
+ groups.forEach(g=>{const x=g.items[0];g.other=(A.byIng[x.ingK]||[]).filter(y=>y.key!==g.k&&y.cur>0).sort((a,b)=>b.cur-a.cur).slice(0,6)});
+ return{groups,loose:loose.sort((a,b)=>b.cur-a.cur).slice(0,10)}}
+function altGroupText(g){const x=g.items[0];return `[대체약] ${altIngRaw(x.i)} ${x.strK} ${x.form} (${dateLabel(M.date)} 재고)\n`+g.items.map(y=>`- ${y.i.base} (${y.i.co}): ${y.cur>0?fmt(y.cur)+y.i.unit:'재고 없음'}`).join('\n')}
+let altQ='';
+function drawAlt(body){
+ if(needStock(body))return;
+ body.innerHTML=`<input class="search" id="aq" type="search" placeholder="약 이름 또는 성분 + 함량" autocomplete="off" value="${esc(altQ)}"><div id="ares"></div>`;
+ const run=()=>{altQ=$('aq').value;const out=$('ares');const r=altQ.trim()?altSearch(altQ):null;
+  if(!r){out.innerHTML=`<p class="muted">처방 약 이름이나 성분과 함량을 치면, 같은 성분·같은 함량·같은 제형인 약의 재고를 바로 보여드려요. (${dateLabel(M.date)} 재고 기준)</p>`;return}
+  if(!r.groups.length&&!r.loose.length){out.innerHTML='<div class="card"><p><b>재고 목록에 없어요.</b></p><p class="muted">재고가 0인 약은 파일에 빠져 있을 수 있어요. 성분 이름과 함량으로 다시 찾아보세요.</p></div>';return}
+  out.innerHTML=r.groups.map((g,gi)=>{const x0=g.items[0],hs=g.hits,hasHit=hs.some(x=>x.cur>0),alts=g.items.filter(x=>!hs.includes(x)&&x.cur>0);
+   const head=hasHit?`<span class="pill p-ok">있어요</span> ${hs.filter(x=>x.cur>0).map(x=>esc(x.i.base)).join(', ')}`:alts.length?`<span class="pill p-warn">대체 가능 ${alts.length}</span> 찾은 약은 없고 같은 약이 있어요`:'<span class="pill p-low">없어요</span> 같은 성분·함량·제형 재고 없음';
+   return `<div class="card altg"><h3><span>${esc(altIngRaw(x0.i))} <span class="sub">${esc(x0.strK)} · ${esc(x0.form)}</span></span><button class="btn sm" type="button" data-acp="${gi}">복사</button></h3>
+   <p class="althead">${head}</p>
+   <div class="altlist">${g.items.map(y=>`<div class="alt${hs.includes(y)?' me':''}"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}${y.i.ws?' · '+esc(y.i.ws):''}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div>
+   ${g.other.length?`<details class="altother"><summary>같은 성분, 함량·제형 다름 (대체조제 대상 아님) ${g.other.length}</summary>${g.other.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.strK)} · ${esc(y.form||'-')}</span></span><b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b></div>`).join('')}</details>`:''}</div>`}).join('')
+  +(r.loose.length?`<div class="card"><h3>성분·함량 정보가 없는 약 <span class="c">${r.loose.length}</span></h3><p class="muted">파일에 성분이나 함량이 안 적혀 있어 대체약을 묶지 못했어요.</p><div class="altlist">${r.loose.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div></div>`:'')
+  +`<p class="sub altnote">재고 파일의 성분·함량·제형이 같은 약을 묶은 목록이에요. 대체조제는 식약처가 생물학적 동등성을 인정한 품목이어야 하고(의약품안전나라에서 확인), 처방전에 대체조제 불가 표시가 없어야 하며, 조제 후 처방의에게 알려야 해요.</p>`;
+  out.querySelectorAll('[data-acp]').forEach(b=>b.onclick=()=>copyText(altGroupText(r.groups[+b.dataset.acp])));
+ };
+ $('aq').oninput=run;run();$('aq').focus();
+}
 function daysWord(d){if(d==null)return '';return d>=365?'1년치 이상':d<1?'1일치 미만':`약 ${fmt(Math.round(d))}일치`}
 
 /* ----- 수첩 패널 ----- */
@@ -699,7 +768,7 @@ let editId=null;
 let manualCat=null,openItem=null;
 function drawManual(body){
  if(panelState.tab==='add'){editId=null;body.appendChild(manualForm(null));return}
- body.innerHTML='<input class="search" id="mq" type="search" placeholder="수첩 검색 (예: 반품, 누락청구, 지오영)"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
+ body.innerHTML='<input class="search" id="mq" type="search" placeholder="수첩 검색"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
  const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
   if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">수첩이 비어 있어요. "새 항목"에서 약국 규칙을 적어 두면 도우미가 그걸로 답해요.</p></div>';return}
   const cats=groupBy(S.manual,m=>m.sec||'기타');
@@ -718,8 +787,8 @@ function drawManual(body){
 function manualForm(m,after){
  const secs=[...new Set(S.manual.map(x=>x.sec).filter(Boolean))];
  const f=document.createElement('div');f.className='card';
- f.innerHTML=`<div class="field">분류<input id="mfSec" list="mfSecs" value="${esc(m?m.sec:'')}" placeholder="예: 반품"><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
- <div class="field">제목<input id="mfH" value="${esc(m?m.h:'')}" placeholder="예: 세화 반품 보내는 법"></div>
+ f.innerHTML=`<div class="field">분류<input id="mfSec" list="mfSecs" value="${esc(m?m.sec:'')}" placeholder=""><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+ <div class="field">제목<input id="mfH" value="${esc(m?m.h:'')}" placeholder=""></div>
  <div class="field">내용<textarea id="mfB" placeholder="한 줄에 하나씩 적으면 읽기 쉬워요">${esc(m?m.body:'')}</textarea></div>
  <div class="row"><button class="btn primary" type="button" id="mfSave">저장</button>${m?'<button class="btn" type="button" id="mfCancel">취소</button><button class="btn danger" type="button" id="mfDel">지우기</button>':''}</div>`;
  const q=s=>f.querySelector(s);
@@ -1064,7 +1133,7 @@ function drawMemo(body){
  if(panelState.tab==='alarms')return drawAlarms(body);
  if(panelState.tab==='notices')return drawNotices(body);
  const ed=memoEdit&&S.memo.memos.find(m=>m.id===memoEdit);
- body.innerHTML=`<div class="card memo-new c-${ed?ed.color:'yellow'}" id="mNew"><textarea id="mText" rows="3" placeholder="메모를 적어 두세요 (예: 김○○님 오메가3 주문 → 입고되면 연락)">${ed?esc(ed.text):''}</textarea>
+ body.innerHTML=`<div class="card memo-new c-${ed?ed.color:'yellow'}" id="mNew"><textarea id="mText" rows="3" placeholder="메모를 적어 두세요">${ed?esc(ed.text):''}</textarea>
   <div class="row" style="justify-content:space-between">${colorPick('mc',ed?ed.color:'yellow')}<label class="chk"><input type="checkbox" id="mPin" ${ed&&ed.pin?'checked':''}> 첫 화면에 고정</label></div>
   <div class="row">${ed?'<button class="btn" type="button" id="mCancel">취소</button>':''}<button class="btn primary" type="button" id="mSave">${ed?'고치기':'메모 추가'}</button></div></div>
   <input class="search" id="mSearch" type="search" placeholder="메모 검색" value="${esc(memoQ)}">
@@ -1093,7 +1162,7 @@ function alarmForm(a){
  return `<div class="card memo-new c-${v.color}" id="aForm">
   <h3>${a&&a.id?'알림 고치기':'새 알림'}</h3>
   ${a&&a.id?'':`<div class="preset">${ALARM_PRESETS.map((p,i)=>`<button type="button" data-pre="${i}">${esc(p.text)}</button>`).join('')}</div>`}
-  <label class="field">알림 내용<textarea id="aText" rows="2" placeholder="예: 지오영 반품 기사님 오시는 날">${esc(v.text)}</textarea></label>
+  <label class="field">알림 내용<textarea id="aText" rows="2" placeholder="">${esc(v.text)}</textarea></label>
   <div class="grid2"><label class="field"><span id="aDateL">${v.rep==='once'?'날짜':'시작 날짜'}</span><input type="date" id="aDate" value="${v.date}"></label><label class="field">시각<input type="time" id="aTime" value="${v.time}"></label></div>
   <label class="field">반복<select id="aRep">${Object.entries(REP).map(([k,l])=>`<option value="${k}" ${k===v.rep?'selected':''}>${l}</option>`).join('')}</select></label>
   <div class="wdays" id="aDays" ${v.rep==='weekly'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
@@ -1152,7 +1221,7 @@ function toolListAlarms(){const now=new Date();return{지금:whenLabel(now),알�
 function drawNotices(body){
  const mgr=S.members.find(m=>m.uid===ME()&&(m.role==='owner'||m.role==='admin'));const total=S.members.length;
  const list=S.notices.slice().sort((a,b)=>b.at-a.at);
- body.innerHTML=(mgr?`<div class="card memo-new c-blue"><h3>새 공지</h3><textarea id="nText" rows="3" placeholder="직원 모두에게 보낼 공지 (예: 내일부터 점심시간 1시~2시로 변경)"></textarea>
+ body.innerHTML=(mgr?`<div class="card memo-new c-blue"><h3>새 공지</h3><textarea id="nText" rows="3" placeholder="직원 모두에게 보낼 공지"></textarea>
   <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="nImp"> 중요 (빨간 포스트잇)</label><button class="btn primary" type="button" id="nSend">공지 보내기</button></div></div>`
   :`<p class="muted">국장님·관리자가 보낸 공지예요. 확인하면 읽음으로 표시돼요.</p>`)+
   `<div class="alist">${list.length?list.map(n=>{const reads=n.reads||{};const readers=S.members.filter(m=>m.uid!==n.by&&reads[m.uid]);const notYet=S.members.filter(m=>m.uid!==n.by&&!reads[m.uid]);const mine=n.by===ME();const read=!!reads[ME()];
@@ -1213,6 +1282,7 @@ $('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.is
 $('input').addEventListener('input',autosize);
 $('stopBtn').addEventListener('click',()=>ctl?.abort());
 $('menuBtn').addEventListener('click',()=>openPanel('settings'));
+$('altTile').addEventListener('click',()=>openPanel('alt'));
 $('book').addEventListener('click',()=>{manualCat=null;openItem=null;openPanel('manual')});
 $('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
 $('img').addEventListener('change',e=>{const f=e.target.files[0];if(f)setImg(f);e.target.value=''});
@@ -1365,13 +1435,13 @@ function accountView(){
  if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
  if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
   <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·수첩·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
-   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder="예: 김국장"></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>
+   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>
   <div class="card"><h3>직원: 초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
-   <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder="예: 박약사"></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
+   <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
  const me=S.members.find(m=>m.uid===SY.user.uid)||{};const mgr=me.role==='owner'||me.role==='admin';const owner=me.role==='owner';
  return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
   <p class="muted">나: <b>${esc(me.name||'')}</b> (${esc(roleLabel(me))}${me.title?` · 권한 ${ROLE[me.role]||''}`:''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
-  <div class="grid2"><label class="field">내 이름<input id="myName" value="${esc(me.name||'')}"></label><label class="field">내 직함 (비우면 "${ROLE[me.role]||''}")<input id="myTitle" maxlength="20" value="${esc(me.title||'')}" placeholder="예: 관리약사, 근무약사"></label></div>
+  <div class="grid2"><label class="field">내 이름<input id="myName" value="${esc(me.name||'')}"></label><label class="field">내 직함 (비우면 "${ROLE[me.role]||''}")<input id="myTitle" maxlength="20" value="${esc(me.title||'')}" placeholder=""></label></div>
   <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
@@ -1382,16 +1452,16 @@ function accountView(){
   ${SY.lastAdded?`<div class="addok"><b>${esc(SY.lastAdded.name)}</b> 계정을 만들었어요 (${esc(roleLabel(SY.lastAdded))})<br>이메일 <span class="num">${esc(SY.lastAdded.email)}</span> · 임시 비밀번호 <b class="num">${esc(SY.lastAdded.pw)}</b>
    <div class="row"><button class="btn sm" type="button" id="amCopy">로그인 정보 복사</button><button class="btn sm" type="button" id="amDone">닫기</button></div>
    <span class="sub">직원에게 알려 주고, 처음 로그인한 뒤 이 화면의 "비밀번호 바꾸기"로 바꾸게 하세요.</span></div>`:''}
-  <div class="grid2"><label class="field">이름<input id="amName" placeholder="예: 박약사"></label><label class="field">이메일 (로그인 아이디)<input id="amEmail" type="email" autocomplete="off" placeholder="예: park@gmail.com"></label>
+  <div class="grid2"><label class="field">이름<input id="amName" placeholder=""></label><label class="field">이메일 (로그인 아이디)<input id="amEmail" type="email" autocomplete="off" placeholder=""></label>
    <label class="field">임시 비밀번호 (6자 이상)<input id="amPw" autocomplete="off" value="${newTempPw()}" style="font-family:var(--mono)"></label>
-   <label class="field">직함 (선택)<input id="amTitle" maxlength="20" placeholder="예: 근무약사, 전산원"></label>
+   <label class="field">직함 (선택)<input id="amTitle" maxlength="20" placeholder=""></label>
    <label class="field">역할 (권한)<select id="amRole"><option value="staff">직원</option>${owner?'<option value="admin">관리자</option>':''}</select></label></div>
   <div class="row"><button class="btn primary" type="button" id="amGo">계정 만들고 추가</button></div>
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
  <div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
   <div class="row"><button class="btn" type="button" id="pwGo">바꾸기</button></div><p class="muted" id="pwMsg"></p></div>
  <div class="card"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
-  <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder="예: new@gmail.com"></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
+  <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder=""></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
   <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>
  <div class="card"><div class="row">${owner?'':'<button class="btn" type="button" id="syLeave">약국에서 나가기</button>'}<button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
 function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
@@ -1499,6 +1569,8 @@ function localAnswer(raw){
    r.증상별.map(s=>`<div class="kv"><b>${esc(s.증상)}</b><ul>${s.성분.map(i=>`<li>${esc(i.성분)} <span class="sub">${esc(i.분류)}</span>${i.주의.length?`<br><span class="sub">${i.주의.map(esc).join('<br>')}</span>`:''}</li>`).join('')}</ul>${s.생활안내?`<span class="sub">${esc(s.생활안내)}</span>`:''}</div>`).join('')+'<p class="sub">최종 판단은 약사.</p>','OTC 상담 기준')}
  // 환자 오해
  if(/환자가/.test(pre)){const r=searchCards(q);return botCard('환자 오해 대응',r.결과.length?fmtVal(r.결과):'<p>맞는 대응 카드가 없어요.</p>','대응 카드')}
+ // 대체약 유무: "리피토 대체", "아토르바스타틴 10 대체약"
+ if(/대체\s*(약|조제|품|가능)?|동일\s*성분/.test(q)&&M){altQ=q.replace(/(대체\s*(약|조제|품)?\s*(있어|가능|유무|돼)?\s*\??|동일\s*성분\s*(조제)?)/g,' ').replace(STOP,' ').replace(/\s+/g,' ').trim();openPanel('alt');return botCard('대체약 유무',`<p>"${esc(altQ)}" 대체약 창을 열었어요.</p>`)}
  // 기본: 재고 + 수첩 + 대응 카드
  const man=searchManual(q),cards=searchCards(q),howto=/번호|연락처|전화|담당|방법|어떻게|하는\s*법|절차|메뉴/.test(q)&&man.결과.length;const hits=howto?[]:stockHits(q);let html='';
  if(hits.length)html+=`<p><b>재고</b> <span class="sub">${esc(dateLabel(M.date))} 기준</span></p><div class="hits">${hits.map(itemCard).join('')}</div>`;
@@ -1558,7 +1630,7 @@ function drawOrders(body){
    <div class="nb">${nlbr(o.text)}</div>${o.due?`<div class="due ${due<0&&!orderDone(o)?'late':''}">기한 ${dLabel(o.due)}${orderDone(o)?'':due<0?` · ${-due}일 지남`:due===0?' · 오늘까지':` · ${due}일 남음`}</div>`:''}
    <div class="chips">${rs.map(m=>{const s=orderSt(o,m.uid);return `<span class="chip ${s.done?'ok':s.seen?'seen':''}">${esc(m.name)} ${s.done?'✔ 완료':s.seen?'확인':'안 읽음'}</span>`}).join('')}</div>
    <div class="nf"><span></span><span class="row">${mine&&!st.seen&&!st.done?`<button class="btn sm" type="button" data-os="${o.id}">확인했어요</button>`:''}${mine&&!st.done?`<button class="btn sm primary" type="button" data-od="${o.id}">완료</button>`:''}${mine&&st.done?`<button class="btn sm" type="button" data-ou="${o.id}">완료 취소</button>`:''}${mgr?`<button class="btn sm danger" type="button" data-ox="${o.id}">삭제</button>`:''}</span></div></div>`};
- body.innerHTML=(mgr?`<div class="card memo-new c-pink" id="oForm"><h3>새 전달사항</h3><textarea id="oText" rows="3" placeholder="예: 오늘 마감 전에 냉장고 온도 기록 확인해 주세요"></textarea>
+ body.innerHTML=(mgr?`<div class="card memo-new c-pink" id="oForm"><h3>새 전달사항</h3><textarea id="oText" rows="3" placeholder=""></textarea>
   ${S.members.length>1?`<div class="field">받는 사람<div class="wdays" id="oTo">${[{uid:'*',name:'모두'}].concat(S.members.filter(m=>m.uid!==ME())).map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${m.uid==='*'?'checked':''}><span>${esc(m.name)}</span></label>`).join('')}</div></div>`:''}
   <div class="grid2"><label class="field">기한 (선택)<input type="date" id="oDue"></label><label class="chk" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="oImp"> 중요 (위에 고정)</label></div>
   <div class="row"><button class="btn primary" type="button" id="oSend">전달하기</button></div></div>`
@@ -1631,18 +1703,18 @@ function drawCal(body){
 }
 function calFormHtml(kind,s){
  if(kind==='event')return `<div class="cform" data-k="event"><h4>일정 추가</h4><div class="grid2"><label class="field">날짜<input type="date" id="fFrom" value="${s}"></label><label class="field">끝나는 날 (여러 날이면)<input type="date" id="fTo"></label></div>
-  <label class="field">내용<input id="fTitle" placeholder="예: 소방 점검, 거래처 방문, 회식"></label><div class="grid2"><label class="field">시각 (선택)<input type="time" id="fTime"></label><label class="field">종류<select id="fKind"><option value="ev">일정</option><option value="off">약국 휴무 (빨간 날)</option></select></label></div>
+  <label class="field">내용<input id="fTitle" placeholder=""></label><div class="grid2"><label class="field">시각 (선택)<input type="time" id="fTime"></label><label class="field">종류<select id="fKind"><option value="ev">일정</option><option value="off">약국 휴무 (빨간 날)</option></select></label></div>
   <div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">추가</button></div></div>`;
  if(kind==='leave')return `<div class="cform" data-k="leave"><h4>휴가 신청</h4><div class="grid2"><label class="field">시작<input type="date" id="fFrom" value="${s}"></label><label class="field">끝 (하루면 비워 두기)<input type="date" id="fTo"></label></div>
-  <div class="grid2"><label class="field">종류<select id="fKind">${LEAVE_KIND.map(k=>`<option>${k}</option>`).join('')}</select></label><label class="field">사유 (선택)<input id="fReason" placeholder="예: 가족 행사"></label></div>
+  <div class="grid2"><label class="field">종류<select id="fKind">${LEAVE_KIND.map(k=>`<option>${k}</option>`).join('')}</select></label><label class="field">사유 (선택)<input id="fReason" placeholder=""></label></div>
   <p class="muted">국장님·관리자가 승인하면 캘린더에 반영돼요.</p><div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">신청</button></div></div>`;
  if(kind==='swap'){const others=S.members.filter(m=>m.uid!==ME());const me=dayShift(s).find(x=>x.u===ME());
   return `<div class="cform" data-k="swap"><h4>${dLabel(s)} 근무 바꾸기 <span class="sub">${esc(me&&me.t||'')}</span></h4>
   <label class="field">누구에게<select id="fTo2"><option value="">누구나 (먼저 수락한 사람)</option>${others.map(m=>`<option value="${esc(m.uid)}">${esc(m.name)}</option>`).join('')}</select></label>
-  <label class="field">대신 내가 일해 줄 날 (선택 · 상대 근무일)<input type="date" id="fBack"></label><label class="field">메모 (선택)<input id="fNote" placeholder="예: 병원 예약이 있어서요"></label>
+  <label class="field">대신 내가 일해 줄 날 (선택 · 상대 근무일)<input type="date" id="fBack"></label><label class="field">메모 (선택)<input id="fNote" placeholder=""></label>
   <p class="muted">상대가 수락하고 국장님·관리자가 승인하면 근무표가 바뀌어요.</p><div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">요청 보내기</button></div></div>`}
  if(kind==='shift'){const cur=dayShift(s);
-  return `<div class="cform" data-k="shift"><h4>${dLabel(s)} 근무 편집 <span class="sub">이날만 바뀌어요</span></h4>${S.members.map(m=>{const c=cur.find(x=>x.u===m.uid);return `<div class="drow"><label class="chk"><input type="checkbox" data-su="${esc(m.uid)}" ${c?'checked':''}> ${esc(m.name)}</label><input class="tin" data-st="${esc(m.uid)}" value="${esc(c&&c.t||'')}" placeholder="예: 14-19"></div>`}).join('')}
+  return `<div class="cform" data-k="shift"><h4>${dLabel(s)} 근무 편집 <span class="sub">이날만 바뀌어요</span></h4>${S.members.map(m=>{const c=cur.find(x=>x.u===m.uid);return `<div class="drow"><label class="chk"><input type="checkbox" data-su="${esc(m.uid)}" ${c?'checked':''}> ${esc(m.name)}</label><input class="tin" data-st="${esc(m.uid)}" value="${esc(c&&c.t||'')}" placeholder=""></div>`}).join('')}
   <div class="row"><button class="btn" type="button" data-fx>취소</button>${shiftOverride(s)?'<button class="btn" type="button" id="fReset">기본 근무로 되돌리기</button>':''}<button class="btn primary" type="button" id="fSave">저장</button></div></div>`}
  if(kind==='base'){const b=baseW();const order=[1,2,3,4,5,6,0];
   return `<div class="card cform" data-k="base"><h4>기본 근무표</h4><p class="muted">요일마다 근무 시간을 적어 두면 캘린더에 매주 자동으로 들어가요. 쉬는 날은 비워 두세요. 특정 날만 다르면 그날을 눌러 "이날 근무 편집".</p>
@@ -1701,12 +1773,12 @@ function drawHand(body){
  const mgr=isMgr();const list=S.handover.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||b.at-a.at);
  try{localStorage.setItem(handKey(),String(Date.now()))}catch(e){}setTimeout(renderTeamTiles,0);
  const ed=handEdit&&S.handover.find(h=>h.id===handEdit);
- body.innerHTML=`<div class="card memo-new c-green" id="hForm"><h3>${ed?'인수인계 고치기':'인수인계 남기기'}</h3><textarea id="hText" rows="4" placeholder="다음 근무자에게 남길 내용 (예: 김○○님 오메가3 주문 넣음, 내일 입고되면 연락 · 냉장고 2번 온도 높음 확인 필요)">${ed?esc(ed.text):''}</textarea>
+ body.innerHTML=`<div class="card memo-new c-green" id="hForm"><h3>${ed?'인수인계 고치기':'인수인계 남기기'}</h3><textarea id="hText" rows="4" placeholder="다음 근무자에게 남길 내용">${ed?esc(ed.text):''}</textarea>
   <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="hPin" ${ed&&ed.pin?'checked':''}> 위에 고정</label><span class="row">${ed?'<button class="btn" type="button" id="hCancel">취소</button>':''}<button class="btn primary" type="button" id="hSave">${ed?'고치기':'남기기'}</button></span></div></div>
   <div class="alist">${list.length?list.map(h=>{const cm=Object.entries(h.cm||{}).filter(([,c])=>c&&c.text).map(([id,c])=>({id,...c})).sort((a,b)=>a.at-b.at);
    return `<div class="notice hand ${h.pin?'imp':''}"><div class="nh"><b>${h.pin?'📌 ':''}${esc(h.byName||memName(h.by))}</b><span class="sub">${esc(whenLabel(new Date(h.at)))}${h.edAt?' · 고침':''}</span></div><div class="nb">${nlbr(h.text)}</div>
     ${cm.length?`<div class="cms">${cm.map(c=>`<div class="cmt"><b>${esc(c.byName||memName(c.by))}</b> ${esc(c.text)} <span class="sub">${esc(whenLabel(new Date(c.at)))}</span>${c.by===ME()||mgr?` <button class="linkbtn" type="button" data-cx="${h.id}|${c.id}">지우기</button>`:''}</div>`).join('')}</div>`:''}
-    <div class="nf"><span class="row grow"><input class="cin" data-ci="${h.id}" placeholder="댓글 (예: 확인했어요, 연락 완료)"><button class="btn sm" type="button" data-cs="${h.id}">달기</button></span>
+    <div class="nf"><span class="row grow"><input class="cin" data-ci="${h.id}" placeholder="댓글"><button class="btn sm" type="button" data-cs="${h.id}">달기</button></span>
     ${h.by===ME()||mgr?`<span class="row"><button class="btn sm" type="button" data-he="${h.id}">고치기</button><button class="btn sm danger" type="button" data-hx="${h.id}">삭제</button></span>`:''}</div></div>`}).join(''):'<p class="muted">아직 인수인계가 없어요.</p>'}</div>`;
  const q=s=>body.querySelector(s);
  q('#hSave').onclick=async()=>{const text=q('#hText').value.trim();if(!text){toast('내용을 적어 주세요');return}const pin=q('#hPin').checked;q('#hSave').disabled=true;

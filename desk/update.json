@@ -1,11 +1,11 @@
 {
- "version": "0.5.1",
- "notes": "로그인 이메일 바꾸기(비밀번호 확인 후 새 이메일로 확인 링크)",
+ "version": "0.5.2",
+ "notes": "대체약 유무(같은 성분·함량·제형 재고 바로 찾기), 입력란 예시 문구 지움",
  "files": [
   {
    "p": "index.html",
-   "sha256": "3213b12aa7d51ff4efa4c3febb2f8d0024ed36d080ea5e4b3797fc7756d2c92a",
-   "size": 240455
+   "sha256": "584b55bb40c0f1d7dd142b809de5fdf78a39cf3333a4a84aa500810729680a7c",
+   "size": 250039
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "dc0bb8d59744c7d608190be9efa808a1afc08fa44480b0de9329589e5eb0a5a2",
+   "sha256": "24600747cc41e2bbac42649c8faa7c81513e7a9a373098b8943ec0b1b4e7aecf",
    "size": 211
   },
   {
