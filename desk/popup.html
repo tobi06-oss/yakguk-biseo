@@ -1,0 +1,39 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>알림</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--ink:#1C2130}
+html,body{margin:0;background:transparent;font-family:"Jua","Malgun Gothic",sans-serif;overflow:hidden;user-select:none}
+#wrap{display:flex;box-sizing:border-box;flex-direction:column;gap:14px;padding:18px 22px 26px}
+.c-yellow{--pi:#FFF3B0;--pi-2:#F2D45C;--pi-ink:#4A3B00}.c-pink{--pi:#FFD9E2;--pi-2:#F29BB2;--pi-ink:#5A1428}.c-blue{--pi:#D8E8FF;--pi-2:#8FB6EE;--pi-ink:#14305A}
+.c-green{--pi:#D6F3DF;--pi-2:#86CFA0;--pi-ink:#12432A}.c-purple{--pi:#E8DDFF;--pi-2:#B49BEE;--pi-ink:#33175E}
+.sticky{background:var(--pi);color:var(--pi-ink);border-top:9px solid var(--pi-2);border-radius:4px 4px 24px 4px;padding:14px 18px 16px;box-shadow:0 12px 22px -10px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.18);transform:rotate(var(--r,0deg));animation:in .45s cubic-bezier(.2,1.4,.4,1);-webkit-app-region:drag}
+@keyframes in{from{transform:translateY(-24px) rotate(-5deg) scale(.92);opacity:0}}
+.h{display:flex;justify-content:space-between;gap:8px;font-size:13px;opacity:.85}
+.t{font-size:23px;line-height:1.4;margin:8px 0 14px;white-space:pre-wrap;word-break:break-word}
+.brief .t{font-size:19px;margin-bottom:8px}
+.lines{margin:0 0 14px;padding:0;list-style:none;font-size:15px;display:flex;flex-direction:column;gap:4px}
+.lines b{font-family:"IBM Plex Mono",monospace}
+.a{display:flex;gap:6px;flex-wrap:wrap;-webkit-app-region:no-drag}
+button{font:inherit;border:0;border-radius:9px;padding:8px 12px;font-size:14px;background:rgba(255,255,255,.65);color:var(--pi-ink);cursor:pointer}
+button:hover{background:#fff}
+button.ok{background:#1C2130;color:#fff;padding:8px 18px}
+button:focus-visible{outline:2px solid #2F5597;outline-offset:2px}
+.late{background:#D6304A;color:#fff;border-radius:6px;padding:0 6px;margin-left:4px}
+</style></head><body><div id="wrap" role="alertdialog" aria-label="알림"></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ctx=null;function chime(){try{ctx=ctx||new AudioContext();const t=ctx.currentTime;[[880,0],[1175,.18],[880,.5],[1175,.68],[880,1.2],[1175,1.38]].forEach(([f,s])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.22,t+s+.02);g.gain.exponentialRampToValueAtTime(.001,t+s+.4);o.connect(g).connect(ctx.destination);o.start(t+s);o.stop(t+s+.45)})}catch(e){}}
+const R=[-1.2,.9,-.5,1.1];
+window.desk.onItems((items,ring)=>{
+ const w=document.getElementById('wrap');
+ w.innerHTML=items.map((x,i)=>x.kind==='notice'?`<div class="sticky c-${x.important?'pink':'blue'}" style="--r:${R[i%4]}deg"><div class="h"><span>📢 공지 · ${esc(x.byName)}</span><span>${esc(x.when)}</span></div><div class="t">${esc(x.text)}</div><div class="a"><button class="ok" data-id="n:${esc(x.id)}" data-a="ok">확인했어요</button></div></div>`:x.kind==='brief'?`<div class="sticky brief c-blue" style="--r:${R[i%4]}deg"><div class="h"><span>☀ ${esc(x.title||'아침 재고 진단')}</span><span>${esc(x.sub||'')}</span></div>
+  <ul class="lines">${(x.lines||[]).map(l=>`<li>${l}</li>`).join('')}</ul><div class="a"><button class="ok" data-id="__brief" data-a="ok">확인</button><button data-id="__brief" data-a="open">재고 열기</button></div></div>`
+ :`<div class="sticky c-${esc(x.color)}" style="--r:${R[i%4]}deg"><div class="h"><span>🔔 ${esc(x.when)}${x.late?'<span class="late">놓친 알림</span>':''}</span><span>${esc(x.rep)}</span></div>
+  <div class="t">${esc(x.text)}</div><div class="a"><button class="ok" data-id="${esc(x.id)}" data-a="ok">확인</button><button data-id="${esc(x.id)}" data-a="10">10분 뒤</button><button data-id="${esc(x.id)}" data-a="60">1시간 뒤</button><button data-id="${esc(x.id)}" data-a="tomorrow">내일</button></div></div>`).join('');
+ w.querySelectorAll('button').forEach(b=>b.onclick=()=>{b.closest('.sticky').style.opacity=.4;window.desk.act(b.dataset.id,b.dataset.a)});
+ requestAnimationFrame(()=>{window.desk.fit(w.getBoundingClientRect().height+2);const f=w.querySelector('button.ok');f&&f.focus()});
+ if(ring)chime();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const f=document.querySelector('button.ok');f&&f.click()}});
+</script></body></html>

@@ -1,0 +1,34 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('desk',{
+ fakeCloudPort:process.env.DESK_FAKE_CLOUD||'',
+ loadAll:()=>ipcRenderer.invoke('load-all'),
+ save:(p,d)=>ipcRenderer.invoke('save',p,d),
+ onChanged:f=>ipcRenderer.on('changed',(e,p,d)=>f(p,d)),
+ onCommand:f=>ipcRenderer.on('command',(e,c)=>f(c)),
+ onImportFile:f=>ipcRenderer.on('import-file',(e,name,buf)=>f(name,buf)),
+ imported:info=>ipcRenderer.send('imported',info),
+ ready:()=>ipcRenderer.send('renderer-ready'),
+ setMe:me=>ipcRenderer.send('set-me',me),
+ setNotices:l=>ipcRenderer.send('set-notices',l),
+ onNoticeRead:f=>ipcRenderer.on('notice-read',(e,id)=>f(id)),
+ showBrief:b=>ipcRenderer.send('show-brief',b),
+ showMain:c=>ipcRenderer.send('show-main',c),
+ config:()=>ipcRenderer.invoke('desk-config'),
+ pickFolder:()=>ipcRenderer.invoke('pick-folder'),
+ clearFolder:()=>ipcRenderer.send('clear-folder'),
+ setAutostart:on=>ipcRenderer.send('set-autostart',on),
+ backup:()=>ipcRenderer.invoke('backup'),
+ restore:()=>ipcRenderer.invoke('restore'),
+ openDataDir:()=>ipcRenderer.send('open-data-dir'),
+ checkUpdate:()=>ipcRenderer.invoke('update-check'),
+ restartUpdate:()=>ipcRenderer.send('update-restart'),
+ onUpdate:f=>ipcRenderer.on('update',(e,u)=>f(u)),
+ // 포스트잇 알림 창
+ onItems:f=>ipcRenderer.on('items',(e,items,ring)=>f(items,ring)),
+ act:(id,a)=>ipcRenderer.send('alarm-act',id,a),
+ fit:h=>ipcRenderer.send('popup-fit',h),
+ // 바탕화면 메모
+ memoGet:id=>ipcRenderer.invoke('memo-get',id),
+ memoUpdate:(id,p)=>ipcRenderer.send('memo-update',id,p),
+ onMemo:f=>ipcRenderer.on('memo',(e,m)=>f(m))
+});

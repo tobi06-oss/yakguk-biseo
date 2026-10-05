@@ -1,8 +1,7 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#2F5597"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="약국비서">
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com ws://127.0.0.1:*">
 <title>참바른약국 비서</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* 디자인: 무매데스크(Dw02)와 같은 폰트·색·카드 스타일 */
 :root{
@@ -385,12 +384,12 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   <div class="favlabel">자주 쓰는 질문</div>
   <nav class="favs" id="favs" aria-label="즐겨찾기"></nav>
   <main class="chat" id="chat" aria-live="polite">
-    <div class="welcome" id="welcome"><span class="wi"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><b>무엇을 찾을까요?</b>약 이름을 치면 재고가, 거래처 이름을 치면 수첩이 나와요.<br>"세파클러 12kg"은 용량 계산, "내일 3시 반품 알림"은 알림 등록이 돼요.</div>
+    <div class="welcome" id="welcome"><span class="wi"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><b>무엇을 찾을까요?</b>약 이름을 치면 재고가, 거래처 이름을 치면 수첩이 나와요.<br>"세파클러 12kg"은 용량 계산, "내일 3시 반품 알림"은 알림 등록, "메모: …"는 메모가 돼요.</div>
   </main>
   <div class="chip-img" id="imgChip" hidden><img id="imgThumb" alt="첨부한 사진"><span id="imgName"></span><button type="button" id="imgDel">빼기</button></div>
   <form class="composer" id="form"><div class="box">
     <label class="attach" id="attachLbl" title="사진 첨부 (약 포장·약봉투)" hidden><input type="file" id="img" accept="image/*" aria-label="사진 첨부"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></label>
-    <textarea id="input" rows="1" placeholder="약 이름 · 거래처 · 알림 등록" aria-label="질문 입력"></textarea>
+    <textarea id="input" rows="1" placeholder="약 이름 · 거래처 · 세파클러 12kg · 내일 3시 반품 알림" aria-label="질문 입력"></textarea>
     <button class="stop" id="stopBtn" type="button" hidden>멈추기</button>
     <button class="send" id="sendBtn" type="submit" aria-label="보내기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   </div></form>
@@ -398,7 +397,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
 <div class="toast" id="toast" hidden></div>
 <div class="stickies" id="stickies" hidden aria-live="assertive"></div>
 
-<script src="vendor/xlsx.full.min.js"></script><script src="vendor/firebase.js"></script>
+<script src="vendor/xlsx.full.min.js"></script><script src="vendor/firebase.js"></script><script src="fakecloud.js"></script>
 <script>
 /* ===== 고정 자료: OTC 상담 기준, 환자 오해 대응 카드 ===== */
 const AGES=[{id:'infant',label:'2세 미만'},{id:'child',label:'2–11세'},{id:'adult',label:'12–64세'},{id:'elder',label:'65세 이상'}];
@@ -852,7 +851,7 @@ function renderBook(){const n=S.manual.length;const secs=[...new Set(S.manual.ma
 function applySettings(){$('title').textContent=(S.settings.name||'우리 약국')+' 도우미';document.title=$('title').textContent;const n=new Date(),h=n.getHours();$('subtitle').textContent=`${h<11?'좋은 아침이에요':h<17?'오늘도 힘내세요':'수고 많으셨어요'} · ${n.getMonth()+1}월 ${n.getDate()}일 (${'일월화수목금토'[n.getDay()]})`}
 
 /* ===== 즐겨찾기 ===== */
-const FAV_KEY='cb-web-favs-v1',BAD_KEY='cb-helper-bad-v1';
+const FAV_KEY='cb-desk-favs-v1',BAD_KEY='cb-helper-bad-v1';
 const DEFAULT_FAVS=[
  {label:'오늘 발주 목록',prompt:'오늘 발주해야 할 약을 사입처별로 알려줘',send:true},
  {label:'재고 찾기',prompt:'재고 확인: ',send:false},
@@ -1108,10 +1107,10 @@ function drawAlarms(body){
  const ed=alarmEdit&&alarmEdit.id?S.memo.alarms.find(x=>x.id===alarmEdit.id):alarmEdit;
  const arr=S.memo.alarms.map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
  body.innerHTML=(ed?alarmForm(ed):`<button class="btn primary big" type="button" id="aNew">＋ 새 알림 만들기</button>`)+
-  `<p class="muted">휴대폰에서는 이 앱이 열려 있을 때 포스트잇이 떠요. 닫혀 있던 동안 지난 알림과 새 공지는 다음에 열 때 떠요.</p>
+  `<p class="muted">시간이 되면 다른 프로그램 위, 화면 한가운데에 포스트잇이 떠요. 창을 닫아도 트레이에서 계속 알려요. 컴퓨터가 꺼져 있던 동안 지난 알림은 켜면 '놓친 알림'으로 떠요.</p>
   <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
    <div class="aa"><label class="sw" title="켜기/끄기"><input type="checkbox" data-on="${a.id}" ${a.on?'checked':''} aria-label="알림 켜기"><span></span></label><button class="btn sm" type="button" data-aed="${a.id}">고치기</button><button class="btn sm danger" type="button" data-adel="${a.id}">삭제</button></div></div>`).join(''):'<p class="muted">등록된 알림이 없어요.</p>'}</div>
-  ${'Notification' in window?`<div class="card"><h3>화면을 내려 둔 동안에도</h3><p class="muted">다른 창을 보고 있을 때 윈도우 알림으로도 띄우려면 아래를 눌러 허용하세요. 이 화면에서 허용이 막혀 있으면 포스트잇과 소리, 탭 제목 깜빡임으로만 알려요.</p><div class="row"><button class="btn sm" type="button" id="aPerm">윈도우 알림 허용 (${Notification.permission==='granted'?'허용됨':Notification.permission==='denied'?'막힘':'미설정'})</button><button class="btn sm" type="button" id="aTest">알림음 들어 보기</button></div></div>`:''}`;
+  ${false?`<div class="card"><h3>화면을 내려 둔 동안에도</h3><p class="muted">다른 창을 보고 있을 때 윈도우 알림으로도 띄우려면 아래를 눌러 허용하세요. 이 화면에서 허용이 막혀 있으면 포스트잇과 소리, 탭 제목 깜빡임으로만 알려요.</p><div class="row"><button class="btn sm" type="button" id="aPerm">윈도우 알림 허용 (${Notification.permission==='granted'?'허용됨':Notification.permission==='denied'?'막힘':'미설정'})</button><button class="btn sm" type="button" id="aTest">알림음 들어 보기</button></div></div>`:''}`;
  const q=s=>body.querySelector(s);
  if(q('#aNew'))q('#aNew').onclick=()=>{alarmEdit={new:true};drawAlarms(body)};
  if(q('#aPerm'))q('#aPerm').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}drawAlarms(body)};
@@ -1771,18 +1770,71 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .linkbtn{border:0;background:none;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
 `;
 
-/* ===== 웹(휴대폰) 버전 ===== */
-let DESKDB=null;const WEB_KEY='cb-web-docs';
-async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
- const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
+/* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
+function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
+function flashTitle(){}
+let DESKDB=null;
+async function deskDb(){const docs=await window.desk.loadAll();const subs={};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
- DESKDB={get:p=>docs[p],applyRemote:(p,d)=>{docs[p]=d;persist();fire(p,d)}};
- return{doc:p=>({set:async d=>{docs[p]=d;persist();syPush(p,d)},onSnapshot:f=>{(subs[p]=subs[p]||[]).push(f);setTimeout(()=>f({exists:!!docs[p],data:()=>docs[p]}),0);return()=>{}}})}}
-function webBanner(){const b=$('banner');if(!b)return;const need=SY.cloud&&(SY.phase==='out'||SY.phase==='nopharm');
- if(need){b.hidden=false;b.classList.add('cta');b.innerHTML=SY.phase==='out'?'<b>약국 계정으로 로그인하세요</b><br>공지·알림·재고를 약국 PC와 같이 받아요 ›':'<b>약국에 들어가세요</b><br>국장님께 받은 초대 코드를 넣으면 돼요 ›';b.onclick=()=>openPanel('settings','account')}
- else if(b.classList.contains('cta')){b.hidden=true;b.classList.remove('cta');b.onclick=null}}
-function webBoot(){syInit();setInterval(webBanner,1500);setTimeout(webBanner,600);
- if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}
+ window.desk.onChanged((p,d)=>{docs[p]=d;fire(p,d);syPush(p,d)});
+ DESKDB={get:p=>docs[p],applyRemote:(p,d)=>{docs[p]=d;window.desk.save(p,d);fire(p,d)}};
+ return{doc:p=>({set:async d=>{docs[p]=d;await window.desk.save(p,d);syPush(p,d)},onSnapshot:f=>{(subs[p]=subs[p]||[]).push(f);setTimeout(()=>f({exists:!!docs[p],data:()=>docs[p]}),0);return()=>{}}})}}
+
+
+/* --- 설정: 폴더 자동 읽기, 자동 실행, 백업 --- */
+let deskCfg={};
+function deskFolderCard(){const li=deskCfg.lastImport;return `<div class="card"><h3>이팜 엑셀 폴더 자동 읽기</h3>
+ <p class="muted">이팜에서 재고현황·사용량(재고현황및재고수정)·조제약품현황을 XLSX로 저장하는 폴더를 정해 두면, 새 파일이 생길 때마다 알아서 읽고 아침 재고 진단을 포스트잇으로 띄워요.</p>
+ <p class="muted">${deskCfg.watchDir?`폴더: <b>${esc(deskCfg.watchDir)}</b>`:'아직 정하지 않았어요'}${li?`<br>마지막으로 읽은 파일: ${esc(li.name)} (${new Date(li.at).toLocaleString('ko-KR')})`:''}</p>
+ <div class="row"><button class="btn primary" type="button" id="dkPick">${deskCfg.watchDir?'폴더 바꾸기':'폴더 고르기'}</button>${deskCfg.watchDir?'<button class="btn" type="button" id="dkClear">자동 읽기 끄기</button>':''}</div></div>`}
+function bindDeskFolder(body){const p=body.querySelector('#dkPick');if(p)p.onclick=async()=>{deskCfg.watchDir=await window.desk.pickFolder();toast(deskCfg.watchDir?'폴더를 정했어요. 최근 파일을 읽어 볼게요':'');redrawPanel()};
+ const c=body.querySelector('#dkClear');if(c)c.onclick=()=>{window.desk.clearFolder();deskCfg.watchDir='';redrawPanel()}}
+function deskEtc(body){
+ const info=body.querySelector('.card:last-child');if(info)info.innerHTML=`<h3>이 프로그램이 아는 것</h3><p class="muted">재고현황·조제약품현황으로 계산한 재고·적정재고·대체품, 업무 수첩, OTC 상담 기준(감기·소화기·관절), 환자 오해 대응 카드, 소아 시럽 용량 계산(허가사항 기준). 인터넷·AI 없이 이 PC 안에서만 찾아요. 환자 이름은 적지 마세요.</p>`;
+ const bad=body.querySelector('#badCopy');if(bad)bad.closest('.card').remove();
+ const d=document.createElement('div');d.className='card';d.innerHTML=`<h3>프로그램</h3>
+  <label class="chk"><input type="checkbox" id="dkAuto" ${deskCfg.autostart?'checked':''}> 윈도우 켤 때 자동 실행 (트레이에서 조용히 시작)</label>
+  <p class="muted">단축키: Ctrl+Alt+M 새 메모 · Ctrl+Alt+A 새 알림 · 창을 닫아도 트레이에서 계속 알림이 와요.</p>
+  <div class="row"><button class="btn" type="button" id="dkBackup">백업 파일 저장</button><button class="btn" type="button" id="dkRestore">백업에서 되살리기</button><button class="btn sm" type="button" id="dkDir">자료 폴더 열기</button></div>
+  <div class="row" style="align-items:center"><span class="muted">버전 <b class="num">${esc(deskCfg.version||'')}</b> · ${updLabel()}</span>${(deskCfg.update||{}).state==='ready'?'<button class="btn primary sm" type="button" id="dkUpGo">다시 시작해서 적용</button>':'<button class="btn sm" type="button" id="dkUpChk">업데이트 확인</button>'}</div>
+  <p class="muted">새 버전이 나오면 자동으로 받아 둬요. 약국 계정에 로그인하지 않으면 자료는 이 PC에만 있어요. 가끔 백업 파일을 저장해 두세요.</p>`;
+ body.prepend(d);
+ const uc=d.querySelector('#dkUpChk');if(uc)uc.onclick=async()=>{uc.disabled=true;uc.textContent='확인 중…';const u=await window.desk.checkUpdate();deskCfg.update=u;
+  toast(u.state==='latest'?'지금이 최신 버전이에요':u.state==='ready'?`새 버전(${u.version})을 받았어요`:u.state==='error'?'업데이트 확인 실패: '+u.err:'');redrawPanel&&redrawPanel()};
+ const ug=d.querySelector('#dkUpGo');if(ug)ug.onclick=()=>window.desk.restartUpdate();
+ d.querySelector('#dkAuto').onchange=e=>{window.desk.setAutostart(e.target.checked);deskCfg.autostart=e.target.checked};
+ d.querySelector('#dkBackup').onclick=async()=>{if(await window.desk.backup())toast('백업 파일을 저장했어요')};
+ d.querySelector('#dkRestore').onclick=async()=>{if(!confirmTwice(d.querySelector('#dkRestore')))return;await window.desk.restore()};
+ d.querySelector('#dkDir').onclick=()=>window.desk.openDataDir()}
+function confirmTwice(b){if(b.dataset.arm){return true}b.dataset.arm=1;const t=b.textContent;b.textContent='지금 자료를 덮어써요. 한 번 더 누르세요';setTimeout(()=>{delete b.dataset.arm;b.textContent=t},4000);return false}
+
+/* --- 자동 업데이트 표시 --- */
+function updLabel(){const u=deskCfg.update||{};return u.state==='ready'?`새 버전 ${esc(u.version)} 준비됨`:u.state==='downloading'?`새 버전 ${esc(u.version)} 받는 중…`:u.state==='checking'?'확인 중…':u.state==='error'?'업데이트 확인 실패':u.state==='latest'?'최신 버전':''}
+function updBanner(){const u=deskCfg.update||{};const b=$('banner');if(!b)return;
+ if(u.state==='ready'){b.hidden=false;b.classList.add('cta');b.innerHTML=`<b>새 버전(${esc(u.version)})을 받았어요</b>${u.notes?'<br>'+esc(u.notes):''}<br>눌러서 다시 시작하면 적용돼요 ›`;b.onclick=()=>window.desk.restartUpdate()}}
+/* --- 폴더에서 온 파일, 아침 진단 --- */
+async function onDeskFile(name,buf){
+ const u=new Uint8Array(buf);let aoa;try{aoa=readAoa(u)}catch(e){return}
+ const hi=findHdr(aoa).h;if(hi<0)return;const hdr=aoa[hi].map(H);
+ if(hdr.some(x=>/처방전교부번호|수진자|주민/.test(x)))return;
+ let r=null;
+ if(hdr.includes('조제수량')||hdr.includes('사용량'))r=await importDisp(u);
+ else if(hdr.includes('현재고'))r=await importStock(u,'auto');
+ if(!r||!r.ok)return;window.desk.imported({name,kind:r.kind,n:r.n});
+ if(r.kind==='stock'){M=buildModel();if(!M)return;const lines=[`급한 주문 <b>${M.urgent.length}</b>`,`발주 필요 <b>${M.low.length}</b>`];
+  if(S.prev)lines.push(`어제보다 새로 0 <b>${M.gone.length}</b>`);
+  M.urgent.slice(0,3).forEach(i=>lines.push(`· ${esc(i.base)} ${esc(fmt(i.cur))}${esc(i.unit)} 남음`));
+  window.desk.showBrief({title:'오늘 재고 진단',sub:dateLabel(M.date),lines})}}
+async function deskBoot(){
+ deskCfg=await window.desk.config();
+ window.desk.onImportFile(onDeskFile);
+ window.desk.onCommand(c=>{if(c==='newMemo'){memoEdit=null;openPanel('memo','memos');setTimeout(()=>{const t=$('mText');t&&t.focus()},60)}
+  else if(c==='newAlarm'){alarmEdit={new:true};openPanel('memo','alarms');setTimeout(()=>{const t=$('aText');t&&t.focus()},60)}
+  else if(c==='openStock')openPanel('stock')});
+ setInterval(async()=>{deskCfg=await window.desk.config()},60000);
+ window.desk.onUpdate&&window.desk.onUpdate(u=>{deskCfg.update=u;updBanner();if(u.state==='ready')toast(`새 버전(${u.version})을 받았어요`);if(redrawPanel&&panelState.kind==='settings')redrawPanel()});updBanner();
+ syInit();
+ window.desk.ready()}
 
 /* ===== 시작 ===== */
 renderFavs();
@@ -1799,8 +1851,8 @@ renderFavs();
  watch('settings/main',d=>{S.settings={...DEFAULT_SETTINGS,...(d||{})};applySettings()});
  watch('exceptions/main',d=>S.exc=(d&&d.items)||{});
  watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
- watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();renderStickies();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
- webBoot();
+ watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
+ deskBoot();
 })();
 </script>
 

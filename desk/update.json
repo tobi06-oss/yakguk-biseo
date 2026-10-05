@@ -1,0 +1,61 @@
+{
+ "version": "0.5.0",
+ "notes": "공지사항 · 국장님 전달사항 · 약국 캘린더(근무표·휴가·근무 교환) · 인수인계 추가",
+ "files": [
+  {
+   "p": "index.html",
+   "sha256": "5d18014ad7ebc6629a07d53985462ca88777e906fdb87d221d13b9b6f362ec91",
+   "size": 238179
+  },
+  {
+   "p": "main.js",
+   "sha256": "58c76e7656f55fd5da07a077405e1ce0aae63f8a79651da3f230bc7ec277f8ef",
+   "size": 17400
+  },
+  {
+   "p": "preload.js",
+   "sha256": "9837e2eee6892e185ad3949a17bc8615e218815d4f8051aaad82300123f3132c",
+   "size": 1631
+  },
+  {
+   "p": "alarmcore.js",
+   "sha256": "0a785ee22b014ff3adde851e01c84024804649a6abb14221ca62a0015a1dc624",
+   "size": 2335
+  },
+  {
+   "p": "popup.html",
+   "sha256": "af3e9daaccb25f70aa721cc11433cd44be7de852a585cbdb8625bfdbea9d82d4",
+   "size": 4544
+  },
+  {
+   "p": "sticky.html",
+   "sha256": "7c7f032d2b5e6ad4533dfa2951aa53828ce0fb11939c01a2f6246ae6eb61ed99",
+   "size": 3500
+  },
+  {
+   "p": "fakecloud.js",
+   "sha256": "bde6ea59a4b37498610aec23a68f07f1a0d00637a382d071ffa8858034cb03e5",
+   "size": 1868
+  },
+  {
+   "p": "package.json",
+   "sha256": "8ad3c49f06f9154f9aca0bfdc4e3d6eea2bf7d25208caf2ab09d939036affc7e",
+   "size": 211
+  },
+  {
+   "p": "icon.png",
+   "sha256": "9f13bd870bc110dabc5a0a02ba24355e30a28157982c13142dca9f14b36d3c94",
+   "size": 36462
+  },
+  {
+   "p": "vendor/firebase.js",
+   "sha256": "a936d9b4d10854d05f69bd27d354657c874c9b59147b4f70a23da6f96694b443",
+   "size": 368996
+  },
+  {
+   "p": "vendor/xlsx.full.min.js",
+   "sha256": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
+   "size": 881727
+  }
+ ]
+}
