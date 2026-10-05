@@ -606,7 +606,7 @@ function buildModel(){
  items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
  const low=items.filter(i=>!i.dead&&i.opt>0&&i.cur<i.opt);
  const urgent=low.filter(i=>i.days!=null?i.days<Math.max(3,cover/2):i.cur<i.opt*.25);
- const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&!byCode[c]).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]})).filter(x=>x.pf&&!x.pf.dead):[];
+ const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]})).filter(x=>x.pf&&!x.pf.dead):[];
  const drop=S.prev?items.filter(i=>i.prev!=null&&i.daily>0&&(i.prev-i.cur)>i.daily*3).sort((a,b)=>(b.prev-b.cur)/b.daily-(a.prev-a.cur)/a.daily):[];
  const dead=items.filter(i=>i.dead).sort((a,b)=>b.cur-a.cur);
  const over=items.filter(i=>!i.dead&&i.opt>0&&i.daily>0&&i.cur>i.opt*4&&i.cur>i.daily*60).sort((a,b)=>b.cur*b.price-a.cur*a.price);
@@ -747,8 +747,8 @@ function drawSettings(body){
   body.innerHTML=`<div class="card"><h3>재고현황 (매일)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
    <p class="muted">이팜: 재고관리 → 재고현황 및 재고 수정 → 사용약품전체 → 재고조회구분 <b>전체</b> → 조회 → 미리보기 → 출력 → 변환 → XLSX</p>
    <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
-  <div class="card"><h3>조제약품현황 (한 달에 한 번)</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>!x.dead).length}품목 · ${S.profile.periodDays}일 기준`:'아직 없음'}. 최근 6개월로 뽑아 주세요. 하루 평균 조제량, 처방 1건 크기, 사입처를 여기서 얻어요.</p>
-   <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">조제약품현황 올리기</label></div></div>
+  <div class="card"><h3>사용량 · 조제약품현황</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>!x.dead).length}품목 · ${S.profile.periodDays}일 기준`:'아직 없음'}. 최근 6개월로 뽑아 주세요. 사용량 파일(재고현황및재고수정)은 매일, 조제약품현황은 한 달에 한 번이면 돼요. 사입처·처방 1건 크기는 조제약품현황에서 얻어요.</p>
+   <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">사용량·조제약품현황 올리기</label></div></div>
   ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
   $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
   body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
@@ -780,33 +780,43 @@ function drawSettings(body){
 /* ===== 파일 읽기 ===== */
 function readAoa(buf){const wb=XLSX.read(buf,{type:'array'});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
 const H=s=>String(s).replace(/\s+/g,'');
+// "약품명" 제목이 몇 번째 열에 있든 찾음 (이팜 보고서마다 앞 열이 다름)
+function findHdr(aoa){for(let i=0;i<Math.min(aoa.length,40);i++){const k=(aoa[i]||[]).map(H).indexOf('약품명');if(k>=0)return{h:i,nc:k}}return{h:-1,nc:-1}}
+function searchDays(aoa,h){const meta=String(aoa.slice(0,h).flat().find(x=>/검색기간/.test(String(x)))||'');const m=meta.match(/(\d{8})\s*~\s*(\d{8})/);if(!m)return 0;
+ const d=s=>new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8));const n=Math.round((d(m[2])-d(m[1]))/864e5)+1;return n>0&&n<800?n:0}
 async function onStockFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
  if(!window.XLSX){toast('엑셀 읽기 도구를 불러오지 못했어요. 새로고침 후 다시 해 주세요');return}
  await importStock(new Uint8Array(await f.arrayBuffer()),'upload')}
 async function importStock(buf,source){
- try{const aoa=readAoa(buf);const h=aoa.findIndex(r=>H(r[0])==='약품명');
+ try{const aoa=readAoa(buf);const {h,nc}=findHdr(aoa);
   if(h<0)throw new Error('약품명 열을 찾지 못했어요. 재고현황 파일인지 확인해 주세요.');
   const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);if(hdr.some(x=>/처방전교부번호|수진자|주민/.test(x)))throw new Error('환자 정보가 있는 파일이라 받지 않아요.');
   const c={code:col('약품코드'),co:col('제약회사'),unit:col('재고단위'),base:col('기본수량'),cur:col('현재고'),opt:col('적정재고')};if(c.cur<0)throw new Error('현재고 열이 없어요.');
-  const rows=[];for(let i=h+1;i<aoa.length;i++){const r=aoa[i];if(!String(r[0]).trim())continue;rows.push([String(r[0]).trim(),c.code>=0?String(r[c.code]):'',c.co>=0?String(r[c.co]):'',c.unit>=0?String(r[c.unit]):'',c.base>=0?+r[c.base]||1:1,+r[c.cur]||0,c.opt>=0?+r[c.opt]||0:0])}
+  let rows=[];for(let i=h+1;i<aoa.length;i++){const r=aoa[i];if(!String(r[nc]).trim())continue;rows.push([String(r[nc]).trim(),c.code>=0?String(r[c.code]):'',c.co>=0?String(r[c.co]):'',c.unit>=0?String(r[c.unit]):'',c.base>=0?+r[c.base]||1:1,+r[c.cur]||0,c.opt>=0?+r[c.opt]||0:0])}
   if(!rows.length)throw new Error('품목을 읽지 못했어요.');
+  // 현재고 0 이하는 저장하지 않음 (품목이 너무 많아짐). 단, 조제 기록이 있는 약은 0이어도 남겨서 발주 목록에 뜨게 함
+  const PF=(S.profile&&S.profile.items)||{};const all=rows.length;
+  rows=rows.filter(r=>r[5]>0||(PF[String(r[1])]&&!PF[String(r[1])].dead&&(PF[String(r[1])].d>0||PF[String(r[1])].p>0)));const skipped=all-rows.length;
+  if(!rows.length)throw new Error('현재고가 있는 품목이 없어요.');
   const meta=String(aoa.slice(0,h).flat().find(x=>/검색기간|재고금액/.test(String(x)))||'');const dm=meta.match(/~\s*(\d{8})/);
   const d=new Date();const date=dm?dm[1]:`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   const doc={meta,date,rows,source:source||'upload',savedAt:new Date().toISOString()};
   if(S.stock&&S.stock.date&&S.stock.date!==date){if(!await saveDoc('stock/previous',S.stock))return;S.prev=S.stock}
-  if(await saveDoc('stock/current',doc)){S.stock=doc;renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,date}}
+  if(await saveDoc('stock/current',doc)){S.stock=doc;renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})${skipped?` · 재고 0 ${fmt(skipped)}품목 제외`:''}`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,skipped,date}}
   return{ok:false}
  }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
 async function onDispFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
  if(!window.XLSX){toast('엑셀 읽기 도구를 불러오지 못했어요');return}
  await importDisp(new Uint8Array(await f.arrayBuffer()))}
 async function importDisp(buf){
- try{const aoa=readAoa(buf);const h=aoa.findIndex(r=>H(r[0])==='약품명');
-  if(h<0)throw new Error('약품명 열을 찾지 못했어요. 조제약품현황 파일인지 확인해 주세요.');
-  const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);const c={code:col('약품코드'),ws:col('사입거래처'),price:col('약품단가'),qty:col('조제수량'),cnt:col('조제건수')};
-  if(c.qty<0||c.cnt<0)throw new Error('조제수량·조제건수 열이 없어요.');
+ try{const aoa=readAoa(buf);const {h,nc}=findHdr(aoa);
+  if(h<0)throw new Error('약품명 열을 찾지 못했어요. 조제약품현황이나 사용량(재고현황및재고수정) 파일인지 확인해 주세요.');
+  const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);if(hdr.some(x=>/처방전교부번호|수진자|주민/.test(x)))throw new Error('환자 정보가 있는 파일이라 받지 않아요.');
+  const c={code:col('약품코드'),ws:col('사입거래처'),price:col('약품단가'),qty:col('조제수량'),cnt:col('조제건수'),use:col('사용량')};
+  if((c.qty<0||c.cnt<0)&&c.use>=0)return await importUse(aoa,h,nc,c);
+  if(c.qty<0||c.cnt<0)throw new Error('조제수량·조제건수(또는 사용량) 열이 없어요.');
   const per=+S.settings.periodDays||184;const items={};let cur=null;
-  for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[0]).trim();
+  for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[nc]).trim();
    if(nm&&isNaN(+nm)){const code=String(r[c.code]).trim();cur=items[code]=items[code]||{w:c.ws>=0?String(r[c.ws]).trim():'',u:+r[c.price]||0,q:0,n:0};cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(!nm&&cur&&r[c.qty]!==''){cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(nm&&!isNaN(+nm))break}
@@ -816,6 +826,20 @@ async function importDisp(buf){
   if(await saveDoc('profile/current',doc)){S.profile=doc;renderToday();toast(`조제 ${Object.keys(items).length}품목으로 적정재고를 다시 계산했어요`);redrawPanel&&redrawPanel();return{ok:true,kind:'disp',n:Object.keys(items).length}}
   return{ok:false}
  }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
+
+/* 이팜 "재고현황및재고수정" (약품코드·약품명·사용량·재고량): 검색기간 동안의 사용량으로 하루 평균 사용량을 다시 계산.
+   사입처·단가·처방 1건 크기는 이 파일에 없어서, 전에 올린 조제약품현황 값을 그대로 이어 씀 */
+async function importUse(aoa,h,nc,c){
+ if(c.code<0)throw new Error('약품코드 열이 없어요.');
+ const days=searchDays(aoa,h)||+S.settings.periodDays||184;const old=(S.profile&&S.profile.items)||{};const out={};let used=0;
+ for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[nc]).trim(),code=String(r[c.code]).trim();if(!nm||!code||out[code])continue;
+  const q=+r[c.use]||0,o=old[code]||{};
+  if(q>0){used++;out[code]={w:o.w||'',u:o.u||0,n:o.n||0,d:Math.round(q/days*1000)/1000,p:o.dead?0:(o.p||0)}}
+  else if(nm.includes('_('))out[code]={w:o.w||'',u:o.u||0,n:0,d:0,p:0,dead:1}}
+ if(!Object.keys(out).length)throw new Error('품목을 읽지 못했어요.');
+ const doc={periodDays:days,source:'use',items:out,savedAt:new Date().toISOString()};
+ if(await saveDoc('profile/current',doc)){S.profile=doc;renderToday();toast(`사용량 ${fmt(used)}품목(${days}일)으로 적정재고를 다시 계산했어요`);redrawPanel&&redrawPanel();return{ok:true,kind:'disp',n:used}}
+ return{ok:false}}
 
 /* ===== 저장 ===== */
 async function saveDoc(path,data){
@@ -1199,6 +1223,8 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
 const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
+// 화면에 보이는 직함: 직접 적은 직함(예: 관리약사)이 있으면 그것, 없으면 권한 이름
+const roleLabel=m=>(m&&m.title)||ROLE[m&&m.role]||'';
 const enc=p=>p.replace('/','__'),dec=id=>id.replace('__','/');
 const SY={cloud:null,user:null,pid:null,unsub:[],dev:null,pushedAt:{},seenAt:{},base:{memos:{},alarms:{}},status:'off',lastSync:null,err:'',phase:'out'};
 SY.dev=local('cb-desk-device')||(()=>{const d='pc-'+Math.random().toString(36).slice(2,8);local('cb-desk-device',d);return d})();
@@ -1312,12 +1338,12 @@ async function syJoinPharm(code,me){const u=SY.user;const inv=await SY.cloud.get
  await SY.cloud.set('pharmacies/'+inv.pid+'/members/'+u.uid,{name:me,role:'staff',email:u.email||'',code,at:Date.now()});
  await SY.cloud.set('users/'+u.uid,{pharmPid:inv.pid},true);await syStartPharm(inv.pid)}
 const PW_CH='abcdefghjkmnpqrstuvwxyz23456789';const newTempPw=()=>Array.from({length:8},()=>PW_CH[Math.floor(Math.random()*PW_CH.length)]).join('');
-async function syAddMember(name,email,pw,role){const code=S.pharm&&S.pharm.inviteCode;if(!code)throw{code:'nocode'};const pid=SY.pid;let newUid=null;
+async function syAddMember(name,email,pw,role,title){title=(title||'').trim().slice(0,20);const code=S.pharm&&S.pharm.inviteCode;if(!code)throw{code:'nocode'};const pid=SY.pid;let newUid=null;
  await SY.cloud.asNewUser(email,pw,async(c,u)=>{newUid=u;
-  await c.set('pharmacies/'+pid+'/members/'+u,{name,role:'staff',email,code,at:Date.now(),addedBy:SY.user.uid});
+  await c.set('pharmacies/'+pid+'/members/'+u,{name,title,role:'staff',email,code,at:Date.now(),addedBy:SY.user.uid});
   await c.set('users/'+u,{pharmPid:pid},true)});
  if(role==='admin')await SY.cloud.set(P()+'/members/'+newUid,{role:'admin'},true);
- SY.lastAdded={name,email,pw,role};return newUid}
+ SY.lastAdded={name,email,pw,role,title};return newUid}
 async function syNewCode(){const old=S.pharm&&S.pharm.inviteCode;const code=newCode();
  await SY.cloud.set('invites/'+code,{pid:SY.pid,at:Date.now()});await SY.cloud.set(P(),{inviteCode:code},true);if(old)SY.cloud.del('invites/'+old).catch(()=>{})}
 
@@ -1337,20 +1363,22 @@ function accountView(){
    <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder="예: 박약사"></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
  const me=S.members.find(m=>m.uid===SY.user.uid)||{};const mgr=me.role==='owner'||me.role==='admin';const owner=me.role==='owner';
  return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
-  <p class="muted">나: <b>${esc(me.name||'')}</b> (${ROLE[me.role]||''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
-  <div class="row"><label class="field" style="flex:1">내 이름 바꾸기<input id="myName" value="${esc(me.name||'')}"></label><button class="btn sm" type="button" id="myNameSave" style="align-self:flex-end">바꾸기</button></div>
+  <p class="muted">나: <b>${esc(me.name||'')}</b> (${esc(roleLabel(me))}${me.title?` · 권한 ${ROLE[me.role]||''}`:''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
+  <div class="grid2"><label class="field">내 이름<input id="myName" value="${esc(me.name||'')}"></label><label class="field">내 직함 (비우면 "${ROLE[me.role]||''}")<input id="myTitle" maxlength="20" value="${esc(me.title||'')}" placeholder="예: 관리약사, 근무약사"></label></div>
+  <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
- <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${ROLE[m.role]||''}</span><br><span class="sub">${esc(m.email||'')}</span></span>
+ <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${m.title?` · 권한 ${ROLE[m.role]||''}`:''}</span></span>
   ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
   <p class="muted">관리자는 공지를 보내고 직원을 부를 수 있어요.</p></div>
  ${mgr?`<div class="card"><h3>직원 바로 추가</h3><p class="muted">여기서 계정을 만들면 직원은 받은 이메일과 임시 비밀번호로 로그인만 하면 돼요. 초대 코드는 필요 없어요.</p>
-  ${SY.lastAdded?`<div class="addok"><b>${esc(SY.lastAdded.name)}</b> 계정을 만들었어요 (${ROLE[SY.lastAdded.role]||''})<br>이메일 <span class="num">${esc(SY.lastAdded.email)}</span> · 임시 비밀번호 <b class="num">${esc(SY.lastAdded.pw)}</b>
+  ${SY.lastAdded?`<div class="addok"><b>${esc(SY.lastAdded.name)}</b> 계정을 만들었어요 (${esc(roleLabel(SY.lastAdded))})<br>이메일 <span class="num">${esc(SY.lastAdded.email)}</span> · 임시 비밀번호 <b class="num">${esc(SY.lastAdded.pw)}</b>
    <div class="row"><button class="btn sm" type="button" id="amCopy">로그인 정보 복사</button><button class="btn sm" type="button" id="amDone">닫기</button></div>
    <span class="sub">직원에게 알려 주고, 처음 로그인한 뒤 이 화면의 "비밀번호 바꾸기"로 바꾸게 하세요.</span></div>`:''}
   <div class="grid2"><label class="field">이름<input id="amName" placeholder="예: 박약사"></label><label class="field">이메일 (로그인 아이디)<input id="amEmail" type="email" autocomplete="off" placeholder="예: park@gmail.com"></label>
    <label class="field">임시 비밀번호 (6자 이상)<input id="amPw" autocomplete="off" value="${newTempPw()}" style="font-family:var(--mono)"></label>
-   <label class="field">역할<select id="amRole"><option value="staff">직원</option>${owner?'<option value="admin">관리자</option>':''}</select></label></div>
+   <label class="field">직함 (선택)<input id="amTitle" maxlength="20" placeholder="예: 근무약사, 전산원"></label>
+   <label class="field">역할 (권한)<select id="amRole"><option value="staff">직원</option>${owner?'<option value="admin">관리자</option>':''}</select></label></div>
   <div class="row"><button class="btn primary" type="button" id="amGo">계정 만들고 추가</button></div>
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
  <div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
@@ -1365,15 +1393,15 @@ function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const 
  if(q('#jpGo'))q('#jpGo').onclick=()=>busy(q('#jpGo'),async()=>{const c=q('#jpCode').value.trim().toUpperCase(),me=q('#jpMe').value.trim();if(c.length!==6||!me){msg('6자리 코드와 내 이름을 적어 주세요');return}await syJoinPharm(c,me);toast('약국에 들어왔어요')});
  if(q('#codeCopy'))q('#codeCopy').onclick=()=>copyText(`${S.pharm.name} 약국 비서 초대 코드: ${S.pharm.inviteCode}`);
  if(q('#codeNew'))q('#codeNew').onclick=()=>busy(q('#codeNew'),async()=>{await syNewCode();toast('새 초대 코드를 만들었어요')});
- if(q('#myNameSave'))q('#myNameSave').onclick=()=>busy(q('#myNameSave'),async()=>{const n=q('#myName').value.trim();if(!n)return;await SY.cloud.set(P()+'/members/'+SY.user.uid,{name:n},true);toast('이름을 바꿨어요')});
+ if(q('#myNameSave'))q('#myNameSave').onclick=()=>busy(q('#myNameSave'),async()=>{const n=q('#myName').value.trim(),ti=(q('#myTitle')?q('#myTitle').value:'').trim().slice(0,20);if(!n)return;await SY.cloud.set(P()+'/members/'+SY.user.uid,{name:n,title:ti},true);toast('이름·직함을 저장했어요')});
  body.querySelectorAll('[data-role]').forEach(s=>s.onchange=()=>busy(s,async()=>{await SY.cloud.set(P()+'/members/'+s.dataset.role,{role:s.value},true);toast('역할을 바꿨어요')}));
  body.querySelectorAll('[data-kick]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 내보내기';setTimeout(()=>{armed=false;b.textContent='내보내기'},3000);return}busy(b,async()=>{await SY.cloud.del(P()+'/members/'+b.dataset.kick);toast('내보냈어요')})}});
  if(q('#amGo'))q('#amGo').onclick=()=>{const m=t=>{const x=q('#amMsg');if(x)x.textContent=t};const b=q('#amGo');
-  const name=q('#amName').value.trim(),email=q('#amEmail').value.trim().toLowerCase(),pw=q('#amPw').value,role=q('#amRole').value;
+  const name=q('#amName').value.trim(),email=q('#amEmail').value.trim().toLowerCase(),pw=q('#amPw').value,role=q('#amRole').value,title=q('#amTitle')?q('#amTitle').value:'';
   if(!name||!email){m('이름과 이메일을 적어 주세요');return}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){m('이메일 형식이 아니에요');return}if(pw.length<6){m('임시 비밀번호는 6자 이상');return}
   if(S.members.some(x=>(x.email||'').toLowerCase()===email)){m('이미 약국에 있는 사람이에요');return}
   b.disabled=true;m('계정 만드는 중…');
-  syAddMember(name,email,pw,role).then(()=>{toast(name+' 님을 추가했어요');redrawPanel&&redrawPanel()}).catch(e=>{
+  syAddMember(name,email,pw,role,title).then(()=>{toast(name+' 님을 추가했어요');redrawPanel&&redrawPanel()}).catch(e=>{
    m(e&&e.code==='auth/email-already-in-use'?`이미 가입된 이메일이에요. 그분은 직접 로그인한 뒤 초대 코드 ${S.pharm&&S.pharm.inviteCode||''}로 들어오게 해 주세요`:(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e))))}).finally(()=>{if(b.isConnected)b.disabled=false})};
  if(q('#amCopy'))q('#amCopy').onclick=()=>{const a=SY.lastAdded;copyText(`[${S.pharm&&S.pharm.name||'약국'} 약국 비서]\n이메일: ${a.email}\n임시 비밀번호: ${a.pw}\n휴대폰: https://tobi06-oss.github.io/yakguk-biseo/\n로그인 후 설정 → 약국 계정 → 비밀번호 바꾸기`)};
  if(q('#amDone'))q('#amDone').onclick=()=>{SY.lastAdded=null;redrawPanel&&redrawPanel()};
