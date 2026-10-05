@@ -271,7 +271,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
 @keyframes sheet{from{transform:translateY(40px);opacity:.5}}
 @media (prefers-reduced-motion:reduce){.panel{animation:none}.fav:active,.tile:active,.today:active,.cat:active{transform:none}}
 
-/* 타일 (업무 수첩 · 메모·알림) */
+/* 타일 (약국 매뉴얼 · 메모·알림) */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:14px;box-shadow:var(--shadow);min-width:0;position:relative}
 .tile:hover{border-color:var(--accent)}
@@ -379,19 +379,22 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
 
 <div class="app">
   <header>
-    <div class="brand"><div class="mark" aria-hidden="true">약</div><div><h1 id="title">참바른약국 도우미</h1><div class="subtitle"><span id="subtitle">재고 진단 · 업무 수첩 · 상담</span><span class="syncdot" id="syncDot" hidden></span></div></div></div>
+    <div class="brand"><div class="mark" aria-hidden="true">약</div><div><h1 id="title">참바른약국 도우미</h1><div class="subtitle"><span id="subtitle">재고 진단 · 약국 매뉴얼 · 상담</span><span class="syncdot" id="syncDot" hidden></span></div></div></div>
     <button class="iconbtn round" id="menuBtn" type="button" aria-label="설정 열기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </header>
   <div class="banner" id="banner" hidden></div>
   <button class="today" id="today" type="button" hidden aria-label="오늘의 재고 열기"></button>
-  <div class="tiles">
-    <button class="tile" id="book" type="button"><span class="ti t-book"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg></span><span class="tt">업무 수첩</span><span class="ts" id="bookSub">프로그램 사용법 · 반품 · 거래처</span></button>
-    <button class="tile" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></button>
-    <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">대체약 유무</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
+  <div class="tiles" id="homeTiles">
+    <button class="tile" id="book" type="button"><span class="ti t-book"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg></span><span class="tt">약국 매뉴얼</span><span class="ts" id="bookSub">프로그램 사용법 · 반품 · 거래처</span></button>
+    <button class="tile" id="myNoteTile" type="button"><span class="ti t-mynote"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4a2 2 0 0 1 2-2h11v20H7a2 2 0 0 1-2-2z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10.5 11V9.5a1.5 1.5 0 0 1 3 0V11"/></svg></span><span class="tt">개인 업무수첩</span><span class="ts" id="myNoteSub">나만 보는 비공개 수첩</span></button>
+    <button class="tile wide" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tx"><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></span></button>
   </div>
   <div class="pins" id="pins" hidden aria-label="고정한 메모"></div>
-  <div class="favlabel">자주 쓰는 질문</div>
-  <nav class="favs" id="favs" aria-label="즐겨찾기"></nav>
+  <div class="tiles alt-row">
+    <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">대체약 유무</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
+  </div>
+  <div class="favlabel" hidden>자주 쓰는 질문</div>
+  <nav class="favs" id="favs" aria-label="즐겨찾기" hidden></nav>
   <main class="chat" id="chat" aria-live="polite">
     <div class="welcome" id="welcome"><span class="wi"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><b>무엇을 찾을까요?</b>약 이름을 치면 재고가, 거래처 이름을 치면 수첩이 나와요.<br>"세파클러 12kg"은 용량 계산, "내일 3시 반품 알림"은 알림 등록이 돼요.</div>
   </main>
@@ -637,28 +640,29 @@ function renderToday(){
 let panelState={kind:null,tab:null},redrawPanel=null;
 function openPanel(kind,tab){
  document.querySelector('.scrim')?.remove();
- panelState={kind,tab:tab||{stock:'order',manual:'list',memo:'memos',settings:'basic',team:'notice'}[kind]};
+ panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'basic',team:'notice'}[kind]};
  const scrim=document.createElement('div');scrim.className='scrim';
  const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
  const teamOn=!!(window.drawTeam&&S.pharm);
- const TITLES={alt:'대체약',stock:'재고',manual:'업무 수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
+ const TITLES={alt:'대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
   const tabs=kind==='stock'?[['order','발주',M?M.low.length:0],['today','오늘 변화',M?M.gone.length+M.drop.length:0],['search','검색'],['dead','안 나가는 약',M?M.dead.length:0],['over','과다 재고',M?M.over.length:0]]
    :kind==='alt'?[]
-   :kind==='manual'?[['list','수첩'],['add','새 항목']]
+   :kind==='mynote'?(SY.user?[['list','내 수첩',S.mynotes.length||null],['add','새로 쓰기']]:[])
+   :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
    :kind==='team'?teamTabs()
    :kind==='memo'?(S.pharm&&!teamOn?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on).length]])
-   :(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length],['favs','즐겨찾기'],['etc','기타']]);
+   :(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length],['etc','기타']]);
   p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
   p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
   p.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openPanel(b.dataset.go));
   $('pClose').onclick=close;
   const body=$('pbody');
-  if(kind==='team')drawTeam(body);else if(kind==='alt')drawAlt(body);else if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
+  if(kind==='team')drawTeam(body);else if(kind==='alt')drawAlt(body);else if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='mynote')drawMyNote(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
  }
  redrawPanel=draw;document.body.appendChild(scrim);draw();$('pClose').focus();
 }
@@ -769,9 +773,9 @@ let editId=null;
 let manualCat=null,openItem=null;
 function drawManual(body){
  if(panelState.tab==='add'){editId=null;body.appendChild(manualForm(null));return}
- body.innerHTML='<input class="search" id="mq" type="search" placeholder="수첩 검색"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
+ body.innerHTML='<input class="search" id="mq" type="search" placeholder="매뉴얼 검색"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
  const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
-  if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">수첩이 비어 있어요. "새 항목"에서 약국 규칙을 적어 두면 도우미가 그걸로 답해요.</p></div>';return}
+  if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
   const cats=groupBy(S.manual,m=>m.sec||'기타');
   if(!q&&!manualCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-cat="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
    list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;run()});return}
@@ -795,7 +799,7 @@ function manualForm(m,after){
  const q=s=>f.querySelector(s);
   q('#mfSave').onclick=async()=>{const h=q('#mfH').value.trim(),b=q('#mfB').value.trim(),sec=q('#mfSec').value.trim()||'기타';if(!h){toast('제목을 적어 주세요');return}
    const items=S.manual.map(x=>({...x}));if(m){const t=items.find(x=>x.id===m.id);Object.assign(t,{h,body:b,sec})}else items.push({id:'m'+Date.now().toString(36),sec,h,body:b});
-   if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('수첩에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
+   if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('매뉴얼에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
   m&&(q('#mfCancel').onclick=()=>{editId=null;after&&after()});
   m&&(q('#mfDel').onclick=async()=>{const b=q('#mfDel');if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='한 번 더 누르면 지워져요';return}
    const items=S.manual.filter(x=>x.id!==m.id);if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('지웠어요');after&&after()}});
@@ -839,11 +843,11 @@ function drawSettings(body){
  else{
   const bl=local(BAD_KEY)||[];
   body.innerHTML=`<div class="card"><h3>틀린 답 모음 <span class="c">${bl.length}건</span></h3><p class="muted">답 아래 "틀림"을 누른 질문과 답이에요. 복사해서 Claude에게 보내주시면 고칩니다.</p><div class="row"><button class="btn" type="button" id="badCopy" ${bl.length?'':'disabled'}>복사</button><button class="btn" type="button" id="badClear" ${bl.length?'':'disabled'}>비우기</button></div></div>
-  <div class="card"><h3>대화</h3><div class="row"><button class="btn" type="button" id="clearChat">대화 지우기</button></div></div>
-  <div class="card"><h3>이 도우미가 아는 것</h3><p class="muted">재고현황과 조제약품현황으로 계산한 재고·적정재고·대체품, 업무 수첩(약국이 직접 고침), OTC 상담 기준(감기·소화기·관절), 환자 오해 대응 카드, 소아 시럽 용량 계산(해열제 3종·항생제 5종, 허가사항 기준). 답은 AI가 만든 것이라 숫자와 절차는 한 번 확인하세요. 환자 이름은 입력하지 마세요.</p></div>`;
+  
+  <div class="card"><h3>이 도우미가 아는 것</h3><p class="muted">재고현황과 조제약품현황으로 계산한 재고·적정재고·대체품, 약국 매뉴얼(약국이 직접 고침), OTC 상담 기준(감기·소화기·관절), 환자 오해 대응 카드, 소아 시럽 용량 계산(해열제 3종·항생제 5종, 허가사항 기준). 답은 AI가 만든 것이라 숫자와 절차는 한 번 확인하세요. 환자 이름은 입력하지 마세요.</p></div>`;
   $('badCopy').onclick=()=>copyText(bl.map((b,i)=>`#${i+1} (${b.at})\n[질문] ${b.q}\n[답] ${b.a}`).join('\n\n'));
   $('badClear').onclick=()=>{local(BAD_KEY,[]);redrawPanel();toast('비웠어요')};
-  $('clearChat').onclick=()=>{turns=[];$('chat').innerHTML='';$('chat').appendChild(welcomeEl);welcomeEl.hidden=false;toast('대화를 지웠어요')};
+  
   window.deskEtc&&deskEtc(body);
  }
 }
@@ -941,7 +945,7 @@ const PRESETS=[
  {label:'입고 안내 문자',prompt:'주문하신 약이 들어왔다는 고객 안내 문자를 짧고 정중하게 써줘. 약 이름: ',send:false},
  {label:'거래처 번호',prompt:'담당자 연락처: ',send:false}
 ];
-let FAVS=(local(FAV_KEY)||local('cb-helper-favs-v1')||DEFAULT_FAVS.map(f=>({...f}))).map(f=>/소아 해열제 용량/.test(f.label)?{label:'소아 시럽 용량',prompt:'소아 시럽 용량 (해열제·항생제): 약 이름, 체중 kg = ',send:false}:f).filter(f=>!/^업무 수첩$/.test(f.label));
+let FAVS=(local(FAV_KEY)||local('cb-helper-favs-v1')||DEFAULT_FAVS.map(f=>({...f}))).map(f=>/소아 해열제 용량/.test(f.label)?{label:'소아 시럽 용량',prompt:'소아 시럽 용량 (해열제·항생제): 약 이름, 체중 kg = ',send:false}:f).filter(f=>!/^약국 매뉴얼$/.test(f.label));
 function renderFavs(){const n=$('favs');n.innerHTML='';
  FAVS.forEach(f=>{const b=document.createElement('button');b.type='button';b.className='fav';b.textContent=f.label;b.title=f.prompt;
   b.onclick=()=>{if(f.send)ask(f.prompt);else{const i=$('input');i.value=f.prompt;i.focus();i.setSelectionRange(i.value.length,i.value.length);autosize()}};n.appendChild(b)});
@@ -1023,7 +1027,7 @@ const TOOLS=[
  {name:'search_stock',description:'약 이름·성분·제약회사·약품코드·사입처로 현재 재고를 찾는다. 현재고, 적정재고와 그 근거, 하루 평균 조제량, 남은 일수, 사입처, 같은 성분 대체품 재고를 돌려준다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchStock(String(i.query||''))},
  {name:'order_list',description:'적정재고보다 적은 약(발주 필요 목록)을 사입처별로 돌려준다. 사입처 이름을 주면 그 사입처만.',inputSchema:{type:'object',properties:{supplier:{type:'string'}}},execute:i=>orderList(i.supplier?String(i.supplier):'')},
  {name:'stock_changes',description:'어제 재고와 비교해 새로 0이 된 약, 평소보다 빨리 나간 약, 6개월간 안 나간 약 상위, 과다 재고 상위를 돌려준다.',inputSchema:{type:'object',properties:{}},execute:()=>stockChanges()},
- {name:'search_manual',description:'약국 업무 수첩에서 프로그램 사용법, 반품·약가인하 방법, 주문처, 품절약, 거래처 담당자 연락처를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchManual(String(i.query||''))},
+ {name:'search_manual',description:'약국 약국 매뉴얼에서 프로그램 사용법, 반품·약가인하 방법, 주문처, 품절약, 거래처 담당자 연락처를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchManual(String(i.query||''))},
  {name:'search_cards',description:'환자가 AI·인터넷에서 보고 와서 하는 흔한 오해와 약사의 대응 문구를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchCards(String(i.query||''))},
  {name:'pediatric_dose',description:'소아 시럽 용량을 체중으로 계산한다. 해열진통제(아세트아미노펜·이부프로펜·덱시부프로펜)와 항생제(세파클러·아목시실린/클라불란산 7:1·아지스로마이신·클래리트로마이신·세프디니르). 항생제는 흔한 농도별 mL를 함께 돌려준다. 제품 농도를 알면 conc_mg_per_ml로 준다.',inputSchema:{type:'object',properties:{drug:{type:'string'},weight_kg:{type:'number'},conc_mg_per_ml:{type:'number'}},required:['drug','weight_kg']},execute:i=>pediatricDose(String(i.drug||''),i.weight_kg,i.conc_mg_per_ml)},
  {name:'otc_rules',description:'OTC 상담 기준: 위험 신호, 증상별 권장 성분과 환자 상태별 주의·피함 사유. 분야는 감기, 소화기, 관절 중 하나.',inputSchema:{type:'object',properties:{group:{type:'string',enum:['감기','소화기','관절']}},required:['group']},execute:i=>otcRules(String(i.group||'감기'))},
@@ -1043,7 +1047,7 @@ function rules(){return `너는 동네약국 "${S.settings.name||'우리 약국'
 8. 영양제·일반약 추천은 search_stock으로 우리 약국 제품과 재고를 함께 알려줘.
 10. "알림", "~시에 알려줘", "메모해 둬"는 add_alarm·add_memo로 바로 등록하고 등록 결과(내용, 첫 알림, 반복)를 한 줄로 알려줘. 시각이 애매하면(예: "오후에") 한 번만 되물어. 등록된 알림 질문은 list_alarms로. 지금은 ${(()=>{const n=new Date();return `${n.getFullYear()}-${pad2(n.getMonth()+1)}-${pad2(n.getDate())} (${WD[n.getDay()]}) ${pad2(n.getHours())}:${pad2(n.getMinutes())}`})()}.
 9. 환자 이름·주민번호 등 개인정보가 보이면 무시하고 반복하지 마. 사진은 보이는 약 이름·함량을 먼저 말하고, 읽기 어려우면 다시 찍어 달라고 해.
-형식: 첫 줄에 결론. 그다음 필요한 숫자·단계를 "- "로. 마지막 줄에 "출처: 재고 자료/업무 수첩/OTC 상담 기준/대응 카드/용량 계산" 중 쓴 것. 표·제목(#)은 쓰지 말고 굵게는 **만.`}
+형식: 첫 줄에 결론. 그다음 필요한 숫자·단계를 "- "로. 마지막 줄에 "출처: 재고 자료/약국 매뉴얼/OTC 상담 기준/대응 카드/용량 계산" 중 쓴 것. 표·제목(#)은 쓰지 말고 굵게는 **만.`}
 
 /* ===== 메모·알림 ===== */
 const MCOLORS={yellow:'노랑',pink:'분홍',blue:'파랑',green:'초록',purple:'보라'};
@@ -1393,9 +1397,9 @@ function syStopPharm(){SY.unsub.forEach(f=>{try{f()}catch(e){}});SY.unsub=[];SY.
  if(hasDesk())window.desk.setNotices([]);renderMemoHome();syStatus('off')}
 function syLeaveLocal(){syStopPharm();SY.phase='nopharm';syRedraw()}
 async function syOnUser(u){
- if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
+ if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';if(typeof myNoteStop==='function')myNoteStop();window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
  if(SY.user&&SY.user.uid===u.uid&&SY.pid)return;
- syStopPharm();SY.user=u;window.__me=u.uid;if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syRedraw();
+ syStopPharm();SY.user=u;window.__me=u.uid;if(typeof myNoteStart==='function')myNoteStart(u);if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syRedraw();
  try{const ptr=await SY.cloud.get('users/'+u.uid);const pid=ptr&&ptr.pharmPid;const mem=pid&&await SY.cloud.get('pharmacies/'+pid+'/members/'+u.uid);
   if(mem){if(u.email&&mem.email!==u.email)SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{email:u.email},true).catch(()=>{});return syStartPharm(pid)}
   SY.phase='nopharm';syRedraw()}catch(e){SY.phase='nopharm';syStatus('err',errMsg(e))}}
@@ -1435,7 +1439,7 @@ function accountView(){
  if(!SY.user)return `<div class="card"><h3>약국 계정</h3><p class="muted">확인하는 중…</p></div>`;
  if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
  if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
-  <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·수첩·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
+  <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·매뉴얼·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
    <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>
   <div class="card"><h3>직원: 초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
    <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
@@ -1575,9 +1579,9 @@ function localAnswer(raw){
  // 기본: 재고 + 수첩 + 대응 카드
  const man=searchManual(q),cards=searchCards(q),howto=/번호|연락처|전화|담당|방법|어떻게|하는\s*법|절차|메뉴/.test(q)&&man.결과.length;const hits=howto?[]:stockHits(q);let html='';
  if(hits.length)html+=`<p><b>재고</b> <span class="sub">${esc(dateLabel(M.date))} 기준</span></p><div class="hits">${hits.map(itemCard).join('')}</div>`;
- if(man.결과.length)html+=`<p><b>업무 수첩</b></p>`+man.결과.slice(0,3).map(r=>`<div class="kv"><b>${esc(r.제목)}</b> <span class="sub">${esc(r.분류)}</span><div class="pre">${esc(r.내용)}</div></div>`).join('');
+ if(man.결과.length)html+=`<p><b>약국 매뉴얼</b></p>`+man.결과.slice(0,3).map(r=>`<div class="kv"><b>${esc(r.제목)}</b> <span class="sub">${esc(r.분류)}</span><div class="pre">${esc(r.내용)}</div></div>`).join('');
  if(cards.결과.length&&!hits.length)html+=`<p><b>환자 오해 대응</b></p>`+fmtVal(cards.결과.slice(0,1));
- if(!html)return botCard('찾지 못했어요',`<p>"${esc(q)}"에 맞는 재고·수첩 항목이 없어요.${M?'':' 재고 자료가 아직 없어요. 설정 → 파일 올리기에서 올려 주세요.'}</p><p class="sub">이렇게 써 보세요: 약 이름(레미피드) · 거래처 이름(지오영 번호) · "세파클러 12kg" · "내일 3시 반품 알림" · "메모: …"</p>`);
+ if(!html)return botCard('찾지 못했어요',`<p>"${esc(q)}"에 맞는 재고·매뉴얼 항목이 없어요.${M?'':' 재고 자료가 아직 없어요. 설정 → 파일 올리기에서 올려 주세요.'}</p><p class="sub">이렇게 써 보세요: 약 이름(레미피드) · 거래처 이름(지오영 번호) · "세파클러 12kg" · "내일 3시 반품 알림" · "메모: …"</p>`);
  return html}
 async function ask(q){q=String(q||'').trim();if(!q)return;$('input').value='';autosize();addMsg('me',esc(q));
  let html;try{html=localAnswer(q)}catch(e){console.error(e);html='<p>처리하다 문제가 생겼어요. 다르게 적어 보세요.</p>'}
@@ -1820,13 +1824,16 @@ const TEAM_TILES=[['notice','공지사항','t-notice','<path d="M3 11l14-6v14L3 
  ['order','국장님 전달사항','t-order','<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M8.5 13l2.2 2.2L15.5 10.5"/>'],
  ['cal','약국 캘린더','t-cal','<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M14 14h2M8 17h2"/>'],
  ['hand','인수인계','t-hand','<path d="M4 7h11l-3-3M20 17H9l3 3"/>']];
-function teamTilesInit(){if($('teamTiles'))return;const t=document.querySelector('.tiles');if(!t)return;
+// 첫 화면: 공지사항·국장님 전달사항은 맨 윗줄, 캘린더·인수인계는 오늘의 재고 아래
+function teamTilesInit(){if($('teamTop'))return;const t=document.querySelector('.tiles');if(!t)return;
  const st=document.createElement('style');st.textContent=TEAM_CSS;document.head.appendChild(st);
- const d=document.createElement('div');d.className='tiles team';d.id='teamTiles';d.hidden=true;
- d.innerHTML=TEAM_TILES.map(([k,l,c,svg])=>`<button class="tile" type="button" data-tt="${k}"><span class="ti ${c}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svg}</svg></span><span class="tt">${l}</span><span class="ts" data-ts="${k}"></span></button>`).join('');
- t.after(d);d.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>openPanel('team',b.dataset.tt))}
-function renderTeamTiles(){teamTilesInit();const d=$('teamTiles');if(!d)return;d.hidden=!S.pharm;if(!S.pharm)return;
- const set=(k,txt,ring)=>{const s=d.querySelector(`[data-ts="${k}"]`);if(s)s.textContent=txt;const b=d.querySelector(`[data-tt="${k}"]`);if(b)b.classList.toggle('ring',!!ring)};
+ const mk=(id,keys)=>{const d=document.createElement('div');d.className='tiles team';d.id=id;d.hidden=true;
+  d.innerHTML=TEAM_TILES.filter(x=>keys.includes(x[0])).map(([k,l,c,svg])=>`<button class="tile" type="button" data-tt="${k}"><span class="ti ${c}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svg}</svg></span><span class="tt">${l}</span><span class="ts" data-ts="${k}"></span></button>`).join('');
+  d.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>openPanel('team',b.dataset.tt));return d};
+ const top=mk('teamTop',['notice','order']),mid=mk('teamMid',['cal','hand']);
+ const anchor=$('banner')||$('today')||t;anchor.after(top);t.before(mid)}
+function renderTeamTiles(){teamTilesInit();const ds=[$('teamTop'),$('teamMid')].filter(Boolean);if(!ds.length)return;ds.forEach(d=>d.hidden=!S.pharm);if(!S.pharm)return;
+ const set=(k,txt,ring)=>{const s=document.querySelector(`.tiles.team [data-ts="${k}"]`);if(s)s.textContent=txt;const b=document.querySelector(`.tiles.team [data-tt="${k}"]`);if(b)b.classList.toggle('ring',!!ring)};
  const un=unreadNotices().length,last=S.notices.slice().sort((a,b)=>b.at-a.at)[0];
  set('notice',un?`안 읽은 공지 ${un}개`:last?last.text:'약국 전체 공지',un);
  const todo=myTodo(),mgr=isMgr(),open=S.orders.filter(o=>!orderDone(o)).length;
@@ -1871,8 +1878,75 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .linkbtn{border:0;background:none;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
 `;
 
+/* ===== 첫 화면 정리 · 개인 업무수첩(비공개) — PC·휴대폰 공통 ===== */
+// 첫 화면 순서: 공지사항·국장님 전달사항 → 오늘의 재고 → 캘린더·인수인계 → 약국 매뉴얼·개인 업무수첩 → 메모·알림 → 고정 메모 → 대체약 유무
+// 자주 쓰는 질문과 아래 검색창은 숨김 (요소는 남겨 둬서 다른 코드가 깨지지 않게)
+(()=>{const st=document.createElement('style');st.textContent=`
+.favlabel,#favs,#chat,#form,#imgChip{display:none!important}
+.app{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.tiles.alt-row{margin-top:2px}
+.pins:not([hidden])+.tiles.alt-row{margin-top:12px}
+.t-mynote{background:linear-gradient(145deg,#6B7A99,#3E4A66);box-shadow:0 6px 14px -6px rgba(62,74,102,.6)}
+.card.mn-lock{display:flex;flex-direction:row;gap:10px;align-items:flex-start;background:var(--accent-soft);border-color:transparent}
+.mn-lock svg{flex:none;color:var(--accent);margin-top:2px}.mn-lock b{display:block;margin-bottom:2px}.mn-lock p{margin:0}
+.mn-meta{font-size:12px;color:var(--ink-3);font-weight:400;white-space:nowrap}
+.mn-pin{color:var(--brand);margin-right:4px}
+`;document.head.appendChild(st)})();
+
+const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+S.mynotes=[];let mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
+const mnPath=()=>'users/'+SY.user.uid+'/notes';
+function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
+ try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e))}catch(e){console.warn(e)}}
+function myNoteStop(){if(mnUnsub){try{mnUnsub()}catch(e){}}mnUnsub=null;S.mynotes=[];mnEdit=null;mnOpen=null;mnQ='';myNoteChanged()}
+function myNoteChanged(){renderMyNoteTile();if(redrawPanel&&panelState.kind==='mynote'&&!document.activeElement?.closest('.panel input,.panel textarea'))redrawPanel()}
+function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynotes.length;
+ s.textContent=!SY.user?'로그인하면 나만 보는 수첩':n?`비공개 · ${n}개`:'나만 보는 비공개 수첩'}
+const mnSorted=()=>S.mynotes.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||(b.upd||b.at||0)-(a.upd||a.at||0));
+const mnDate=ms=>{if(!ms)return '';const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()}`};
+async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id);
+ if(old)Object.assign(old,d);else S.mynotes.push({id,...d});myNoteChanged();
+ return tSet(mnPath()+'/'+id,d,true)}
+async function mnDel(id){S.mynotes=S.mynotes.filter(x=>x.id!==id);myNoteChanged();return tDel(mnPath()+'/'+id)}
+
+function drawMyNote(body){
+ const lock=`<div class="card mn-lock">${LOCK_SVG}<div><b>나만 보는 비공개 수첩</b><p class="muted">여기 적은 내용은 내 계정에만 저장돼요. 국장님·관리자·다른 직원 누구도 볼 수 없고, 약국 공용 자료(약국 매뉴얼·메모·공지)와도 따로 보관돼요. 같은 계정으로 로그인한 PC·휴대폰에서만 열려요.</p></div></div>`;
+ if(!SY.user||!SY.cloud){
+  body.innerHTML=lock+`<div class="card"><p class="muted">개인 업무수첩은 약국 계정에 로그인해야 쓸 수 있어요. 로그인 없이 적으면 같은 PC를 쓰는 다른 사람도 볼 수 있어서 막아 두었어요.</p><div class="row"><button class="btn primary" type="button" id="mnLogin">로그인하러 가기</button></div></div>`;
+  const b=body.querySelector('#mnLogin');if(b)b.onclick=()=>openPanel('settings','account');return}
+ if(panelState.tab==='add'||mnEdit){body.innerHTML=lock;body.appendChild(mnForm(panelState.tab==='add'?null:S.mynotes.find(x=>x.id===mnEdit)));return}
+ body.innerHTML=lock+`<input class="search" id="mnQ" type="search" placeholder="내 수첩 검색" value="${esc(mnQ)}"><div id="mnList" style="display:flex;flex-direction:column;gap:8px"></div>`;
+ const run=()=>{mnQ=body.querySelector('#mnQ').value;const nq=norm(mnQ.trim()),list=body.querySelector('#mnList');
+  if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요.</p></div>';return}
+  const items=mnSorted().filter(m=>!nq||norm((m.title||'')+' '+(m.body||'')).includes(nq));
+  list.innerHTML=(nq?`<p class="muted">${items.length}개 찾았어요</p>`:'')+(items.map(m=>{const o=mnOpen===m.id||!!nq;
+   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}</span><span class="mn-meta">${mnDate(m.upd||m.at)}</span></button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button><button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+  list.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{mnOpen=mnOpen===b.dataset.mi?null:b.dataset.mi;run()});
+  list.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{mnEdit=b.dataset.me;redrawPanel();body.scrollTop=0});
+  list.querySelectorAll('[data-mp]').forEach(b=>b.onclick=()=>{const m=S.mynotes.find(x=>x.id===b.dataset.mp);if(m)mnPut(m.id,{pin:!m.pin})});
+  list.querySelectorAll('[data-mx]').forEach(b=>armBtn(b,async()=>{if(await mnDel(b.dataset.mx))toast('지웠어요')},'한 번 더 누르면 지워져요'));
+ };
+ body.querySelector('#mnQ').oninput=run;run();
+}
+function mnForm(m){
+ const f=document.createElement('div');f.className='card';
+ f.innerHTML=`<div class="field">제목<input id="mnT" maxlength="100" value="${esc(m?m.title||'':'')}"></div>
+ <div class="field">내용<textarea id="mnB" rows="8" maxlength="5000">${esc(m?m.body||'':'')}</textarea></div>
+ <div class="row"><button class="btn primary" type="button" id="mnSave">저장</button>${m?'<button class="btn" type="button" id="mnCancel">취소</button>':''}</div>`;
+ const q=s=>f.querySelector(s);
+ q('#mnSave').onclick=async()=>{const title=q('#mnT').value.trim().slice(0,100),b=q('#mnB').value.trim().slice(0,5000);
+  if(!title&&!b){toast('제목이나 내용을 적어 주세요');return}
+  q('#mnSave').disabled=true;const now=Date.now();const id=m?m.id:'n'+uid();
+  const ok=await mnPut(id,m?{title,body:b,upd:now}:{title,body:b,pin:false,at:now,upd:now});
+  if(ok){toast(m?'고쳤어요':'내 수첩에 저장했어요');mnEdit=null;mnOpen=id;panelState.tab='list';redrawPanel&&redrawPanel()}else if(q('#mnSave'))q('#mnSave').disabled=false};
+ if(m)q('#mnCancel').onclick=()=>{mnEdit=null;redrawPanel()};
+ setTimeout(()=>{const i=q(m?'#mnB':'#mnT');if(i&&i.isConnected)i.focus()},30);
+ return f}
+$('myNoteTile')&&$('myNoteTile').addEventListener('click',()=>{mnEdit=null;mnOpen=null;mnQ='';openPanel('mynote')});
+renderMyNoteTile();
+
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791191844';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791192829';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
