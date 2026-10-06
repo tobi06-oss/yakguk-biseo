@@ -1,11 +1,11 @@
 {
- "version": "0.5.30",
- "notes": "메모 \"나만 보기\"(기본 켜짐) · 새 알림의 받는 사람 기본값을 \"나\"로",
+ "version": "0.5.33",
+ "notes": "모바일: 패널을 아래로 쓸어내리면 닫힘",
  "files": [
   {
    "p": "index.html",
-   "sha256": "d861458c98299821f86bbb41644de4918a82e70256e602c61006535b8afcddab",
-   "size": 310138
+   "sha256": "ac87020d461cb7a9a1c4a987bebe500b308401fe9ea2b85bf6181a530129332e",
+   "size": 312513
   },
   {
    "p": "main.js",
@@ -19,8 +19,8 @@
   },
   {
    "p": "alarmcore.js",
-   "sha256": "0a785ee22b014ff3adde851e01c84024804649a6abb14221ca62a0015a1dc624",
-   "size": 2335
+   "sha256": "20cf0fabff348676c27cafb9e5f62a6682a383418593d1830900d11612d6a6e9",
+   "size": 2756
   },
   {
    "p": "popup.html",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "a06cf662c0a2b78fa56b36777aaa670f80f0b416b6787320c83bfe64c86e5d50",
+   "sha256": "fefd8d1d6d0534369b425b8cc05454595c3b5765e458d80620d2520be77b4292",
    "size": 212
   },
   {

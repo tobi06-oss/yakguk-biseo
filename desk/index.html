@@ -643,6 +643,11 @@ function openPanel(kind,tab){
  const scrim=document.createElement('div');scrim.className='scrim';
  const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ // 모바일: 패널을 아래로 쓸어내리면 닫힘(맨 위에서 시작할 때만)
+ {let sy=0,sx=0,dy=0,on=false;
+  p.addEventListener('touchstart',e=>{on=false;dy=0;if(window.innerWidth>600||e.touches.length!==1)return;const t=e.target;if(t.closest('input,textarea,select,.tabs'))return;const b=t.closest('.panel-body');if(b&&b.scrollTop>0)return;sy=e.touches[0].clientY;sx=e.touches[0].clientX;on=true},{passive:true});
+  p.addEventListener('touchmove',e=>{if(!on)return;const y=e.touches[0].clientY-sy,x=e.touches[0].clientX-sx;if(y<=0||Math.abs(x)>y*0.7){if(dy===0)on=false;return}dy=y;p.style.animation='none';p.style.transition='none';p.style.transform='translateY('+Math.min(y,400)+'px)'},{passive:true});
+  p.addEventListener('touchend',()=>{if(!on||dy===0)return;if(dy>90){close()}else{p.style.transition='transform .18s';p.style.transform=''}on=false;dy=0});}
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
  const teamOn=!!(window.drawTeam&&S.pharm);
  const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
@@ -653,7 +658,7 @@ function openPanel(kind,tab){
    :kind==='mynote'?(SY.user?[['list','내 수첩',S.mynotes.length||null],['add','새로 쓰기'],['import','매뉴얼에서 가져오기']].concat(S.pharm?[['send','동료에게 보내기']]:[]):[])
    :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
    :kind==='team'?teamTabs()
-   :kind==='memo'?(S.pharm&&!teamOn?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on).length]])
+   :kind==='memo'?(S.pharm&&!teamOn?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
    :(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length],['etc','기타']]);
   p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
@@ -1034,7 +1039,7 @@ const TOOLS=[
  {name:'search_cards',description:'환자가 AI·인터넷에서 보고 와서 하는 흔한 오해와 약사의 대응 문구를 찾는다.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']},execute:i=>searchCards(String(i.query||''))},
  {name:'pediatric_dose',description:'소아 시럽 용량을 체중으로 계산한다. 해열진통제(아세트아미노펜·이부프로펜·덱시부프로펜)와 항생제(세파클러·아목시실린/클라불란산 7:1·아지스로마이신·클래리트로마이신·세프디니르). 항생제는 흔한 농도별 mL를 함께 돌려준다. 제품 농도를 알면 conc_mg_per_ml로 준다.',inputSchema:{type:'object',properties:{drug:{type:'string'},weight_kg:{type:'number'},conc_mg_per_ml:{type:'number'}},required:['drug','weight_kg']},execute:i=>pediatricDose(String(i.drug||''),i.weight_kg,i.conc_mg_per_ml)},
  {name:'otc_rules',description:'OTC 상담 기준: 위험 신호, 증상별 권장 성분과 환자 상태별 주의·피함 사유. 분야는 감기, 소화기, 관절 중 하나.',inputSchema:{type:'object',properties:{group:{type:'string',enum:['감기','소화기','관절']}},required:['group']},execute:i=>otcRules(String(i.group||'감기'))},
- {name:'add_alarm',description:'알림을 등록한다. 등록하면 그 시각에 도우미 화면에 포스트잇 팝업으로 뜬다. datetime은 첫 알림의 현지 날짜·시각.',inputSchema:{type:'object',properties:{text:{type:'string'},datetime:{type:'string',description:'YYYY-MM-DDTHH:MM (한국 시간)'},repeat:{type:'string',enum:['once','daily','weekday','weekly','monthly','monthEnd']},weekdays:{type:'array',items:{type:'integer'},description:'weekly일 때 요일 번호 (0=일 … 6=토)'},day_of_month:{type:'integer',description:'monthly일 때 날짜'},color:{type:'string',enum:['yellow','pink','blue','green','purple']}},required:['text','datetime']},execute:i=>toolAddAlarm(i)},
+ {name:'add_alarm',description:'알림을 등록한다. 등록하면 그 시각에 도우미 화면에 포스트잇 팝업으로 뜬다. datetime은 첫 알림의 현지 날짜·시각.',inputSchema:{type:'object',properties:{text:{type:'string'},datetime:{type:'string',description:'YYYY-MM-DDTHH:MM (한국 시간)'},repeat:{type:'string',enum:['once','daily','weekday','weekly','monthly','monthEnd','nthWeekday']},weekdays:{type:'array',items:{type:'integer'},description:'weekly일 때 요일 번호 (0=일 … 6=토)'},day_of_month:{type:'integer',description:'monthly일 때 날짜'},nth_week:{type:'integer',description:'nthWeekday일 때 몇째 주 (1~4, 5=마지막 주). 요일은 weekdays에'},color:{type:'string',enum:['yellow','pink','blue','green','purple']}},required:['text','datetime']},execute:i=>toolAddAlarm(i)},
  {name:'add_memo',description:'메모를 붙인다. pin이 true면 첫 화면에 고정된다.',inputSchema:{type:'object',properties:{text:{type:'string'},pin:{type:'boolean'},color:{type:'string',enum:['yellow','pink','blue','green','purple']}},required:['text']},execute:i=>toolAddMemo(i)},
  {name:'list_alarms',description:'켜져 있는 알림과 다음 알림 시각, 최근 메모를 돌려준다.',inputSchema:{type:'object',properties:{}},execute:()=>toolListAlarms()}
 ];
@@ -1054,7 +1059,8 @@ function rules(){return `너는 동네약국 "${S.settings.name||'우리 약국'
 
 /* ===== 메모·알림 ===== */
 const MCOLORS={yellow:'노랑',pink:'분홍',blue:'파랑',green:'초록',purple:'보라'};
-const REP={once:'한 번',daily:'매일',weekday:'평일(월~금)',weekly:'매주',monthly:'매월',monthEnd:'매월 말일'};
+const REP={once:'한 번',daily:'매일',weekday:'평일(월~금)',weekly:'매주',monthly:'매월',monthEnd:'매월 말일',nthWeekday:'매월 특정 요일 (예: 첫째 주 월요일)'};
+const NTH={1:'첫째 주',2:'둘째 주',3:'셋째 주',4:'넷째 주',5:'마지막 주'};
 const WD='일월화수목금토';
 const ALARM_PRESETS=[
  {text:'마감 정산',rep:'daily',time:'19:00'},
@@ -1069,6 +1075,8 @@ const ME=()=>window.__me||'local';
 const myName=()=>{const m=S.members.find(x=>x.uid===ME());return m?m.name:''};
 const nameOf=uid=>{const m=S.members.find(x=>x.uid===uid);return m?m.name:''};
 const isFor=a=>!a.to||!a.to.length||a.to.includes(ME());
+// 알림 목록에는 받는 사람(또는 내가 만든 것)만 보임
+const seeAlarm=a=>isFor(a)||a.by===ME();
 const ackAt=a=>Math.max(a.ack||0,(a.acks||{})[ME()]||0);
 const snzAt=a=>Math.max(a.snooze||0,(a.snz||{})[ME()]||0);
 function ackAlarm(a){a.acks={...(a.acks||{}),[ME()]:Date.now()};a.snz={...(a.snz||{}),[ME()]:0}}
@@ -1081,7 +1089,7 @@ const ymd=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 const lastDay=d=>new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
 function aStart(a){const [y,m,d]=a.date.split('-').map(Number);const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(y,m-1,d,h,mi)}
 function aMatch(a,d){switch(a.rep){case 'daily':return true;case 'weekday':return d.getDay()>0&&d.getDay()<6;case 'weekly':return (a.days||[]).includes(d.getDay());
- case 'monthly':return d.getDate()===Math.min(+a.dom||1,lastDay(d));case 'monthEnd':return d.getDate()===lastDay(d);default:return ymd(d)===a.date}}
+ case 'monthly':return d.getDate()===Math.min(+a.dom||1,lastDay(d));case 'monthEnd':return d.getDate()===lastDay(d);case 'nthWeekday':{const n=+a.nth||1;return (a.days||[]).includes(d.getDay())&&(n>=5?d.getDate()+7>lastDay(d):Math.ceil(d.getDate()/7)===n)}default:return ymd(d)===a.date}}
 function occOn(a,d){const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,mi)}
 function latestOcc(a,now){const st=aStart(a);if(a.rep==='once')return st<=now?st:null;
  for(let i=0;i<62;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);const o=occOn(a,d);if(o>now||!aMatch(a,d))continue;if(o<st)return null;return o}return null}
@@ -1089,16 +1097,16 @@ function nextOcc(a,now){const st=aStart(a);if(a.rep==='once')return st>now?st:nu
  for(let i=0;i<400;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);const o=occOn(a,d);if(o>now&&o>=st&&aMatch(a,d))return o}return null}
 function whenLabel(o){if(!o)return '';const n=new Date(),t=new Date(n.getFullYear(),n.getMonth(),n.getDate());const dd=Math.round((new Date(o.getFullYear(),o.getMonth(),o.getDate())-t)/864e5);
  const day=dd===0?'오늘':dd===1?'내일':dd===-1?'어제':`${o.getMonth()+1}/${o.getDate()} (${WD[o.getDay()]})`;return `${day} ${pad2(o.getHours())}:${pad2(o.getMinutes())}`}
-function repLabel(a){if(a.rep==='weekly')return '매주 '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·');if(a.rep==='monthly')return `매월 ${a.dom}일${a.dom>28?'(없으면 말일)':''}`;if(a.rep==='once')return '한 번';return REP[a.rep]||''}
+function repLabel(a){if(a.rep==='nthWeekday')return '매월 '+(NTH[+a.nth||1]||'')+' '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·')+'요일';if(a.rep==='weekly')return '매주 '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·');if(a.rep==='monthly')return `매월 ${a.dom}일${a.dom>28?'(없으면 말일)':''}`;if(a.rep==='once')return '한 번';return REP[a.rep]||''}
 function dueAlarms(now=new Date()){return S.memo.alarms.filter(a=>{if(!a.on||!isFor(a))return false;const o=latestOcc(a,now);return o&&o.getTime()>ackAt(a)&&!(snzAt(a)>now.getTime())})}
 async function saveMemo(){const ok=await saveDoc('memo/main',{memos:S.memo.memos,alarms:S.memo.alarms,savedAt:new Date().toISOString()});renderMemoHome();renderStickies();return ok}
-function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};
- if(a.rep==='weekly'&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
+function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),nth:Math.min(5,Math.max(1,+o.nth||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};
+ if((a.rep==='weekly'||a.rep==='nthWeekday')&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
 function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,priv:o.priv!==false,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
 
 /* 첫 화면: 타일 문구, 고정 메모 */
 function renderMemoHome(){
- const now=new Date();const nx=S.memo.alarms.filter(a=>a.on).map(a=>[nextOcc(a,now),a]).filter(x=>x[0]).sort((x,y)=>x[0]-y[0])[0];
+ const now=new Date();const nx=S.memo.alarms.filter(a=>a.on&&isFor(a)).map(a=>[nextOcc(a,now),a]).filter(x=>x[0]).sort((x,y)=>x[0]-y[0])[0];
  const due=dueAlarms(now).length,team=!!(window.drawTeam&&S.pharm),un=team?0:unreadNotices().length;
  $('memoSub').textContent=un?`안 읽은 공지 ${un}개`:due?`지금 알림 ${due}개`:nx?`다음 ${whenLabel(nx[0])} ${nx[1].text}`:S.memo.memos.length?`메모 ${S.memo.memos.length}개`:'포스트잇 메모와 알림';
  $('memoTile').classList.toggle('ring',!!(due||un));
@@ -1174,7 +1182,8 @@ function alarmForm(a){
   <label class="field">알림 내용<textarea id="aText" rows="2" placeholder="">${esc(v.text)}</textarea></label>
   <div class="grid2"><label class="field"><span id="aDateL">${v.rep==='once'?'날짜':'시작 날짜'}</span><input type="date" id="aDate" value="${v.date}"></label><label class="field">시각<input type="time" id="aTime" value="${v.time}"></label></div>
   <label class="field">반복<select id="aRep">${Object.entries(REP).map(([k,l])=>`<option value="${k}" ${k===v.rep?'selected':''}>${l}</option>`).join('')}</select></label>
-  <div class="wdays" id="aDays" ${v.rep==='weekly'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
+  <label class="field" id="aNthW" ${v.rep==='nthWeekday'?'':'hidden'}>매월 몇째 주<select id="aNth">${[1,2,3,4,5].map(n=>`<option value="${n}" ${(+v.nth||1)===n?'selected':''}>${NTH[n]}</option>`).join('')}</select></label>
+  <div class="wdays" id="aDays" ${v.rep==='weekly'||v.rep==='nthWeekday'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
   <label class="field" id="aDomW" ${v.rep==='monthly'?'':'hidden'}>매월 며칠<input type="number" id="aDom" min="1" max="31" value="${v.dom}"></label>
   ${S.members.length>1?`<div class="field">받는 사람<div class="wdays" id="aTo">${[{uid:'*',name:'모두'}].concat(S.members).map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${m.uid==='*'?(!v.to||!v.to.length?'checked':''):(v.to||[]).includes(m.uid)?'checked':''}><span>${esc(m.uid===ME()?m.name+'(나)':m.name)}</span></label>`).join('')}</div></div>`:''}
   <div class="row" style="justify-content:space-between">${colorPick('ac',v.color)}</div>
@@ -1183,7 +1192,7 @@ function alarmForm(a){
 function drawAlarms(body){
  const now=new Date();
  const ed=alarmEdit&&alarmEdit.id?S.memo.alarms.find(x=>x.id===alarmEdit.id):alarmEdit;
- const arr=S.memo.alarms.map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
+ const arr=S.memo.alarms.filter(seeAlarm).map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
  body.innerHTML=(ed?alarmForm(ed):`<button class="btn primary big" type="button" id="aNew">＋ 새 알림 만들기</button>`)+
   `<p class="muted">시간이 되면 다른 프로그램 위, 화면 한가운데에 포스트잇이 떠요. 창을 닫아도 트레이에서 계속 알려요. 컴퓨터가 꺼져 있던 동안 지난 알림은 켜면 '놓친 알림'으로 떠요.</p>
   <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
@@ -1195,9 +1204,9 @@ function drawAlarms(body){
  if(q('#aTest'))q('#aTest').onclick=()=>{try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}chime()};
  const f=q('#aForm');
  if(f){
-  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
-  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
-   if(!v.date){q('#aPrev').textContent='';return}if(v.rep==='weekly'&&!v.days.length){q('#aPrev').textContent='요일을 골라 주세요';return}const o=nextOcc(v,new Date());
+  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,nth:+q('#aNth').value||1,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
+  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly'&&v.rep!=='nthWeekday';q('#aNthW').hidden=v.rep!=='nthWeekday';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
+   if(!v.date){q('#aPrev').textContent='';return}if((v.rep==='weekly'||v.rep==='nthWeekday')&&!v.days.length){q('#aPrev').textContent='요일을 골라 주세요';return}const o=nextOcc(v,new Date());
    q('#aPrev').textContent=o?`첫 알림: ${whenLabel(o)} · ${repLabel(v)}`:'이 날짜·시각은 이미 지났어요';};
   f.addEventListener('input',prev);f.addEventListener('change',prev);prev();
   f.querySelectorAll('#aTo input').forEach(x=>x.addEventListener('change',()=>{if(x.value==='*'&&x.checked)f.querySelectorAll('#aTo input').forEach(y=>{if(y!==x)y.checked=false});else if(x.checked)f.querySelector('#aTo input[value="*"]').checked=false}));
@@ -1205,7 +1214,7 @@ function drawAlarms(body){
    if(p.days)f.querySelectorAll('#aDays input').forEach(x=>x.checked=p.days.includes(+x.value));if(p.dom)q('#aDom').value=p.dom;prev();q('#aText').focus()});
   q('#aCancel').onclick=()=>{alarmEdit=null;drawAlarms(body)};
   q('#aSave').onclick=async()=>{const v=read();if(!v.text){toast('알림 내용을 적어 주세요');return}if(!v.date){toast('날짜를 골라 주세요');return}
-   if(v.rep==='weekly'&&!v.days.length){toast('요일을 하나 이상 골라 주세요');return}
+   if((v.rep==='weekly'||v.rep==='nthWeekday')&&!v.days.length){toast('요일을 하나 이상 골라 주세요');return}
    if(v.rep==='once'&&aStart(v)<=new Date()){toast('이미 지난 시각이에요');return}
    if(ed&&ed.id){Object.assign(ed,v,{on:true,ack:Date.now(),snooze:0,snz:{},acks:{}})}else addAlarm(v);
    alarmEdit=null;if(await saveMemo())toast('알림을 저장했어요');redrawPanel()};
@@ -1219,12 +1228,12 @@ function drawAlarms(body){
 /* AI 도구 */
 function toolAddAlarm(i){
  const m=String(i.datetime||'').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{1,2}):(\d{2})/);if(!m)return{오류:'datetime은 YYYY-MM-DDTHH:MM 형식이어야 해요'};
- const v={text:i.text,date:m[1],time:`${pad2(+m[2])}:${m[3]}`,rep:i.repeat||'once',days:i.weekdays||[],dom:i.day_of_month||+m[1].slice(8),color:i.color};
+ const v={text:i.text,date:m[1],time:`${pad2(+m[2])}:${m[3]}`,rep:i.repeat||'once',days:i.weekdays||[],dom:i.day_of_month||+m[1].slice(8),nth:i.nth_week,color:i.color};
  if(!String(v.text||'').trim())return{오류:'알림 내용이 비어 있어요'};
  if(v.rep==='once'&&aStart(v)<=new Date())return{오류:'이미 지난 시각이에요. 날짜·시각을 확인하세요'};
  const a=addAlarm(v);saveMemo();return{저장됨:true,내용:a.text,반복:repLabel(a),첫알림:whenLabel(nextOcc(a,new Date()))}}
 function toolAddMemo(i){if(!String(i.text||'').trim())return{오류:'메모 내용이 비어 있어요'};const m=addMemo(i);saveMemo();return{저장됨:true,내용:m.text,고정:m.pin}}
-function toolListAlarms(){const now=new Date();return{지금:whenLabel(now),알림:S.memo.alarms.filter(a=>a.on).map(a=>({내용:a.text,반복:repLabel(a),다음:whenLabel(nextOcc(a,now))})),메모:S.memo.memos.slice(0,30).map(m=>({내용:m.text,고정:m.pin}))}}
+function toolListAlarms(){const now=new Date();return{지금:whenLabel(now),알림:S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).map(a=>({내용:a.text,반복:repLabel(a),다음:whenLabel(nextOcc(a,now))})),메모:S.memo.memos.slice(0,30).map(m=>({내용:m.text,고정:m.pin}))}}
 
 /* 공지 */
 function drawNotices(body){
@@ -1294,7 +1303,7 @@ $('stopBtn').addEventListener('click',()=>ctl?.abort());
 $('menuBtn').addEventListener('click',()=>openPanel('settings'));
 $('altTile').addEventListener('click',()=>openPanel('alt'));
 $('book').addEventListener('click',()=>{manualCat=null;openItem=null;manualOpen.clear();openPanel('manual')});
-$('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
+$('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
 $('img').addEventListener('change',e=>{const f=e.target.files[0];if(f)setImg(f);e.target.value=''});
 $('imgDel').addEventListener('click',()=>setImg(null));
 document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(f){setImg(f);toast('사진을 붙였어요')}});
@@ -1557,7 +1566,7 @@ function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const 
 /* --- 한국어 알림 문장 읽기 --- */
 const WDN={일:0,월:1,화:2,수:3,목:4,금:5,토:6};
 function parseAlarm(q){
- let s=' '+q.replace(/\s+/g,' ')+' ',now=new Date(),date=null,rep='once',days=[],dom=null,h=null,mi=0,rel=null,guess='';
+ let s=' '+q.replace(/\s+/g,' ')+' ',now=new Date(),date=null,rep='once',days=[],dom=null,nth=1,h=null,mi=0,rel=null,guess='';
  const cut=re=>{const m=s.match(re);if(m)s=s.replace(m[0],' ');return m};
  let m;
  if(m=cut(/(\d+)\s*분\s*(뒤|후)/))rel=+m[1]*6e4;
@@ -1566,6 +1575,7 @@ function parseAlarm(q){
  if(cut(/매일|날마다|하루\s*한\s*번/))rep='daily';
  else if(cut(/평일|주중|월\s*~\s*금/))rep='weekday';
  else if(m=cut(/(?:매주|주마다)\s*([일월화수목금토](?:\s*[,·\s]\s*[일월화수목금토])*)\s*요일?/)){rep='weekly';days=[...new Set(m[1].match(/[일월화수목금토]/g).map(c=>WDN[c]))]}
+ else if(m=cut(/(?:매월|매달|달마다)\s*(첫째|첫|둘째|셋째|넷째|다섯째|마지막)\s*주?\s*([일월화수목금토])\s*요일?/)){rep='nthWeekday';nth={첫째:1,첫:1,둘째:2,셋째:3,넷째:4,다섯째:5,마지막:5}[m[1]];days=[WDN[m[2]]]}
  else if(m=cut(/(?:매월|매달|달마다)\s*말일/)){rep='monthEnd'}
  else if(m=cut(/(?:매월|매달|달마다)\s*(\d{1,2})\s*일/)){rep='monthly';dom=+m[1]}
  if(m=cut(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/)){date=new Date(now.getFullYear(),+m[1]-1,+m[2]);if(date<new Date(now.getFullYear(),now.getMonth(),now.getDate()))date.setFullYear(date.getFullYear()+1)}
@@ -1586,10 +1596,10 @@ function parseAlarm(q){
  else if(h!=null&&h>=1&&h<=7){h+=12;guess='오후로 알아들었어요. '}
  const text=s.replace(/(에|에는)?\s*(알림|알람)\s*(을|좀)?\s*(등록|설정|맞춰|만들어)?\s*(해\s*줘|해줘|해\s*주세요|줘|해)?/g,' ').replace(/알려\s*(줘|주세요|달라)|깨워\s*줘|리마인드/g,' ').replace(/(^|\s)(에|에는|까지|부터)(?=\s)/g,' ').replace(/[,.?!]+/g,' ').replace(/\s+/g,' ').trim();
  if(rel){const t=new Date(now.getTime()+rel);return{text,date:ymd(t),time:`${pad2(t.getHours())}:${pad2(t.getMinutes())}`,rep:'once',days:[],dom:1,guess}}
- if(h==null)return{text,need:'time',date:date?ymd(date):ymd(now),rep,days,dom:dom||now.getDate()};
+ if(h==null)return{text,need:'time',date:date?ymd(date):ymd(now),rep,days,nth,dom:dom||now.getDate()};
  if(!date){date=new Date(now);if(rep==='once'&&(h*60+mi)<=(now.getHours()*60+now.getMinutes()))date.setDate(date.getDate()+1)}
  if(rep==='weekly'&&!days.length)days=[date.getDay()];
- return{text,date:ymd(date),time:`${pad2(h)}:${pad2(mi)}`,rep,days,dom:dom||date.getDate(),guess}}
+ return{text,date:ymd(date),time:`${pad2(h)}:${pad2(mi)}`,rep,days,nth,dom:dom||date.getDate(),guess}}
 
 /* --- 결과 그리기 --- */
 function fmtVal(v){if(v==null||v==='')return '';if(Array.isArray(v))return v.length?'<ul>'+v.map(x=>'<li>'+fmtVal(x)+'</li>').join('')+'</ul>':'<span class="sub">없음</span>';
@@ -1608,7 +1618,7 @@ function localAnswer(raw){
  const TIMEISH=/\d+\s*시|\d+\s*분\s*(뒤|후)|\d+\s*시간\s*(뒤|후)|내일|모레|글피|[일월화수목금토]요일|매일|매주|매월|매달|평일|\d+:\d{2}/;
  if((/알림|알람|리마인드|깨워\s*줘/.test(q)||(/알려\s*줘/.test(q)&&TIMEISH.test(q)))&&!/알림\s*(기능|방법)/.test(q)){const p=parseAlarm(q);
   if(!p.text)return botCard('알림','<p>무엇을 알려 드릴까요? 예: "내일 3시 지오영 반품 알림"</p>');
-  if(p.need){alarmEdit={new:true,text:p.text,date:p.date,rep:p.rep,days:p.days,dom:p.dom};openPanel('memo','alarms');return botCard('시각을 정해 주세요',`<p>"${esc(p.text)}" 알림 창을 열었어요. 시각만 고르고 저장하세요.</p>`)}
+  if(p.need){alarmEdit={new:true,text:p.text,date:p.date,rep:p.rep,days:p.days,dom:p.dom,nth:p.nth};openPanel('memo','alarms');return botCard('시각을 정해 주세요',`<p>"${esc(p.text)}" 알림 창을 열었어요. 시각만 고르고 저장하세요.</p>`)}
   if(p.rep==='once'&&aStart(p)<=new Date())return botCard('이미 지난 시각이에요',`<p>${esc(p.date)} ${esc(p.time)}은 지났어요. 날짜를 같이 적어 주세요.</p>`);
   const a=addAlarm(p);saveMemo();return botCard('알림을 등록했어요',`<p>🔔 <b>${esc(whenLabel(nextOcc(a,new Date())))}</b> · ${esc(repLabel(a))}<br>${esc(a.text)}</p>${p.guess?`<p class="sub">${esc(p.guess)}다르면 메모·알림에서 고치세요.</p>`:''}`,'메모·알림')}
  // 용량
