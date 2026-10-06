@@ -387,10 +387,10 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   <div class="tiles" id="homeTiles">
     <button class="tile" id="book" type="button"><span class="ti t-book"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg></span><span class="tt">약국 매뉴얼</span><span class="ts" id="bookSub">프로그램 사용법 · 반품 · 거래처</span></button>
     <button class="tile" id="myNoteTile" type="button"><span class="ti t-mynote"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4a2 2 0 0 1 2-2h11v20H7a2 2 0 0 1-2-2z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10.5 11V9.5a1.5 1.5 0 0 1 3 0V11"/></svg></span><span class="tt">개인 업무수첩</span><span class="ts" id="myNoteSub">나만 보는 비공개 수첩</span></button>
-    <button class="tile wide" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tx"><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></span></button>
   </div>
   <div class="pins" id="pins" hidden aria-label="고정한 메모"></div>
   <div class="tiles alt-row">
+    <button class="tile wide" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tx"><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></span></button>
     <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">대체약 유무</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
   </div>
   <div class="favlabel" hidden>자주 쓰는 질문</div>
@@ -1841,10 +1841,11 @@ function teamTilesInit(){if($('teamTop'))return;const t=document.querySelector('
  const mk=(id,keys)=>{const d=document.createElement('div');d.className='tiles team';d.id=id;d.hidden=true;
   d.innerHTML=TEAM_TILES.filter(x=>keys.includes(x[0])).map(([k,l,c,svg])=>`<button class="tile" type="button" data-tt="${k}"><span class="ti ${c}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svg}</svg></span><span class="tt">${l}</span><span class="ts" data-ts="${k}"></span></button>`).join('');
   d.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>openPanel('team',b.dataset.tt));return d};
- const top=mk('teamTop',['notice','order']),mid=mk('teamMid',['cal','hand']);
- const anchor=$('banner')||$('today')||t;anchor.after(top);t.before(mid)}
-function renderTeamTiles(){teamTilesInit();const ds=[$('teamTop'),$('teamMid')].filter(Boolean);if(!ds.length)return;ds.forEach(d=>d.hidden=!S.pharm);if(!S.pharm)return;
- const set=(k,txt,ring)=>{const s=document.querySelector(`.tiles.team [data-ts="${k}"]`);if(s)s.textContent=txt;const b=document.querySelector(`.tiles.team [data-tt="${k}"]`);if(b)b.classList.toggle('ring',!!ring)};
+ const top=mk('teamTop',['notice','order','cal']),mid=mk('teamMid',['hand']);
+ const anchor=$('banner')||$('today')||t;anchor.after(top);
+ const hb=mid.querySelector('[data-tt="hand"]');hb.hidden=true;t.prepend(hb)}
+function renderTeamTiles(){teamTilesInit();const top=$('teamTop');if(!top)return;top.hidden=!S.pharm;const hb=document.querySelector('[data-tt="hand"]');if(hb)hb.hidden=!S.pharm;const ht=$('homeTiles');if(ht)ht.classList.toggle('three',!!S.pharm);if(!S.pharm)return;
+ const set=(k,txt,ring)=>{const s=document.querySelector(`[data-ts="${k}"]`);if(s)s.textContent=txt;const b=document.querySelector(`[data-tt="${k}"]`);if(b)b.classList.toggle('ring',!!ring)};
  const un=unreadNotices().length,last=S.notices.slice().sort((a,b)=>b.at-a.at)[0];
  set('notice',un?`안 읽은 공지 ${un}개`:last?last.text:'약국 전체 공지',un);
  const todo=myTodo(),mgr=isMgr(),open=S.orders.filter(o=>!orderDone(o)).length;
@@ -2114,8 +2115,50 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
 /* --- 약국 매뉴얼: 여러 항목을 함께 펼치기 (모두 펼치기·모두 접기) --- */
 const manualOpen=new Set();const mOpenHas=id=>openItem===id||manualOpen.has(id);
 
+/* ===== 첫 화면 배치: 첫 줄 공지·전달사항·캘린더(3칸) → 오늘의 재고 → 인수인계·매뉴얼·내 수첩(3칸) → 메모·알림 | 대체약 ===== */
+(()=>{const st=document.createElement('style');st.textContent=`
+header{padding-block:14px 10px}
+.hsearch{margin-bottom:12px}
+.tiles{gap:10px;margin-bottom:10px}
+#teamTop,#homeTiles.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+#teamTop .tile,#homeTiles.three .tile{padding:13px 12px}
+#teamTop .tt,#homeTiles.three .tt{font-size:15.5px;line-height:1.25;word-break:keep-all}
+.tiles.alt-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tiles.alt-row .tile.wide{grid-column:auto;padding:12px}
+.tiles.alt-row .tile.wide .ti{width:38px;height:38px;border-radius:12px}
+.today{margin-bottom:10px}
+/* 오늘의 재고 색 (설정 › 기타에서 고름): 연한 바탕 + 진한 글씨 */
+html[data-hero="emerald"]{--hac:#10B981}html[data-hero="sky"]{--hac:#2F8CF0}html[data-hero="coral"]{--hac:#F2626B}
+html[data-hero="lavender"]{--hac:#7C5CF0}html[data-hero="sun"]{--hac:#E59A0C}html[data-hero="navy"]{--hac:#2F5597}
+html[data-hero]{--hbg1:color-mix(in srgb,var(--hac) 10%,#fff);--hbg2:color-mix(in srgb,var(--hac) 22%,#fff);--hink:color-mix(in srgb,var(--hac) 62%,#101820);--hsub:color-mix(in srgb,var(--hac) 45%,#3A4256);--hbox:rgba(255,255,255,.7);--hline:color-mix(in srgb,var(--hac) 28%,#fff);--hglow:rgba(255,255,255,.35)}
+@media (prefers-color-scheme:dark){html[data-hero]:not([data-theme="light"]){--hbg1:color-mix(in srgb,var(--hac) 14%,#161B25);--hbg2:color-mix(in srgb,var(--hac) 26%,#161B25);--hink:color-mix(in srgb,var(--hac) 40%,#fff);--hsub:color-mix(in srgb,var(--hac) 25%,#C9D0DE);--hbox:rgba(255,255,255,.07);--hline:color-mix(in srgb,var(--hac) 35%,#161B25);--hglow:rgba(255,255,255,.03)}}
+html[data-hero][data-theme="dark"]{--hbg1:color-mix(in srgb,var(--hac) 14%,#161B25);--hbg2:color-mix(in srgb,var(--hac) 26%,#161B25);--hink:color-mix(in srgb,var(--hac) 40%,#fff);--hsub:color-mix(in srgb,var(--hac) 25%,#C9D0DE);--hbox:rgba(255,255,255,.07);--hline:color-mix(in srgb,var(--hac) 35%,#161B25);--hglow:rgba(255,255,255,.03)}
+html[data-hero] .today:not(.empty){background:linear-gradient(135deg,var(--hbg1),var(--hbg2));border:1px solid var(--hline);box-shadow:0 8px 20px -14px color-mix(in srgb,var(--hac) 60%,transparent);color:var(--hink)}
+html[data-hero] .today:not(.empty)::after{background:var(--hglow)}
+html[data-hero] .today:not(.empty) .d{color:var(--hink);font-weight:600}
+html[data-hero] .today:not(.empty) .d .num{color:var(--hsub);font-weight:500}
+html[data-hero] .today:not(.empty) .k{background:var(--hbox);border:1px solid var(--hline)}
+html[data-hero] .today:not(.empty) .k em{color:var(--hsub)}
+html[data-hero] .today:not(.empty) .k b{color:var(--hink)}
+html[data-hero] .today:not(.empty) .k i{box-shadow:none}
+html[data-hero] .today:not(.empty) .go{background:var(--hbox);color:var(--hink);border:1px solid var(--hline)}
+.herochips{display:flex;flex-wrap:wrap;gap:8px}
+.herochip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 12px 6px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.herochip i{width:26px;height:26px;border-radius:50%;display:block}
+.herochip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+`;document.head.appendChild(st)})();
+const HEROS=[['emerald','에메랄드','#34D8A4','#0FA982'],['sky','하늘','#5CC8FF','#2F8CF0'],['coral','코랄','#FF9A7A','#F2626B'],['lavender','라벤더','#B39CFF','#7C5CF0'],['sun','햇살','#FFD25E','#F5A524'],['navy','파랑','#3563AE','#23427A']];
+function heroGet(){try{return localStorage.getItem('cb-hero')||'emerald'}catch(e){return 'emerald'}}
+function heroSet(k){try{localStorage.setItem('cb-hero',k)}catch(e){}heroApply()}
+function heroApply(){document.documentElement.setAttribute('data-hero',heroGet())}
+heroApply();
+// 설정 › 기타 맨 위에 색 고르기 카드
+(()=>{const orig=window.deskEtc;window.deskEtc=function(body){if(orig)orig(body);
+ const c=document.createElement('div');c.className='card';c.innerHTML=`<h3>오늘의 재고 색</h3><div class="herochips">${HEROS.map(([k,l,a,b])=>`<button type="button" class="herochip" data-hero="${k}" aria-pressed="${heroGet()===k}"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join('')}</div><p class="muted">이 기기에만 적용돼요.</p>`;
+ body.prepend(c);c.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{heroSet(b.dataset.hero);c.querySelectorAll('[data-hero]').forEach(x=>x.setAttribute('aria-pressed',x===b))})}})();
+
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791255857';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791257537';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

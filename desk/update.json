@@ -1,11 +1,11 @@
 {
- "version": "0.5.11",
- "notes": "바탕화면에 붙인 메모는 처음부터 항상 위 · 내 수첩의 매뉴얼에서 가져온 항목 날짜 표시 없앰",
+ "version": "0.5.14",
+ "notes": "오늘의 재고: 연한 색 바탕에 진한 글씨로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "c160d14e2bdc5a160fec3ac0323f4fc3daf4746197c11a23a56c3861aafe9447",
-   "size": 281356
+   "sha256": "aa8d2e8a5a50228ecd320155005c143e6f4d36aa3b3c9ac2d63caaa1546230ba",
+   "size": 286172
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "c8654bc46ca37c6351875e0d2e2ccc98236af8879f599ca341702c30bd3c6e72",
+   "sha256": "2d8dcb84efefbad80114aa77ae98a5da1defe36cb1556d2e7b9fb9f32335f88b",
    "size": 212
   },
   {
