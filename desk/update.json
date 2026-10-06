@@ -1,11 +1,11 @@
 {
- "version": "0.5.34",
- "notes": "휴대폰 푸시 알림(앱이 닫혀 있거나 잠겨 있어도 알림) 추가",
+ "version": "0.5.35",
+ "notes": "설정 첫 탭 \"기본\"(휴대폰 알림 체크 + 기타 내용), 메모·알림에서 공지 탭 제거",
  "files": [
   {
    "p": "index.html",
-   "sha256": "b2e9cf661b1e8b82bf00fea7ed6d01040fd7d9649cbb4a1ce9c56cdb022764de",
-   "size": 316900
+   "sha256": "9ee473ddc003b1e5223e638bf1040496493a9ef981e44214680590b296fea3f7",
+   "size": 317297
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "02399266663243c73b0a87b5a9dedf9ce3cb7e420f242b504413e1bdb512dcd5",
+   "sha256": "9100ef4c4f2ab6ce5bf37e1035694dd8c3431cfd7b3badfe2173ebc82d5ed100",
    "size": 212
   },
   {

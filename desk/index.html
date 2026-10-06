@@ -639,7 +639,7 @@ function renderToday(){
 let panelState={kind:null,tab:null},redrawPanel=null;
 function openPanel(kind,tab){
  document.querySelector('.scrim')?.remove();
- panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'basic',team:'notice'}[kind]};
+ panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'etc',team:'notice'}[kind]};
  const scrim=document.createElement('div');scrim.className='scrim';
  const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
@@ -650,7 +650,7 @@ function openPanel(kind,tab){
   p.addEventListener('touchend',()=>{if(!on||dy===0)return;if(dy>90){close()}else{p.style.transition='transform .18s';p.style.transform=''}on=false;dy=0});}
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
  const teamOn=!!(window.drawTeam&&S.pharm);
- const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
+ const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:'메모·알림',settings:'설정',team:'약국'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
   const tabs=kind==='stock'?[['order','발주',M?M.low.length:0],['today','오늘 변화',M?M.gone.length+M.drop.length:0],['search','검색'],['dead','안 나가는 약',M?M.dead.length:0],['over','과다 재고',M?M.over.length:0]]
@@ -658,8 +658,8 @@ function openPanel(kind,tab){
    :kind==='mynote'?(SY.user?[['list','내 수첩',S.mynotes.length||null],['add','새로 쓰기'],['import','매뉴얼에서 가져오기']].concat(S.pharm?[['send','동료에게 보내기']]:[]):[])
    :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
    :kind==='team'?teamTabs()
-   :kind==='memo'?(S.pharm&&!teamOn?[['notices','공지',unreadNotices().length||null]]:[]).concat([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
-   :(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length],['etc','기타']]);
+   :kind==='memo'?([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
+   :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[]).concat([['basic','기준'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length]]);
   p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
   p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
@@ -853,6 +853,7 @@ function drawSettings(body){
   body.innerHTML=`<div class="card"><h3>틀린 답 모음 <span class="c">${bl.length}건</span></h3><p class="muted">답 아래 "틀림"을 누른 질문과 답이에요. 복사해서 Claude에게 보내주시면 고칩니다.</p><div class="row"><button class="btn" type="button" id="badCopy" ${bl.length?'':'disabled'}>복사</button><button class="btn" type="button" id="badClear" ${bl.length?'':'disabled'}>비우기</button></div></div>
   
   <div class="card"><h3>이 도우미가 아는 것</h3><p class="muted">재고현황과 조제약품현황으로 계산한 재고·적정재고·대체품, 약국 매뉴얼(약국이 직접 고침), OTC 상담 기준(감기·소화기·관절), 환자 오해 대응 카드, 소아 시럽 용량 계산(해열제 3종·항생제 5종, 허가사항 기준). 답은 AI가 만든 것이라 숫자와 절차는 한 번 확인하세요. 환자 이름은 입력하지 마세요.</p></div>`;
+  if(window.wpCard){body.insertAdjacentHTML('afterbegin',wpCard());wpBind(body)}
   $('badCopy').onclick=()=>copyText(bl.map((b,i)=>`#${i+1} (${b.at})\n[질문] ${b.q}\n[답] ${b.a}`).join('\n\n'));
   $('badClear').onclick=()=>{local(BAD_KEY,[]);redrawPanel();toast('비웠어요')};
   
@@ -1107,10 +1108,10 @@ function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),colo
 /* 첫 화면: 타일 문구, 고정 메모 */
 function renderMemoHome(){
  const now=new Date();const nx=S.memo.alarms.filter(a=>a.on&&isFor(a)).map(a=>[nextOcc(a,now),a]).filter(x=>x[0]).sort((x,y)=>x[0]-y[0])[0];
- const due=dueAlarms(now).length,team=!!(window.drawTeam&&S.pharm),un=team?0:unreadNotices().length;
+ const due=dueAlarms(now).length,team=!!(window.drawTeam&&S.pharm),un=0;
  $('memoSub').textContent=un?`안 읽은 공지 ${un}개`:due?`지금 알림 ${due}개`:nx?`다음 ${whenLabel(nx[0])} ${nx[1].text}`:S.memo.memos.length?`메모 ${S.memo.memos.length}개`:'포스트잇 메모와 알림';
  $('memoTile').classList.toggle('ring',!!(due||un));
- $('memoTile').querySelector('.tt').textContent=S.pharm&&!team?'공지·메모·알림':'메모·알림';
+ $('memoTile').querySelector('.tt').textContent='메모·알림';
  const pins=S.memo.memos.filter(m=>m.pin);const box=$('pins');box.hidden=!pins.length;
  box.innerHTML=pins.map(m=>`<button type="button" class="pin c-${m.color}" data-id="${m.id}">${esc(m.text)}</button>`).join('');
  box.querySelectorAll('.pin').forEach(b=>b.onclick=()=>{memoEdit=b.dataset.id;openPanel('memo','memos')});
@@ -1303,7 +1304,7 @@ $('stopBtn').addEventListener('click',()=>ctl?.abort());
 $('menuBtn').addEventListener('click',()=>openPanel('settings'));
 $('altTile').addEventListener('click',()=>openPanel('alt'));
 $('book').addEventListener('click',()=>{manualCat=null;openItem=null;manualOpen.clear();openPanel('manual')});
-$('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
+$('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',dueAlarms().length||S.memo.alarms.filter(seeAlarm).length&&!S.memo.memos.length?'alarms':'memos'));
 $('img').addEventListener('change',e=>{const f=e.target.files[0];if(f)setImg(f);e.target.value=''});
 $('imgDel').addEventListener('click',()=>setImg(null));
 document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(f){setImg(f);toast('사진을 붙였어요')}});
@@ -1496,20 +1497,31 @@ const wpSha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new
 async function wpSub(){if(!wpOK())return null;const reg=await navigator.serviceWorker.getRegistration();return reg?await reg.pushManager.getSubscription():null}
 async function wpState(){if(!wpOK())return 'unsupported';if(Notification.permission==='denied')return 'denied';return (await wpSub())&&Notification.permission==='granted'?'on':'off'}
 async function wpSave(sub){const id=SY.user.uid+'_'+(await wpSha(sub.endpoint)).slice(0,12);await SY.cloud.set(P()+'/push/'+id,{uid:SY.user.uid,json:JSON.stringify(sub.toJSON()),at:Date.now()});return id}
-async function wpOn(){if(!SY.pid||!SY.user)throw new Error('약국 계정에 로그인되어 있어야 해요');const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('알림이 허용되지 않았어요');
+async function wpOn(quiet){if(!SY.pid||!SY.user)throw new Error('약국 계정에 로그인되어 있어야 해요');const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('알림이 허용되지 않았어요');
  const reg=await navigator.serviceWorker.ready;const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:wpU8(WP_KEY)});
- await wpSave(sub);try{await reg.showNotification('알림이 켜졌어요',{body:'이제 알림 시각에 이 기기로 푸시가 와요',icon:'icon-192.png'})}catch(e){}}
+ await wpSave(sub);if(!quiet)try{await reg.showNotification('알림이 켜졌어요',{body:'이제 알림 시각에 이 기기로 푸시가 와요',icon:'icon-192.png'})}catch(e){}}
 async function wpOff(){const sub=await wpSub();if(!sub)return;const id=SY.user.uid+'_'+(await wpSha(sub.endpoint)).slice(0,12);try{await SY.cloud.del(P()+'/push/'+id)}catch(e){}await sub.unsubscribe()}
-async function wpSync(){try{if(!SY.pid||!SY.user||!wpOK()||Notification.permission!=='granted')return;const sub=await wpSub();if(sub)await wpSave(sub)}catch(e){}}
+async function wpSync(){try{if(!SY.pid||!SY.user||!wpOK())return;if(Notification.permission==='granted'){const sub=await wpSub();if(sub)await wpSave(sub);else if(!wpOpt())await wpOn(true)}
+ else if(Notification.permission==='default'&&!wpOpt()&&!SY.wpArm){SY.wpArm=1;document.addEventListener('pointerup',()=>{if(!wpOpt())wpOn().catch(()=>{})},{once:true})}}catch(e){}}
 // 서버가 읽는 알림 요약 (알림이 바뀔 때마다 갱신)
 async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id','text','on','date','time','rep','days','dom','nth','to','ack','acks','snooze','snz'];
  const l=(S.memo.alarms||[]).filter(a=>!a.priv).map(a=>{const o={};keep.forEach(k=>{if(a[k]!==undefined&&a[k]!==null)o[k]=a[k]});return o});const j=JSON.stringify(l);if(j===SY.wpJ)return;await SY.cloud.set(P()+'/pushidx/alarms',{json:j,at:Date.now()});SY.wpJ=j}catch(e){}}
+const wpOpt=()=>{try{return localStorage.getItem('cb-wp-off')==='1'}catch(e){return false}};
+const wpSetOpt=v=>{try{v?localStorage.setItem('cb-wp-off','1'):localStorage.removeItem('cb-wp-off')}catch(e){}};
 function wpCard(){if(!wpOK()&&!(wpIOS&&location.protocol==='https:'&&!wpApp()))return '';
- return `<div class="card"><h3>휴대폰 알림 <span class="c" id="wpSt"></span></h3><p class="muted">앱이 닫혀 있거나 폰이 잠겨 있어도 알림 시각에 푸시가 와요. ${wpIOS&&!wpApp()?'<b>아이폰은 사파리에서 "공유 → 홈 화면에 추가"로 설치한 앱에서만 켤 수 있어요.</b>':'쓰는 기기마다 한 번씩 켜 두세요.'}</p><div class="row"><button class="btn primary" type="button" id="wpBtn" disabled>확인 중…</button></div><p class="muted" id="wpMsg"></p></div>`}
-function wpBind(body){const b=body.querySelector('#wpBtn');if(!b)return;const msg=t=>{const m=body.querySelector('#wpMsg');if(m)m.textContent=t};
- const paint=async()=>{const s=await wpState();b.dataset.s=s;b.disabled=s==='unsupported'||s==='denied';b.textContent=s==='on'?'이 기기 알림 끄기':s==='unsupported'?'홈 화면에 설치한 뒤 켤 수 있어요':'이 기기에서 알림 받기';const st=body.querySelector('#wpSt');if(st)st.textContent=s==='on'?'켜짐':'꺼짐';if(s==='denied')msg('이 앱의 알림이 차단돼 있어요. 휴대폰 설정에서 알림을 허용으로 바꿔 주세요.')};
- b.onclick=async()=>{b.disabled=true;try{if(b.dataset.s==='on'){await wpOff();msg('이 기기 알림을 껐어요')}else{await wpOn();msg('켰어요. 시험 알림이 떴는지 확인해 보세요')}}catch(e){msg('문제: '+errMsg(e))}await paint()};
- paint()}
+ return `<div class="card"><h3>휴대폰 알림</h3><label class="chk"><input type="checkbox" id="wpChk" disabled> 이 기기에서 알림 받기</label><p class="muted" id="wpMsg">확인 중…</p></div>`}
+function wpBind(body){const c=body.querySelector('#wpChk');if(!c)return;const msg=t=>{const m=body.querySelector('#wpMsg');if(m)m.textContent=t};
+ const note=()=>wpIOS&&!wpApp()?'아이폰은 사파리에서 "공유 → 홈 화면에 추가"로 설치한 앱에서만 켤 수 있어요.':'앱이 닫혀 있거나 폰이 잠겨 있어도 알림 시각에 푸시가 와요. 쓰는 기기마다 한 번씩 켜 두세요.';
+ const paint=async auto=>{const s=await wpState();
+  if(s==='unsupported'){c.checked=false;c.disabled=true;msg(note());return}
+  if(s==='denied'){c.checked=false;c.disabled=true;msg('이 앱의 알림이 차단돼 있어요. 휴대폰 설정에서 알림을 허용으로 바꿔 주세요.');return}
+  if(!SY.pid||!SY.user){c.checked=false;c.disabled=true;msg('약국 계정에 로그인하면 켤 수 있어요.');return}
+  c.disabled=false;
+  if(s==='on'){c.checked=true;msg(note());return}
+  if(!wpOpt()&&auto){c.checked=true;msg('알림 허용 창이 뜨면 "허용"을 눌러 주세요.');try{await wpOn()}catch(e){c.checked=false;msg('켜지 못했어요: '+errMsg(e));return}return paint(false)}
+  c.checked=false;msg(note())};
+ c.onchange=async()=>{c.disabled=true;try{if(c.checked){wpSetOpt(false);await wpOn()}else{wpSetOpt(true);await wpOff()}}catch(e){msg('문제: '+errMsg(e))}c.disabled=false;paint(false)};
+ paint(true)}
 function accountView(){const v=accountViewBase();return SY.user&&(SY.phase==='nopharm'||SY.phase==='check')?v+acctSecHtml():v}
 function accountViewBase(){
  if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
@@ -1534,7 +1546,7 @@ function accountViewBase(){
   <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button><button class="btn sm" type="button" id="emJump">이메일 변경</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
- ${wpCard()}<div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${roleLabel(m)!==PERM[m.role]?` · 권한 ${PERM[m.role]||''}`:''}${m.role==='staff'&&['국장','관리자'].includes(m.title)?'<br>권한이 아직 직원이에요 · 관리자가 올려 줘야 공지·직원 초대를 할 수 있어요':''}</span></span>
+ <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${roleLabel(m)!==PERM[m.role]?` · 권한 ${PERM[m.role]||''}`:''}${m.role==='staff'&&['국장','관리자'].includes(m.title)?'<br>권한이 아직 직원이에요 · 관리자가 올려 줘야 공지·직원 초대를 할 수 있어요':''}</span></span>
   ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner&&m.role==='staff'&&['국장','관리자'].includes(m.title)?`<button class="btn sm primary" type="button" data-promote="${esc(m.uid)}">관리자 권한 주기</button>`:''}${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
   <p class="muted">관리자는 공지를 보내고 직원을 부를 수 있어요.</p></div>
  ${mgr?`<div class="card"><h3>직원 바로 추가</h3><p class="muted">여기서 계정을 만들면 직원은 받은 이메일과 임시 비밀번호로 로그인만 하면 돼요. 초대 코드는 필요 없어요.</p>
@@ -1549,7 +1561,7 @@ function accountViewBase(){
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
  ${acctSecHtml()}
  <div class="card"><div class="row"><button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
-function bindAccount(body){wpBind(body);const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
+function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
  const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p));await syAfterLogin()});
  if(q('#syIn'))q('#syIn').onclick=()=>auth('in');
  if(q('#nwGo'))q('#nwGo').onclick=()=>{const m=t=>{q('#nwMsg').textContent=t};const b=q('#nwGo');const c=q('#nwCode').value.trim().toUpperCase(),me=q('#nwMe').value.trim(),e=q('#nwE').value.trim(),p=q('#nwP').value;
