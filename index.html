@@ -2158,7 +2158,7 @@ heroApply();
  body.prepend(c);c.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{heroSet(b.dataset.hero);c.querySelectorAll('[data-hero]').forEach(x=>x.setAttribute('aria-pressed',x===b))})}})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791258158';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791259172';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('desk',{
  openDataDir:()=>ipcRenderer.send('open-data-dir'),
  checkUpdate:()=>ipcRenderer.invoke('update-check'),
  restartUpdate:()=>ipcRenderer.send('update-restart'),
+ setWinTop:on=>ipcRenderer.invoke('win-top',on),
+ setWinSide:on=>ipcRenderer.invoke('win-side',on),
  onUpdate:f=>ipcRenderer.on('update',(e,u)=>f(u)),
  // 포스트잇 알림 창
  onItems:f=>ipcRenderer.on('items',(e,items,ring)=>f(items,ring)),

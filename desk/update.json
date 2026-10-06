@@ -1,21 +1,21 @@
 {
- "version": "0.5.15",
- "notes": "대체약 유무 → 보유약·대체약",
+ "version": "0.5.16",
+ "notes": "프로그램 항상 위 단추 · 사이드바 모드(화면 오른쪽에 길게, 항상 위)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "1a2af832b0d124f623da85905c9942cfe5c79d15c041f4eb577652b9af46c21f",
-   "size": 286218
+   "sha256": "833df8fc49a520ff02a9b057431a8586f30bb6da3cc75143cdd7821adb443aa3",
+   "size": 289143
   },
   {
    "p": "main.js",
-   "sha256": "08630dbcb876c780a141c3f9ad8095d8a52cf78c92f9e8a8b450b81c656d4446",
-   "size": 17398
+   "sha256": "4e30a51a816d44bbcbff1865b56a9d79404560545339123384852c50b9870b61",
+   "size": 18511
   },
   {
    "p": "preload.js",
-   "sha256": "9837e2eee6892e185ad3949a17bc8615e218815d4f8051aaad82300123f3132c",
-   "size": 1631
+   "sha256": "6a7f381d849abc2a821aaaf326e4f99afc531da834b0b87960ec36d780d615c7",
+   "size": 1731
   },
   {
    "p": "alarmcore.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "7b07668c24090b118070daf9eb41bc30cf26d6828816b31b711c1482eca57a34",
+   "sha256": "6717dc96a13bf5a5a72d398a33cd590d91beb3bf413bebab0d8a1023d166df9f",
    "size": 212
   },
   {

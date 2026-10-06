@@ -44,10 +44,12 @@ function createWin(){
  const b=data.desk.bounds||{width:480,height:860};
  win=new BrowserWindow({...b,minWidth:380,minHeight:560,show:false,icon:ICON,title:'참바른약국 비서',backgroundColor:'#F5F6F9',autoHideMenuBar:true,
   webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,backgroundThrottling:false,webSecurity:false}});
+ if(data.desk.winTop)win.setAlwaysOnTop(true);
+ if(data.desk.side)setTimeout(()=>applySide(true,true),0);
  win.loadFile(path.join(__dirname,'index.html'));
  win.webContents.once('did-finish-load',()=>DESK.ok()); // 새 버전이 잘 켜졌음
  win.once('ready-to-show',()=>{if(!startHidden)win.show()});
- const keep=()=>{if(!win.isMaximized()&&!win.isMinimized())data.desk.bounds=win.getBounds();saveData()};
+ const keep=()=>{if(data.desk.side)return;if(!win.isMaximized()&&!win.isMinimized())data.desk.bounds=win.getBounds();saveData()};
  win.on('resized',keep);win.on('moved',keep);
  win.on('close',e=>{if(quitting)return;e.preventDefault();win.hide();
   if(!data.desk.trayTold&&tray&&process.platform==='win32'){data.desk.trayTold=true;saveData();tray.displayBalloon({iconType:'info',title:'참바른약국 비서',content:'창을 닫아도 알림은 계속 와요. 오른쪽 아래 트레이 아이콘에서 다시 열 수 있어요.'})}});
@@ -140,7 +142,19 @@ function scanFolder(force){
 }
 ipcMain.handle('pick-folder',async()=>{const r=await dialog.showOpenDialog(win,{title:'이팜에서 엑셀을 저장하는 폴더',properties:['openDirectory']});
  if(r.canceled||!r.filePaths[0])return data.desk.watchDir||'';data.desk.watchDir=r.filePaths[0];data.desk.watchSince=Date.now()-36*3600e3;data.desk.seen={};saveData();setTimeout(()=>scanFolder(),500);return data.desk.watchDir});
-ipcMain.handle('desk-config',()=>({watchDir:data.desk.watchDir||'',autostart:!!data.desk.autostart,lastImport:data.desk.lastImport||null,dataDir:DATA_DIR,version:VERSION,update:upd}));
+ipcMain.handle('desk-config',()=>({side:!!data.desk.side,watchDir:data.desk.watchDir||'',autostart:!!data.desk.autostart,lastImport:data.desk.lastImport||null,dataDir:DATA_DIR,version:VERSION,update:upd,winTop:!!data.desk.winTop}));
+// 사이드바 모드: 화면 오른쪽 끝에 세로로 길게, 항상 위. 끄면 원래 자리·크기로
+const SIDE_W=400;
+function applySide(on,boot){if(!win||win.isDestroyed())return false;
+ if(on){if(!boot&&!data.desk.side)data.desk.bounds=win.getBounds();
+  if(win.isMaximized())win.unmaximize();
+  const wa=screen.getDisplayMatching(win.getBounds()).workArea;
+  win.setMinimumSize(340,400);win.setBounds({x:wa.x+wa.width-SIDE_W,y:wa.y,width:SIDE_W,height:wa.height});win.setAlwaysOnTop(true,'floating')}
+ else{win.setMinimumSize(380,560);const b=data.desk.bounds||{width:480,height:860};win.setBounds(b);win.setAlwaysOnTop(!!data.desk.winTop)}
+ data.desk.side=!!on;saveData();return !!on}
+ipcMain.handle('win-side',(e,on)=>applySide(!!on));
+// 프로그램 창 항상 위
+ipcMain.handle('win-top',(e,on)=>{data.desk.winTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on||!!data.desk.side);return !!on});
 ipcMain.on('imported',(e,info)=>{data.desk.lastImport={...info,at:new Date().toISOString()};saveData()});
 ipcMain.on('set-autostart',(e,on)=>{data.desk.autostart=!!on;setAutostart(on);saveData()});
 ipcMain.on('clear-folder',()=>{data.desk.watchDir='';saveData()});
