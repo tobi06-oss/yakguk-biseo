@@ -142,19 +142,19 @@ function scanFolder(force){
 }
 ipcMain.handle('pick-folder',async()=>{const r=await dialog.showOpenDialog(win,{title:'이팜에서 엑셀을 저장하는 폴더',properties:['openDirectory']});
  if(r.canceled||!r.filePaths[0])return data.desk.watchDir||'';data.desk.watchDir=r.filePaths[0];data.desk.watchSince=Date.now()-36*3600e3;data.desk.seen={};saveData();setTimeout(()=>scanFolder(),500);return data.desk.watchDir});
-ipcMain.handle('desk-config',()=>({side:!!data.desk.side,watchDir:data.desk.watchDir||'',autostart:!!data.desk.autostart,lastImport:data.desk.lastImport||null,dataDir:DATA_DIR,version:VERSION,update:upd,winTop:!!data.desk.winTop}));
-// 사이드바 모드: 화면 오른쪽 끝에 세로로 길게, 항상 위. 끄면 원래 자리·크기로
+ipcMain.handle('desk-config',()=>({side:!!data.desk.side,watchDir:data.desk.watchDir||'',autostart:!!data.desk.autostart,lastImport:data.desk.lastImport||null,dataDir:DATA_DIR,version:VERSION,update:upd,winTop:!!data.desk.winTop,sideTop:data.desk.sideTop!==false}));
+// 사이드바 모드: 화면 오른쪽 끝에 세로로 길게(항상 위는 핀 단추로 켜고 끔, 기본 켬 = data.desk.sideTop). 끄면 원래 자리·크기로
 const SIDE_W=280;
 function applySide(on,boot){if(!win||win.isDestroyed())return false;
  if(on){if(!boot&&!data.desk.side)data.desk.bounds=win.getBounds();
   if(win.isMaximized())win.unmaximize();
   const wa=screen.getDisplayMatching(win.getBounds()).workArea;
-  win.setMinimumSize(240,400);win.setBounds({x:wa.x+wa.width-SIDE_W,y:wa.y,width:SIDE_W,height:wa.height});win.setAlwaysOnTop(true,'floating')}
+  win.setMinimumSize(240,400);win.setBounds({x:wa.x+wa.width-SIDE_W,y:wa.y,width:SIDE_W,height:wa.height});win.setAlwaysOnTop(data.desk.sideTop!==false,'floating')}
  else{win.setMinimumSize(380,560);const b=data.desk.bounds||{width:480,height:860};win.setBounds(b);win.setAlwaysOnTop(!!data.desk.winTop)}
  data.desk.side=!!on;saveData();return !!on}
 ipcMain.handle('win-side',(e,on)=>applySide(!!on));
 // 프로그램 창 항상 위
-ipcMain.handle('win-top',(e,on)=>{data.desk.winTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on||!!data.desk.side);return !!on});
+ipcMain.handle('win-top',(e,on)=>{if(data.desk.side){data.desk.sideTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on,'floating')}else{data.desk.winTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on)}return !!on});
 ipcMain.on('imported',(e,info)=>{data.desk.lastImport={...info,at:new Date().toISOString()};saveData()});
 ipcMain.on('set-autostart',(e,on)=>{data.desk.autostart=!!on;setAutostart(on);saveData()});
 ipcMain.on('clear-folder',()=>{data.desk.watchDir='';saveData()});

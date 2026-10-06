@@ -776,7 +776,7 @@ function drawManual(body){
  const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
   if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
   const cats=groupBy(S.manual,m=>m.sec||'기타');
-  if(!q&&!manualCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-cat="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
+  if(!q&&!manualCat){list.innerHTML=catListHtml(cats,'cat',canWrite);bindCatManage(list,{can:canWrite,rename:manualCatRename,del:manualCatDel,run});
    list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;manualOpen.clear();run()});return}
   const items=q?S.manual.filter(m=>norm(m.sec+' '+m.h+' '+m.body).includes(nq)):S.manual.filter(m=>(m.sec||'기타')===manualCat);
   const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
@@ -1720,13 +1720,14 @@ function drawCal(body){
  for(let i=0;i<weeks*7;i++){const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);const s=ymd(d);const ev=eventsOn(s),lv=leavesOn(s),sh=dayShift(s);
   const name=HOLI[s]||(ev.find(e=>e.kind==='off')||{}).title||'';
   cells.push(`<button type="button" class="cd ${d.getMonth()!==m?'o':''} ${isRed(s)?'red':d.getDay()===6?'sat':''} ${s===calSel?'sel':''} ${s===todayS()?'td':''}" data-d="${s}" aria-label="${s}${name?' '+esc(name):''}">
-   <span class="dn">${d.getDate()}</span>${name?`<span class="hn">${esc(name)}</span>`:''}<span class="dots">${sh.some(x=>x.u===ME()&&!x.leave)?'<i class="mw" title="내 근무"></i>':''}${ev.filter(e=>e.kind!=='off').length?'<i class="ev" title="일정"></i>':''}${lv.length?'<i class="lv" title="휴가"></i>':''}</span>${sh.length?`<span class="cn">${sh.filter(x=>!x.leave).length}명</span>`:''}</button>`)}
- const s=calSel,ds=dayShift(s),ev=eventsOn(s),lv=leavesOn(s),ov=!!shiftOverride(s);
+   <span class="dn">${d.getDate()}</span>${name?`<span class="hn">${esc(name)}</span>`:''}<span class="dots">${sh.some(x=>x.u===ME()&&!x.leave)?'<i class="mw" title="내 근무"></i>':''}${ev.filter(e=>e.kind!=='off'&&e.kind!=='memo').length?'<i class="ev" title="일정"></i>':''}${ev.some(e=>e.kind==='memo')?'<i class="mm" title="메모"></i>':''}${lv.length?'<i class="lv" title="휴가"></i>':''}</span>${sh.length?`<span class="cn">${sh.filter(x=>!x.leave).length}명</span>`:''}</button>`)}
+ const s=calSel,ds=dayShift(s),ev=eventsOn(s).filter(e=>e.kind!=='memo'),mm=eventsOn(s).filter(e=>e.kind==='memo'),lv=leavesOn(s),ov=!!shiftOverride(s);
  const dayCard=`<div class="card dayc"><h3>${dLabel(s)}${HOLI[s]?` <span class="redt">${esc(HOLI[s])}</span>`:''}</h3>
   <div class="dsec"><b>근무</b>${ov?' <span class="sub">(이날만 바꾼 근무)</span>':''}${ds.length?ds.map(x=>`<div class="drow"><span>${esc(memName(x.u))}${x.u===ME()?' (나)':''}</span><span class="num">${x.leave?`<span class="pill p-low">${esc(x.leave.kind||'휴가')}</span>`:esc(x.t||'')}</span></div>`).join(''):'<p class="muted">등록된 근무가 없어요.</p>'}</div>
   ${lv.length?`<div class="dsec"><b>휴가</b>${lv.map(l=>`<div class="drow"><span>${esc(l.name||memName(l.uid))} · ${esc(l.kind)}</span><span class="sub">${LEAVE_ST[l.status]}</span></div>`).join('')}</div>`:''}
   ${ev.length?`<div class="dsec"><b>일정</b>${ev.map(e=>`<div class="drow"><span>${e.kind==='off'?'<span class="redt">휴무</span> ':''}${esc(e.title)}${e.to&&e.to!==e.from?` <span class="sub">${dLabel(e.from)}~${dLabel(e.to)}</span>`:''}${e.time?` <span class="sub">${esc(e.time)}</span>`:''}</span>${mgr||e.by===ME()?`<button class="btn sm danger" type="button" data-evx="${e.id}">삭제</button>`:'<span class="sub">'+esc(e.byName||'')+'</span>'}</div>`).join('')}</div>`:''}
-  <div class="row wrap"><button class="btn sm" type="button" data-cf="event">＋ 일정</button><button class="btn sm" type="button" data-cf="leave">휴가 신청</button>${iWork(s)?'<button class="btn sm" type="button" data-cf="swap">근무 바꾸기</button>':''}${mgr?'<button class="btn sm" type="button" data-cf="shift">이날 근무 편집</button>':''}</div>
+  ${mm.length?`<div class="dsec"><b>메모</b>${mm.map(e=>`<div class="drow memo"><span class="mtx">${esc(e.title)}<span class="sub"> · ${esc(e.byName||'')}</span></span>${mgr||e.by===ME()?`<button class="btn sm danger" type="button" data-evx="${e.id}">삭제</button>`:''}</div>`).join('')}</div>`:''}
+  <div class="row wrap"><button class="btn sm" type="button" data-cf="event">＋ 일정</button><button class="btn sm" type="button" data-cf="memo">＋ 메모</button><button class="btn sm" type="button" data-cf="leave">휴가 신청</button>${iWork(s)?'<button class="btn sm" type="button" data-cf="swap">근무 바꾸기</button>':''}${mgr?'<button class="btn sm" type="button" data-cf="shift">이날 근무 편집</button>':''}</div>
   ${calForm&&calForm!=='base'?calFormHtml(calForm,s):''}</div>`;
  // 결재·요청
  const pl=S.leaves.filter(l=>l.status==='pending'&&(mgr||l.uid===ME())).sort((a,b)=>a.from.localeCompare(b.from));
@@ -1741,7 +1742,7 @@ function drawCal(body){
  </div></div>`:'';
  body.innerHTML=`<div class="calh"><button class="iconbtn" type="button" id="cPrev" aria-label="이전 달">‹</button><b>${y}년 ${m+1}월</b><button class="iconbtn" type="button" id="cNext" aria-label="다음 달">›</button><button class="btn sm" type="button" id="cToday">오늘</button></div>
   <div class="cal">${[...WD].map((w,i)=>`<span class="wh ${i===0?'su':i===6?'sa':''}">${w}</span>`).join('')}${cells.join('')}</div>
-  <p class="sub legend"><i class="mw"></i>내 근무 <i class="ev"></i>일정 <i class="lv"></i>휴가 · 빨간 날: 일요일·공휴일·약국 휴무</p>
+  <p class="sub legend"><i class="mw"></i>내 근무 <i class="ev"></i>일정 <i class="mm"></i>메모 <i class="lv"></i>휴가 · 빨간 날: 일요일·공휴일·약국 휴무</p>
   ${dayCard}${reqCard}
   ${mgr?`<div class="row"><button class="btn sm" type="button" data-cf="base">기본 근무표 (요일별) 정하기</button></div>${calForm==='base'?calFormHtml('base',s):''}`:''}`;
  calBind(body);
@@ -1750,6 +1751,8 @@ function calFormHtml(kind,s){
  if(kind==='event')return `<div class="cform" data-k="event"><h4>일정 추가</h4><div class="grid2"><label class="field">날짜<input type="date" id="fFrom" value="${s}"></label><label class="field">끝나는 날 (여러 날이면)<input type="date" id="fTo"></label></div>
   <label class="field">내용<input id="fTitle" placeholder=""></label><div class="grid2"><label class="field">시각 (선택)<input type="time" id="fTime"></label><label class="field">종류<select id="fKind"><option value="ev">일정</option><option value="off">약국 휴무 (빨간 날)</option></select></label></div>
   <div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">추가</button></div></div>`;
+ if(kind==='memo')return `<div class="cform" data-k="memo"><h4>메모 남기기</h4><label class="field">날짜<input type="date" id="fFrom" value="${s}"></label><label class="field">메모 (약국 직원 모두에게 보여요)<textarea id="fTitle" rows="3" maxlength="500"></textarea></label>
+  <div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">저장</button></div></div>`;
  if(kind==='leave')return `<div class="cform" data-k="leave"><h4>휴가 신청</h4><div class="grid2"><label class="field">시작<input type="date" id="fFrom" value="${s}"></label><label class="field">끝 (하루면 비워 두기)<input type="date" id="fTo"></label></div>
   <div class="grid2"><label class="field">종류<select id="fKind">${LEAVE_KIND.map(k=>`<option>${k}</option>`).join('')}</select></label><label class="field">사유 (선택)<input id="fReason" placeholder=""></label></div>
   <p class="muted">국장님·관리자가 승인하면 캘린더에 반영돼요.</p><div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">신청</button></div></div>`;
@@ -1772,7 +1775,8 @@ function calBind(body){
  q('#cPrev').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);redrawPanel()};
  q('#cNext').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);redrawPanel()};
  q('#cToday').onclick=()=>{const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1);calSel=todayS();redrawPanel()};
- body.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{calSel=b.dataset.d;const d=pd(calSel);if(d.getMonth()!==calMonth.getMonth())calMonth=new Date(d.getFullYear(),d.getMonth(),1);if(calForm!=='base')calForm=null;redrawPanel()});
+ body.querySelectorAll('[data-d]').forEach(b=>b.onclick=e=>{calSel=b.dataset.d;const d=pd(calSel);if(d.getMonth()!==calMonth.getMonth())calMonth=new Date(d.getFullYear(),d.getMonth(),1);const dbl=e.detail>=2;if(dbl)calForm='memo';else if(calForm!=='base')calForm=null;redrawPanel();
+  if(dbl)setTimeout(()=>{const f=body.querySelector('.cform'),t=f&&f.querySelector('#fTitle');if(f)f.scrollIntoView({block:'nearest'});t&&t.focus()},30)}); // 날짜 더블클릭 = 그날 메모 남기기
  body.querySelectorAll('[data-cf]').forEach(b=>b.onclick=()=>{calForm=calForm===b.dataset.cf?null:b.dataset.cf;redrawPanel();setTimeout(()=>{const f=body.querySelector('.cform');f&&f.scrollIntoView({block:'nearest'})},30)});
  body.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{calForm=null;redrawPanel()});
  body.querySelectorAll('[data-evx]').forEach(b=>armBtn(b,()=>tDel(P()+'/events/'+b.dataset.evx)));
@@ -1781,6 +1785,8 @@ function calBind(body){
  if(q('#fSave'))q('#fSave').onclick=async()=>{
   if(k==='event'){const title=q('#fTitle').value.trim(),from=q('#fFrom').value,to=q('#fTo').value;if(!title||!from){toast('날짜와 내용을 적어 주세요');return}if(to&&to<from){toast('끝나는 날이 시작보다 빨라요');return}
    if(await tSet(P()+'/events/'+uid(),{from,to:to||'',title:title.slice(0,200),time:q('#fTime').value||'',kind:q('#fKind').value,by:ME(),byName:myName(),at:Date.now()}))done('일정을 추가했어요')}
+  else if(k==='memo'){const t=q('#fTitle').value.trim(),from=q('#fFrom').value;if(!t||!from){toast('날짜와 메모를 적어 주세요');return}
+   if(await tSet(P()+'/events/'+uid(),{from,to:'',title:t.slice(0,500),time:'',kind:'memo',by:ME(),byName:myName(),at:Date.now()})){calSel=from;const d=pd(from);calMonth=new Date(d.getFullYear(),d.getMonth(),1);done('메모를 남겼어요')}}
   else if(k==='leave'){const from=q('#fFrom').value,to=q('#fTo').value;if(!from){toast('날짜를 골라 주세요');return}if(to&&to<from){toast('끝나는 날이 시작보다 빨라요');return}
    if(await tSet(P()+'/leaves/'+uid(),{uid:ME(),name:myName(),from,to:to||'',kind:q('#fKind').value,reason:q('#fReason').value.trim().slice(0,200),status:'pending',at:Date.now()}))done('휴가를 신청했어요')}
   else if(k==='swap'){const to=q('#fTo2').value,back=q('#fBack').value;const tm=S.members.find(m=>m.uid===to);
@@ -1889,7 +1895,7 @@ const TEAM_CSS=`
 .cd .cn{font-size:9.5px;color:var(--ink-2);margin-top:auto}
 .dots i,.legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:2px;vertical-align:middle}
 .legend{margin:6px 0 10px}.legend i{margin-left:6px}
-i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--ok)}
+i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--ok)}i.mm{background:#E0A526}.drow.memo .mtx{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
 .dayc h3{margin-bottom:6px}.redt{color:var(--bad)}
 .dsec{margin:8px 0}.dsec>b{font-size:13px;color:var(--ink-2)}
 .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
@@ -1916,6 +1922,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .mn-lock svg{flex:none;color:var(--accent);margin-top:2px}.mn-lock b{display:block;margin-bottom:2px}.mn-lock p{margin:0}
 .mn-meta{font-size:12px;color:var(--ink-3);font-weight:400;white-space:nowrap}
 .mn-pin{color:var(--brand);margin-right:4px}
+.catrow{display:flex;gap:6px;align-items:stretch}.catrow .cat{flex:1;min-width:0;width:auto}.catrow .btn.sm{flex:none;min-width:36px;padding-inline:8px}.catrow input.search{margin:0}
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -1936,6 +1943,22 @@ async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id);
  return tSet(mnPath()+'/'+id,d,true)}
 async function mnDel(id){S.mynotes=S.mynotes.filter(x=>x.id!==id);myNoteChanged();return tDel(mnPath()+'/'+id)}
 
+// 전체 분류 화면에서 분류 이름 바꾸기·지우기 (내 수첩 · 약국 매뉴얼 공통)
+function catListHtml(cats,attr,can){return cats.map(([sec,arr])=>`<div class="catrow"><button class="cat" type="button" data-${attr}="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>${can?`<button class="btn sm" type="button" data-crn="${esc(sec)}" title="분류 이름 바꾸기" aria-label="${esc(sec)} 이름 바꾸기">✎</button><button class="btn sm" type="button" data-crx="${esc(sec)}" data-n="${arr.length}" title="분류 지우기 (안의 항목도 함께)" aria-label="${esc(sec)} 지우기">✕</button>`:''}</div>`).join('')}
+function bindCatManage(list,o){if(!o.can)return;
+ list.querySelectorAll('[data-crn]').forEach(b=>b.onclick=()=>{const old=b.dataset.crn,row=b.closest('.catrow');
+  row.innerHTML=`<input class="search" maxlength="40" value="${esc(old)}" aria-label="새 분류 이름" style="flex:1;min-width:0"><button class="btn sm primary" type="button">저장</button><button class="btn sm" type="button">취소</button>`;
+  const [inp,ok,no]=row.querySelectorAll('input,button');inp.focus();inp.select();
+  no.onclick=()=>o.run();
+  const go=async()=>{const nw=inp.value.trim().slice(0,40);if(!nw){toast('이름을 적어 주세요');return}if(nw===old){o.run();return}ok.disabled=true;if(await o.rename(old,nw)){toast('분류 이름을 바꿨어요');o.run()}else ok.disabled=false};
+  ok.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();else if(e.key==='Escape')o.run()}});
+ list.querySelectorAll('[data-crx]').forEach(b=>{const n=b.dataset.n;armBtn(b,async()=>{if(await o.del(b.dataset.crx)){toast('분류를 지웠어요');o.run()}},`${n}개 지워요?`)})}
+async function mnCatRename(old,nw){for(const m of S.mynotes.filter(x=>mnSec(x)===old)){if(!await mnPut(m.id,{sec:nw}))return false}return true}
+async function mnCatDel(sec){for(const m of S.mynotes.filter(x=>mnSec(x)===sec)){if(!await mnDel(m.id))return false}return true}
+async function manualCatSave(fn){const out=fn(S.manual.map(x=>({...x})));if(await saveDoc('manual/main',{items:out,updatedAt:new Date().toISOString()})){S.manual=out;renderBook&&renderBook();return true}return false}
+const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>(x.sec||'기타')===old?{...x,sec:nw}:x));
+const manualCatDel=sec=>manualCatSave(a=>a.filter(x=>(x.sec||'기타')!==sec));
+
 function drawMyNote(body){
  const lock=`<div class="card mn-lock">${LOCK_SVG}<div><b>나만 보는 비공개 수첩</b><p class="muted">여기 적은 내용은 내 계정에만 저장돼요. 국장님·관리자·다른 직원 누구도 볼 수 없고, 약국 공용 자료(약국 매뉴얼·메모·공지)와도 따로 보관돼요. 같은 계정으로 로그인한 PC·휴대폰에서만 열려요.</p></div></div>`;
  if(!SY.user||!SY.cloud){
@@ -1949,7 +1972,7 @@ function drawMyNote(body){
   if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
   if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)}
   const cats=groupBy(mnSorted(),mnSec);
-  if(!nq&&!mnCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-mc="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
+  if(!nq&&!mnCat){list.innerHTML=catListHtml(cats,'mc',true);bindCatManage(list,{can:true,rename:mnCatRename,del:mnCatDel,run});
    list.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{mnCat=b.dataset.mc;mnOpen=null;mnOpenSet.clear();run()});return}
   const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):mnSorted().filter(m=>mnSec(m)===mnCat);
   const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
@@ -2317,12 +2340,12 @@ html.sidemode .devtag{display:none}
   tb.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M12 15v6"/></svg>';
   const sync=on=>{tb.setAttribute('aria-pressed',on?'true':'false');tb.title=on?'항상 위 켜짐 — 누르면 꺼요':'프로그램을 다른 창보다 항상 위에 두기';tb.setAttribute('aria-label',tb.title)};
   sync(!!deskCfg.winTop);ub.before(tb);
-  tb.onclick=async()=>{if(deskCfg.side){toast('사이드바 모드에서는 늘 위에 있어요');return}const on=await window.desk.setWinTop(tb.getAttribute('aria-pressed')!=='true');deskCfg.winTop=on;sync(on);toast(on?'프로그램을 항상 위에 둘게요':'항상 위를 껐어요')};
+  tb.onclick=async()=>{const on=await window.desk.setWinTop(tb.getAttribute('aria-pressed')!=='true');if(deskCfg.side)deskCfg.sideTop=on;else deskCfg.winTop=on;sync(on);toast(on?'프로그램을 항상 위에 둘게요':'항상 위를 껐어요')};
   // 사이드바 모드: 화면 오른쪽에 세로로 길게 붙이고 항상 위
   if(window.desk.setWinSide){const sb=document.createElement('button');sb.type='button';sb.className='topbtn';sb.id='winSideBtn';
    sb.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M8 10l2 2-2 2"/></svg>';
-   const ssync=on=>{sb.setAttribute('aria-pressed',on?'true':'false');sb.title=on?'사이드바 모드 켜짐 — 누르면 원래 창으로':'사이드바 모드: 화면 오른쪽에 길게 붙여 항상 위';sb.setAttribute('aria-label',sb.title);
-    if(on)sync(true);else sync(!!deskCfg.winTop);document.documentElement.classList.toggle('sidemode',on)};
+   const ssync=on=>{sb.setAttribute('aria-pressed',on?'true':'false');sb.title=on?'사이드바 모드 켜짐 — 누르면 원래 창으로':'사이드바 모드: 화면 오른쪽에 길게 붙이기 (옆의 핀으로 고정을 켜고 끌 수 있어요)';sb.setAttribute('aria-label',sb.title);
+    sync(on?deskCfg.sideTop!==false:!!deskCfg.winTop);document.documentElement.classList.toggle('sidemode',on)};
    ssync(!!deskCfg.side);tb.after(sb);
    sb.onclick=async()=>{const on=await window.desk.setWinSide(sb.getAttribute('aria-pressed')!=='true');deskCfg.side=on;ssync(on);toast(on?'오른쪽 사이드바로 붙였어요':'원래 창으로 돌아왔어요')}}}
  window.desk.onUpdate&&window.desk.onUpdate(u=>{deskCfg.update=u;updBanner();updBtnSync();if(u.state==='ready')toast(`새 버전(${u.version})을 받았어요`);if(redrawPanel&&panelState.kind==='settings')redrawPanel()});updBanner();

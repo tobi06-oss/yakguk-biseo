@@ -1,16 +1,16 @@
 {
- "version": "0.5.20",
- "notes": "사이드바 모드를 더 좁게(280): 제목 글씨 숨기고 아이콘 단추, 타일 한 줄에 2개",
+ "version": "0.5.23",
+ "notes": "캘린더: 날짜 더블클릭 또는 ＋ 메모 버튼으로 그날 메모 남기기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "b13b7475ca303872ed4fd1ace7324d9c9cfa02b58f49dc280e91f82f3eb76596",
-   "size": 297280
+   "sha256": "49930401178868ecee8adef6c9a3ccd56a4f45cef7b7e08284382a0a65b1d2ec",
+   "size": 301527
   },
   {
    "p": "main.js",
-   "sha256": "6e8725f7a7aca5483360782d8963a629d57e791d8ec1e997229c9d16482e24ee",
-   "size": 18511
+   "sha256": "24714d51884aeb27218a10e23052488109f80fef8d5fb6e7a69c4cd4ee420977",
+   "size": 18729
   },
   {
    "p": "preload.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "04e35b13c17cca1a84e9d199f0bf9f7519e742cfe02e89d4bc09d6bb44a75d14",
+   "sha256": "40022d12f0c8670f7f8ae4682ee18c70ef7ddcca993c02c0275488baa6de2cab",
    "size": 212
   },
   {

@@ -1,7 +1,7 @@
 {
  "name": "chambareun-assistant",
  "productName": "참바른약국 비서",
- "version": "0.5.20",
+ "version": "0.5.23",
  "main": "boot.js",
  "description": "약국 재고 진단·메모·알림 비서",
  "author": "참바른약국"
