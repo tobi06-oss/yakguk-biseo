@@ -1470,7 +1470,7 @@ function accountView(){
  <div class="card"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
   <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder=""></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
   <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>
- <div class="card"><div class="row">${owner?'':'<button class="btn" type="button" id="syLeave">약국에서 나가기</button>'}<button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
+ <div class="card"><div class="row"><button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
 function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
  const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p))});
  if(q('#syIn'))q('#syIn').onclick=()=>auth('in');if(q('#syNew'))q('#syNew').onclick=()=>auth('new');if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
@@ -1591,22 +1591,28 @@ async function ask(q){q=String(q||'').trim();if(!q)return;$('input').value='';au
  renderMemoHome();$('input').focus()}
 
 
-/* ===== 머리 줄 업데이트 단추: 새 버전이 있을 때만 파란 단추 + 빨간 점 (설정 단추 바로 앞) ===== */
+/* ===== 머리 줄 업데이트 단추: 설정 톱니 바로 왼쪽에 늘 있음. 평소 "업데이트 확인", 새 버전이 있으면 파란 "업데이트 가능" + 빨간 점 ===== */
 function hdrUpdBtn(onClick){
  if($('upBtn'))return $('upBtn');const mb=$('menuBtn');if(!mb)return null;
  if(!document.getElementById('upBtnCss')){const st=document.createElement('style');st.id='upBtnCss';st.textContent=`
 .hbtns{display:flex;align-items:center;gap:8px;flex:none}
-.upbtn{position:relative;display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 16px 0 13px;border-radius:21px;border:0;background:var(--accent);color:var(--on-accent,#fff);font:inherit;font-size:14.5px;font-family:var(--display,inherit);white-space:nowrap;cursor:pointer;box-shadow:0 6px 16px -6px rgba(47,85,151,.7);animation:upin .25s ease-out}
-.upbtn[hidden]{display:none}.upbtn:hover{filter:brightness(1.08)}.upbtn:disabled{cursor:default;filter:saturate(.7)}
-.upbtn .updot{position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--brand,#E0424F);border:2px solid var(--bg,#fff);box-shadow:0 0 0 0 rgba(224,66,79,.5);animation:updot 1.4s ease-in-out infinite}
-@keyframes updot{50%{box-shadow:0 0 0 6px rgba(224,66,79,0)}}@keyframes upin{from{transform:scale(.8);opacity:0}}
+.upbtn{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 14px 0 12px;border-radius:21px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:inherit;font-size:13.5px;font-family:var(--display,inherit);white-space:nowrap;cursor:pointer}
+.upbtn:hover{border-color:var(--accent);color:var(--accent)}.upbtn:disabled{cursor:default;opacity:.75}
+.upbtn.ready{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff);box-shadow:0 6px 16px -6px rgba(47,85,151,.7);animation:upin .25s ease-out}
+.upbtn .updot{display:none;position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--brand,#E0424F);border:2px solid var(--bg,#fff);animation:updot 1.4s ease-in-out infinite}
+.upbtn.ready .updot{display:block}
+@keyframes updot{50%{box-shadow:0 0 0 6px rgba(224,66,79,0)}}@keyframes upin{from{transform:scale(.9);opacity:.4}}
 @media (prefers-reduced-motion:reduce){.upbtn,.upbtn .updot{animation:none}}
-@media (max-width:420px){.upbtn{padding:0 13px 0 11px;font-size:13.5px}}`;document.head.appendChild(st)}
+@media (max-width:420px){.upbtn{padding:0 11px 0 9px;font-size:12.5px}.upbtn svg{display:none}}`;document.head.appendChild(st)}
  const w=document.createElement('div');w.className='hbtns';mb.parentNode.insertBefore(w,mb);
- const b=document.createElement('button');b.type='button';b.id='upBtn';b.className='upbtn';b.hidden=true;
- b.innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>업데이트</span><i class="updot" aria-hidden="true"></i>';
- w.appendChild(b);w.appendChild(mb);b.onclick=()=>onClick(b);return b}
-function upBtnShow(b,on,title){if(!b)return;b.hidden=!on;b.disabled=false;b.title=title||'';b.setAttribute('aria-label',title||'업데이트')}
+ const b=document.createElement('button');b.type='button';b.id='upBtn';b.className='upbtn';
+ b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>업데이트 확인</span><i class="updot" aria-hidden="true"></i>';
+ w.appendChild(b);w.appendChild(mb);b.onclick=()=>{if(!b.disabled)onClick(b)};return b}
+// state: idle(업데이트 확인) · checking(확인 중) · downloading(받는 중) · ready(업데이트 가능)
+function upBtnState(b,state,title){if(!b)return;const L={idle:'업데이트 확인',checking:'확인 중…',downloading:'받는 중…',ready:'업데이트 가능',applying:'적용 중…'};
+ b.dataset.st=state;b.classList.toggle('ready',state==='ready');b.disabled=state==='checking'||state==='downloading'||state==='applying';
+ b.querySelector('span').textContent=L[state]||L.idle;b.title=title||(state==='ready'?'누르면 새 버전을 적용해요':'새 버전이 있는지 확인해요');b.setAttribute('aria-label',b.title)}
+function upBtnShow(b,on,title){upBtnState(b,on?'ready':'idle',title)}
 
 /* ===== 약국 공용: 공지사항 · 국장님 전달사항 · 약국 캘린더 · 인수인계 ===== */
 S.orders=[];S.events=[];S.leaves=[];S.swaps=[];S.handover=[];S.shiftDocs={};
@@ -1885,7 +1891,8 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 // 자주 쓰는 질문과 아래 검색창은 숨김 (요소는 남겨 둬서 다른 코드가 깨지지 않게)
 (()=>{const st=document.createElement('style');st.textContent=`
 .favlabel,#favs,#chat,#form,#imgChip{display:none!important}
-.app{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.app{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));height:auto;min-height:100%}
+.app>*{flex-shrink:0}
 .tiles.alt-row{margin-top:2px}
 .pins:not([hidden])+.tiles.alt-row{margin-top:12px}
 .t-mynote{background:linear-gradient(145deg,#6B7A99,#3E4A66);box-shadow:0 6px 14px -6px rgba(62,74,102,.6)}
@@ -2032,6 +2039,63 @@ function mnImportForm(){
  q('#miGo').onclick=async e=>{const ids=sel();if(!ids.length)return;await mnFromManual(ids,e.currentTarget);panelState.tab='list';redrawPanel&&redrawPanel()};
  return f}
 
+/* ===== 누르기 쉬운 크기 (작은 단추·체크박스·탭의 누르는 범위 넓힘) ===== */
+(()=>{const st=document.createElement('style');st.textContent=`
+.btn{min-height:40px;padding:9px 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.btn.sm{min-height:36px;padding:7px 13px;font-size:12.5px}
+.tab{min-height:40px;padding:9px 16px;cursor:pointer}
+.iconbtn{min-width:42px;min-height:42px;cursor:pointer}
+label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
+.chk input[type=checkbox],.chk input[type=radio],input[type=checkbox]{width:18px;height:18px;flex:none;cursor:pointer}
+.acc>button{min-height:48px;cursor:pointer}
+.cat{min-height:50px;cursor:pointer}
+.tile{cursor:pointer}
+.pin{min-height:40px;cursor:pointer}
+`;document.head.appendChild(st)})();
+
+/* ===== 첫 화면 검색창: 재고 · 대체약 · 약국 매뉴얼 · 내 수첩 · 메모를 한 번에 ===== */
+(()=>{const hd=document.querySelector('.app>header');if(!hd||$('homeQ'))return;
+ const st=document.createElement('style');st.textContent=`
+.hsearch{position:relative;margin:0 0 12px}
+.hsearch input{width:100%;min-height:48px;padding:12px 44px 12px 42px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;box-shadow:var(--shadow)}
+.hsearch input:focus{outline:none;border-color:var(--accent)}
+.hsearch .si{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
+.hsearch .sx{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:none;color:var(--ink-3);font-size:18px;cursor:pointer;border-radius:10px}
+.hres{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:var(--shadow);margin:0 0 12px}
+.hres h4{margin:2px 6px 4px;font-size:12px;letter-spacing:.04em;color:var(--ink-2);font-weight:600}
+.hres .hr{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:46px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:var(--ink);text-align:left;font:inherit;font-size:14.5px;cursor:pointer}
+.hres .hr:hover,.hres .hr:focus-visible{background:var(--accent-soft,rgba(47,85,151,.08));outline:none}
+.hres .hr .m{font-size:12.5px;color:var(--ink-2);white-space:nowrap;font-family:var(--mono,inherit)}
+.hres .hr .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hres .hr .m.low{color:var(--bad,#C0392B);font-weight:600}
+.hres .none{padding:10px;color:var(--ink-2);font-size:13.5px}`;document.head.appendChild(st);
+ const w=document.createElement('div');w.className='hsearch';
+ w.innerHTML='<svg class="si" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="homeQ" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="약 이름 · 매뉴얼 · 내 수첩 찾기" aria-label="찾기"><button class="sx" id="homeQx" type="button" aria-label="지우기" hidden>✕</button>';
+ const res=document.createElement('div');res.className='hres';res.id='homeRes';res.hidden=true;
+ hd.after(w);w.after(res);
+ const inp=$('homeQ'),x=$('homeQx');let acts=[];
+ const fmtN=v=>typeof fmt==='function'?fmt(v):v;
+ function run(){const raw=inp.value.trim();x.hidden=!raw;const q=raw.replace(/\s*대체약?$/,'');const nq=norm(q);acts=[];
+  if(!nq){res.hidden=true;res.innerHTML='';return}
+  const sec=(title,rows)=>rows.length?`<div><h4>${title}</h4>${rows.join('')}</div>`:'';
+  const row=(t,m,act,cls)=>{acts.push(act);return `<button class="hr" type="button" data-a="${acts.length-1}"><span class="t">${t}</span><span class="m ${cls||''}">${m}</span></button>`};
+  let html='';
+  if(typeof M!=='undefined'&&M&&M.items){const it=M.items.filter(i=>i.hay.includes(nq)).sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur).slice(0,6);
+   html+=sec('재고',it.map(i=>row(esc(i.base)+(i.str?' '+esc(i.str):''),`현재 ${fmtN(i.cur)} · 적정 ${fmtN(i.opt)}`,()=>{openPanel('stock','search');setTimeout(()=>{const s=$('sq');if(s){s.value=q;s.dispatchEvent(new Event('input'))}},30)},i.cur<i.opt?'low':'')));
+   if(it.length||/대체/.test(raw))html+=sec('대체약',[row(`"${esc(q)}" 같은 성분·함량·제형 재고`,'대체약 유무 ›',()=>{altQ=q;openPanel('alt')})])}
+  const man=(S.manual||[]).filter(m=>norm((m.sec||'')+' '+m.h+' '+(m.body||'')).includes(nq)).slice(0,6);
+  html+=sec('약국 매뉴얼',man.map(m=>row(esc(m.h),esc(m.sec||''),()=>{manualCat=null;openItem=m.id;openPanel('manual');setTimeout(()=>{const s=$('mq');if(s){s.value=m.h;s.dispatchEvent(new Event('input'))}},30)})));
+  const mine=(S.mynotes||[]).filter(n=>norm((n.title||'')+' '+(n.body||'')).includes(nq)).slice(0,6);
+  html+=sec('내 수첩 (나만 보임)',mine.map(n=>row(esc(n.title||'(제목 없음)'),mnDate(n.upd||n.at),()=>{mnEdit=null;mnOpen=n.id;mnQ='';openPanel('mynote')})));
+  const memos=((S.memo&&S.memo.memos)||[]).filter(m=>norm(m.text||'').includes(nq)).slice(0,4);
+  html+=sec('메모',memos.map(m=>row(esc(m.text),'메모 ›',()=>{memoEdit=m.id;openPanel('memo','memos')})));
+  res.innerHTML=html||`<div class="none">"${esc(raw)}"에 맞는 재고·매뉴얼·수첩·메모가 없어요.${typeof M!=='undefined'&&M?'':' 재고 자료는 아직 없어요.'}</div>`;res.hidden=false;
+  res.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>acts[+b.dataset.a]())}
+ inp.addEventListener('input',run);
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(acts.length)acts[0]()}else if(e.key==='Escape'){inp.value='';run()}});
+ x.onclick=()=>{inp.value='';run();inp.focus()};
+ window.homeSearchRefresh=()=>{if(inp.value.trim())run()}})();
+
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
 function flashTitle(){}
@@ -2094,8 +2158,15 @@ async function deskBoot(){
   else if(c==='newAlarm'){alarmEdit={new:true};openPanel('memo','alarms');setTimeout(()=>{const t=$('aText');t&&t.focus()},60)}
   else if(c==='openStock')openPanel('stock')});
  setInterval(async()=>{deskCfg=await window.desk.config()},60000);
- const ub=hdrUpdBtn(b=>{if((deskCfg.update||{}).state==='ready'){b.disabled=true;b.querySelector('span').textContent='다시 시작…';window.desk.restartUpdate()}});
- function updBtnSync(){const u=deskCfg.update||{};upBtnShow(ub,u.state==='ready',u.state==='ready'?`새 버전 ${u.version}${u.notes?' · '+u.notes:''} — 누르면 다시 시작해서 적용`:'')}
+ const ub=hdrUpdBtn(async b=>{const u=deskCfg.update||{};
+  if(u.state==='ready'){upBtnState(b,'applying');window.desk.restartUpdate();return}
+  upBtnState(b,'checking');let r=null;try{r=await window.desk.checkUpdate()}catch(e){}
+  if(r)deskCfg.update=r;updBtnSync();
+  if(!r||r.state==='error')toast('업데이트를 확인하지 못했어요. 인터넷 연결을 확인해 주세요');
+  else if(r.state==='latest')toast(`지금이 최신 버전이에요 (${deskCfg.version||r.version||''})`);
+  else if(r.state==='ready')toast(`새 버전(${r.version})을 받았어요. "업데이트 가능"을 누르면 적용돼요`)});
+ function updBtnSync(){const u=deskCfg.update||{};const s=u.state==='ready'?'ready':u.state==='downloading'?'downloading':u.state==='checking'?'checking':'idle';
+  upBtnState(ub,s,s==='ready'?`새 버전 ${u.version}${u.notes?' · '+u.notes:''} — 누르면 다시 시작해서 적용`:'')}
  updBtnSync();
  window.desk.onUpdate&&window.desk.onUpdate(u=>{deskCfg.update=u;updBanner();updBtnSync();if(u.state==='ready')toast(`새 버전(${u.version})을 받았어요`);if(redrawPanel&&panelState.kind==='settings')redrawPanel()});updBanner();
  syInit();

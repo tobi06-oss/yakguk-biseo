@@ -1,11 +1,11 @@
 {
- "version": "0.5.8",
- "notes": "개인 업무수첩: 매뉴얼에서 골라 가져오기 · 항목마다 동료에게 보내기",
+ "version": "0.5.9",
+ "notes": "첫 화면 검색창 · 업데이트 확인 단추(톱니 왼쪽) · 누르기 쉬운 단추 크기 · 직원 나가기 단추 없앰",
  "files": [
   {
    "p": "index.html",
-   "sha256": "249eaf579194f0f888a7a7147dc800a767cf98c00b0bbd478e63990c0929e4f4",
-   "size": 271180
+   "sha256": "920d6ab03d8babfde7e649fffc35eb15e78f331993dfd143b8a8be51ffa02a6a",
+   "size": 278451
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "89a504786bc1570d60a03359695443702fbee1fd6a6741f9ca321063d5394d2e",
+   "sha256": "c6ba0ddcf0d91987ec28152eb84b2e0e55bee3d3fbf540d57ca1aa0aeeadff2f",
    "size": 211
   },
   {
