@@ -1782,6 +1782,9 @@ const LEAVE_KIND=['연차','오전 반차','오후 반차','병가','기타'];
 const LEAVE_ST={pending:'승인 대기',approved:'승인됨',rejected:'반려',cancelled:'취소'};
 const SWAP_ST={asked:'요청 중',accepted:'수락됨 · 승인 대기',declined:'거절',approved:'승인 · 반영됨',rejected:'반려',cancelled:'취소'};
 const baseW=()=>(S.shiftDocs.base&&S.shiftDocs.base.w)||{};
+// 근무 시간 글: "오전 9:00-13:30 · 오후 14:00-19:00" (예전 글은 시작 시각으로 오전/오후를 나눔)
+function shiftParts(t){let a='',p='';String(t||'').split(/\s*[·\/]\s*/).forEach(x=>{x=x.trim();if(!x)return;const m=x.match(/^(오전|오후)\s*(.*)$/);if(m){if(m[1]==='오전')a=m[2];else p=m[2];return}const h=parseInt(x);if(h<12)a=x;else p=x});return{a,p}}
+const shiftJoin=(a,p)=>[String(a||'').trim()?'오전 '+String(a).trim():'',String(p||'').trim()?'오후 '+String(p).trim():''].filter(Boolean).join(' · ').slice(0,40);
 function shiftOverride(s){const o=S.shiftDocs[s.slice(0,7)];const v=o&&o.d&&o.d[s.slice(8)];return Array.isArray(v)?v:null}
 const holidayOff=()=>!S.shiftDocs.base||S.shiftDocs.base.holidayOff!==false;
 const offDay=s=>S.events.some(e=>e.kind==='off'&&e.from<=s&&s<=(e.to||e.from))||(!!HOLI[s]&&holidayOff());
@@ -1844,11 +1847,11 @@ function calFormHtml(kind,s){
   <label class="field">대신 내가 일해 줄 날 (선택 · 상대 근무일)<input type="date" id="fBack"></label><label class="field">메모 (선택)<input id="fNote" placeholder=""></label>
   <p class="muted">상대가 수락하고 국장님·관리자가 승인하면 근무표가 바뀌어요.</p><div class="row"><button class="btn" type="button" data-fx>취소</button><button class="btn primary" type="button" id="fSave">요청 보내기</button></div></div>`}
  if(kind==='shift'){const cur=dayShift(s);
-  return `<div class="cform" data-k="shift"><h4>${dLabel(s)} 근무 편집 <span class="sub">이날만 바뀌어요</span></h4>${S.members.map(m=>{const c=cur.find(x=>x.u===m.uid);return `<div class="drow"><label class="chk"><input type="checkbox" data-su="${esc(m.uid)}" ${c?'checked':''}> ${esc(m.name)}</label><input class="tin" data-st="${esc(m.uid)}" value="${esc(c&&c.t||'')}" placeholder=""></div>`}).join('')}
+  return `<div class="cform" data-k="shift"><h4>${dLabel(s)} 근무 편집 <span class="sub">이날만 바뀌어요</span></h4>${S.members.map(m=>{const c=cur.find(x=>x.u===m.uid);return `<div class="drow"><label class="chk"><input type="checkbox" data-su="${esc(m.uid)}" ${c?'checked':''}> ${esc(m.name)}</label>${(()=>{const q=shiftParts(c&&c.t);return `<span class="amp"><input class="tin" data-sa="${esc(m.uid)}" value="${esc(q.a)}" placeholder="오전"><input class="tin" data-sp="${esc(m.uid)}" value="${esc(q.p)}" placeholder="오후"></span>`})()}</div>`}).join('')}
   <div class="row"><button class="btn" type="button" data-fx>취소</button>${shiftOverride(s)?'<button class="btn" type="button" id="fReset">기본 근무로 되돌리기</button>':''}<button class="btn primary" type="button" id="fSave">저장</button></div></div>`}
  if(kind==='base'){const b=baseW();const order=[1,2,3,4,5,6,0];
-  return `<div class="card cform" data-k="base"><h4>기본 근무표</h4><p class="muted">요일마다 근무 시간을 적어 두면 캘린더에 매주 자동으로 들어가요. 쉬는 날은 비워 두세요. 특정 날만 다르면 그날을 눌러 "이날 근무 편집".</p>
-  <div class="tablewrap"><table class="btab"><thead><tr><th></th>${order.map(d=>`<th class="${d===0?'redt':''}">${WD[d]}</th>`).join('')}</tr></thead><tbody>${S.members.map(m=>`<tr><td>${esc(m.name)}</td>${order.map(d=>`<td><input class="tin" data-bu="${esc(m.uid)}" data-bd="${d}" value="${esc((b[m.uid]||{})[d]||'')}" placeholder="-"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  return `<div class="card cform" data-k="base"><h4>기본 근무표</h4><p class="muted">요일마다 오전·오후 근무 시간을 따로 적어 두면(예: 오전 9:00-13:30, 오후 14:00-19:00 · 한쪽만 써도 돼요) 캘린더에 매주 자동으로 들어가요. 쉬는 날은 비워 두세요. 특정 날만 다르면 그날을 눌러 "이날 근무 편집".</p>
+  <div class="tablewrap"><table class="btab"><thead><tr><th></th>${order.map(d=>`<th class="${d===0?'redt':''}">${WD[d]}</th>`).join('')}</tr></thead><tbody>${S.members.map(m=>`<tr><td>${esc(m.name)}</td>${order.map(d=>`<td>${(()=>{const q=shiftParts((b[m.uid]||{})[d]);return `<input class="tin" data-bu="${esc(m.uid)}" data-bd="${d}" data-bk="a" value="${esc(q.a)}" placeholder="오전"><input class="tin" data-bu="${esc(m.uid)}" data-bd="${d}" data-bk="p" value="${esc(q.p)}" placeholder="오후">`})()}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
   <label class="chk"><input type="checkbox" id="fHol" ${holidayOff()?'checked':''}> 공휴일엔 기본 근무 쉼 (공휴일에 문 열면 그날만 "이날 근무 편집")</label>
   <div class="row"><button class="btn" type="button" data-fx>닫기</button><button class="btn primary" type="button" id="fSaveB">기본 근무표 저장</button></div></div>`}
  return ''}
@@ -1889,10 +1892,10 @@ function calBind(body){
   else if(k==='swap'){const to=q('#fTo2').value,back=q('#fBack').value;const tm=S.members.find(m=>m.uid===to);
    if(back&&to&&!dayShift(back).some(x=>x.u===to)){toast(`${tm.name} 님은 ${dLabel(back)}에 근무가 없어요`);return}
    if(await tSet(P()+'/swaps/'+uid(),{from:ME(),fromName:myName(),date:s,to:to||'',toName:tm?tm.name:'',back:to?back||'':'',note:q('#fNote').value.trim().slice(0,200),status:'asked',at:Date.now()}))done('근무 교환을 요청했어요')}
-  else if(k==='shift'){const list=S.members.filter(m=>body.querySelector(`[data-su="${m.uid}"]`).checked).map(m=>({u:m.uid,t:body.querySelector(`[data-st="${m.uid}"]`).value.trim().slice(0,20)}));
+  else if(k==='shift'){const list=S.members.filter(m=>body.querySelector(`[data-su="${m.uid}"]`).checked).map(m=>({u:m.uid,t:shiftJoin(body.querySelector(`[data-sa="${m.uid}"]`).value,body.querySelector(`[data-sp="${m.uid}"]`).value)}));
    if(await saveDayShift(s,list))done('이날 근무를 저장했어요')}};
  if(q('#fReset'))q('#fReset').onclick=async()=>{if(await saveDayShift(s,null))done('기본 근무로 되돌렸어요')};
- if(q('#fSaveB'))q('#fSaveB').onclick=async()=>{const w={};body.querySelectorAll('[data-bu]').forEach(i=>{const v=i.value.trim().slice(0,20);if(v)(w[i.dataset.bu]=w[i.dataset.bu]||{})[i.dataset.bd]=v});
+ if(q('#fSaveB'))q('#fSaveB').onclick=async()=>{const w={},tmp={};body.querySelectorAll('[data-bu]').forEach(i=>{const k=i.dataset.bu+'|'+i.dataset.bd;(tmp[k]=tmp[k]||{u:i.dataset.bu,d:i.dataset.bd,a:'',p:''})[i.dataset.bk]=i.value});Object.values(tmp).forEach(x=>{const v=shiftJoin(x.a,x.p);if(v)(w[x.u]=w[x.u]||{})[x.d]=v});
   if(await tSet(P()+'/shifts/base',{w,holidayOff:q('#fHol').checked,at:Date.now(),by:ME()}))done('기본 근무표를 저장했어요')};
  // 휴가 결재
  body.querySelectorAll('[data-la]').forEach(b=>b.onclick=async()=>{if(await tSet(P()+'/leaves/'+b.dataset.la,{status:'approved',decBy:ME(),decAt:Date.now()},true))toast('승인했어요')});
@@ -1999,7 +2002,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .row.wrap{flex-wrap:wrap}
 .cform{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.cform h4{margin:0 0 8px;font-size:15px}
 .tin{width:100%;min-width:52px;max-width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;background:var(--surface);color:var(--ink)}
-.btab td,.btab th{padding:3px;text-align:center}.btab td:first-child{text-align:left;white-space:nowrap}.btab .tin{min-width:44px;max-width:64px;padding:5px 4px;text-align:center}
+.btab td,.btab th{padding:3px;text-align:center}.btab td:first-child{text-align:left;white-space:nowrap}.btab .tin{min-width:44px;max-width:84px;padding:5px 4px;text-align:center;display:block;margin:0 auto 3px}.amp{display:inline-flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.amp .tin{max-width:96px}
 .hand .cms{margin:8px 0 4px;padding:6px 10px;border-radius:10px;background:var(--surface-2,#f2f3f7)}.cmt{font-size:13px;padding:2px 0}
 .hand .nf{gap:8px;flex-wrap:wrap}.row.grow{flex:1;min-width:200px}.cin{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;background:var(--surface);color:var(--ink)}
 .linkbtn{border:0;background:none;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}

@@ -1,11 +1,11 @@
 {
- "version": "0.5.35",
- "notes": "설정 첫 탭 \"기본\"(휴대폰 알림 체크 + 기타 내용), 메모·알림에서 공지 탭 제거",
+ "version": "0.5.36",
+ "notes": "캘린더 근무시간을 오전/오후로 나눠 적기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "9ee473ddc003b1e5223e638bf1040496493a9ef981e44214680590b296fea3f7",
-   "size": 317297
+   "sha256": "3a3b4f72ad109033051358b8926220fcab2349cfaca96cfc630944dd4b685a93",
+   "size": 318565
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "9100ef4c4f2ab6ce5bf37e1035694dd8c3431cfd7b3badfe2173ebc82d5ed100",
+   "sha256": "a0a516dc4e95d34655f9193fce337cef772c49452025e09f34b8501edfc0da1a",
    "size": 212
   },
   {
