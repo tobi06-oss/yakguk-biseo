@@ -1231,6 +1231,7 @@ function drawNotices(body){
  const mgr=S.members.find(m=>m.uid===ME()&&(m.role==='owner'||m.role==='admin'));const total=S.members.length;
  const list=S.notices.slice().sort((a,b)=>b.at-a.at);
  body.innerHTML=(mgr?`<div class="card memo-new c-blue"><h3>새 공지</h3><textarea id="nText" rows="3" placeholder="직원 모두에게 보낼 공지"></textarea>
+  <div class="row"><label class="chk"><input type="checkbox" id="nPop" checked> 약국 PC에 즉시 팝업 (포스트잇)</label></div>
   <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="nImp"> 중요 (빨간 포스트잇)</label><button class="btn primary" type="button" id="nSend">공지 보내기</button></div></div>`
   :`<p class="muted">국장님·관리자가 보낸 공지예요. 확인하면 읽음으로 표시돼요.</p>`)+
   `<div class="alist">${list.length?list.map(n=>{const reads=n.reads||{};const readers=S.members.filter(m=>m.uid!==n.by&&reads[m.uid]);const notYet=S.members.filter(m=>m.uid!==n.by&&!reads[m.uid]);const mine=n.by===ME();const read=!!reads[ME()];
@@ -1238,7 +1239,7 @@ function drawNotices(body){
     <div class="nf"><span class="sub">읽음 ${readers.length}/${Math.max(0,total-1)}${notYet.length&&(mine||mgr)?` · 아직: ${notYet.map(m=>esc(m.name)).join(', ')}`:''}</span>
     <span class="row">${!mine&&!read?`<button class="btn sm primary" type="button" data-nr="${n.id}">확인했어요</button>`:''}${mgr?`<button class="btn sm danger" type="button" data-nd="${n.id}">삭제</button>`:''}</span></div></div>`}).join(''):'<p class="muted">아직 공지가 없어요.</p>'}</div>`;
  const q=s=>body.querySelector(s);
- if(q('#nSend'))q('#nSend').onclick=async()=>{const t=q('#nText').value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#nSend').disabled=true;if(await noticePost(t,q('#nImp').checked)){toast('공지를 보냈어요');redrawPanel()}else q('#nSend').disabled=false};
+ if(q('#nSend'))q('#nSend').onclick=async()=>{const t=q('#nText').value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#nSend').disabled=true;if(await noticePost(t,q('#nImp').checked,q('#nPop').checked)){toast('공지를 보냈어요');redrawPanel()}else q('#nSend').disabled=false};
  body.querySelectorAll('[data-nr]').forEach(b=>b.onclick=()=>noticeRead(b.dataset.nr));
  body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}noticeDel(b.dataset.nd)}});
 }
@@ -1303,6 +1304,9 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
 const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
+// 권한 이름: 국장·관리자는 모두 '관리자' 권한. 직함(국장/관리자/직원)은 가입할 때 고름
+const PERM={owner:'관리자',admin:'관리자',staff:'직원'};const TITLE_OPTS=['국장','관리자','직원'];
+const titleSel=(id,def)=>`<label class="field">직함<select id="${id}">${TITLE_OPTS.map(t=>`<option ${t===def?'selected':''}>${t}</option>`).join('')}</select></label>`;
 // 화면에 보이는 직함: 직접 적은 직함(예: 관리약사)이 있으면 그것, 없으면 권한 이름
 const roleLabel=m=>(m&&m.title)||ROLE[m&&m.role]||'';
 const enc=p=>p.replace('/','__'),dec=id=>id.replace('__','/');
@@ -1368,12 +1372,12 @@ function syApplyMemo(kind,o){const remote={};for(const id in o){const {_by,...r}
 
 /* --- 공지 --- */
 // PC 포스트잇으로 띄울 것: 안 읽은 공지 + 아직 확인 안 한 전달사항
-function deskNoticeItems(){return unreadNotices().map(n=>({id:n.id,text:n.text,byName:n.byName||nameOf(n.by),when:whenLabel(new Date(n.at)),important:!!n.important})).concat(typeof teamPopupItems==='function'?teamPopupItems():[])}
+function deskNoticeItems(){return unreadNotices().filter(n=>n.popup!==false).map(n=>({id:n.id,text:n.text,byName:n.byName||nameOf(n.by),when:whenLabel(new Date(n.at)),important:!!n.important})).concat(typeof teamPopupItems==='function'?teamPopupItems():[])}
 function syNoticesChanged(){renderMemoHome();
  if(hasDesk())window.desk.setNotices(deskNoticeItems());if(typeof renderTeamTiles==='function')renderTeamTiles();
  else if(typeof renderStickies==='function')renderStickies();
  if(redrawPanel&&(panelState.kind==='memo'||panelState.kind==='team')&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()}
-async function noticePost(text,important){try{const id=uid();await SY.cloud.set(P()+'/notices/'+id,{text:text.slice(0,2000),important:!!important,by:SY.user.uid,byName:myName(),at:Date.now(),reads:{}});return true}catch(e){toast('보내지 못했어요: '+errMsg(e));return false}}
+async function noticePost(text,important,popup){try{const id=uid();await SY.cloud.set(P()+'/notices/'+id,{text:text.slice(0,2000),important:!!important,popup:popup!==false,by:SY.user.uid,byName:myName(),at:Date.now(),reads:{}});return true}catch(e){toast('보내지 못했어요: '+errMsg(e));return false}}
 async function noticeRead(id){if(String(id).startsWith('o:'))return orderMark(String(id).slice(2),'seen');const n=S.notices.find(x=>x.id===id);if(n){n.reads={...(n.reads||{}),[ME()]:Date.now()};syNoticesChanged()}
  try{await SY.cloud.set(P()+'/notices/'+id,{reads:{[ME()]:Date.now()}},true)}catch(e){toast('읽음 표시 실패: '+errMsg(e))}}
 async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id)}catch(e){toast(errMsg(e))}}
@@ -1440,21 +1444,21 @@ function syInit(){
  SY.phase=SY.phase||'out';syLoginBtn();
  if(hasDesk()&&window.desk.onNoticeRead)window.desk.onNoticeRead(id=>noticeRead(id))}
 const CODE_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const newCode=()=>Array.from({length:6},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join('');
-async function syCreatePharm(name,me){const u=SY.user;const pid='p'+uid();const code=newCode();
+async function syCreatePharm(name,me,title){const u=SY.user;const pid='p'+uid();const code=newCode();
  await SY.cloud.set('pharmacies/'+pid,{name,ownerUid:u.uid,inviteCode:code,at:Date.now()});
- await SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{name:me,role:'owner',email:u.email||'',at:Date.now()});
+ await SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{name:me,role:'owner',email:u.email||'',at:Date.now(),...(title&&title!=='국장'?{title}:{})});
  await SY.cloud.set('invites/'+code,{pid,at:Date.now()});
  await SY.cloud.set('users/'+u.uid,{pharmPid:pid},true);
  S.settings={...S.settings,name};await saveDoc('settings/main',S.settings);applySettings();
  await syStartPharm(pid)}
 // 초대 코드가 있어야 계정을 만들 수 있음: 만든 직후 코드를 확인하고, 틀리면 만든 계정을 바로 지움
-async function syJoinNew(code,me,email,pw){await SY.cloud.signup(email,pw);
+async function syJoinNew(code,me,email,pw,title){await SY.cloud.signup(email,pw);
  for(let i=0;i<40&&!(SY.user&&SY.user.email===email);i++)await new Promise(r=>setTimeout(r,50));
  let inv=null;try{inv=await SY.cloud.get('invites/'+code)}catch(e){}
  if(!inv||!inv.pid){try{await SY.cloud.deleteMe()}catch(e){}try{await SY.cloud.logout()}catch(e){}throw{code:'nocode'}}
- return syJoinPharm(code,me)}
-async function syJoinPharm(code,me){const u=SY.user;const inv=await SY.cloud.get('invites/'+code);if(!inv||!inv.pid)throw{code:'nocode'};
- await SY.cloud.set('pharmacies/'+inv.pid+'/members/'+u.uid,{name:me,role:'staff',email:u.email||'',code,at:Date.now()});
+ return syJoinPharm(code,me,title)}
+async function syJoinPharm(code,me,title){const u=SY.user;const inv=await SY.cloud.get('invites/'+code);if(!inv||!inv.pid)throw{code:'nocode'};
+ await SY.cloud.set('pharmacies/'+inv.pid+'/members/'+u.uid,{name:me,role:'staff',email:u.email||'',code,at:Date.now(),...(title&&title!=='직원'?{title}:{})});
  await SY.cloud.set('users/'+u.uid,{pharmPid:inv.pid},true);await syStartPharm(inv.pid)}
 const PW_CH='abcdefghjkmnpqrstuvwxyz23456789';const newTempPw=()=>Array.from({length:8},()=>PW_CH[Math.floor(Math.random()*PW_CH.length)]).join('');
 async function syAddMember(name,email,pw,role,title){title=(title||'').trim().slice(0,20);const code=S.pharm&&S.pharm.inviteCode;if(!code)throw{code:'nocode'};const pid=SY.pid;let newUid=null;
@@ -1481,25 +1485,25 @@ function accountViewBase(){
   <div class="grid2"><label class="field">이메일<input id="syE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="syP" type="password" autocomplete="current-password"></label></div>
   <div class="row"><button class="btn primary" type="button" id="syIn">로그인</button><button class="btn sm" type="button" id="syReset">비밀번호 찾기</button></div><p class="muted" id="syMsg"></p></div>
   <div class="card"><h3>처음이에요: 초대 코드로 가입</h3><p class="muted">계정은 국장님·관리자에게 받은 6자리 초대 코드가 있어야 만들 수 있어요. 국장님이 "직원 바로 추가"로 계정을 만들어 줬다면 위에서 로그인만 하세요.</p>
-   <div class="grid2"><label class="field">초대 코드<input id="nwCode" maxlength="6" autocomplete="off" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름 (약국 사람들에게 보이는 이름)<input id="nwMe"></label>
+   <div class="grid2"><label class="field">초대 코드<input id="nwCode" maxlength="6" autocomplete="off" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름 (약국 사람들에게 보이는 이름)<input id="nwMe"></label>${titleSel('nwTitle','직원')}
    <label class="field">이메일 (로그인 아이디)<input id="nwE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="nwP" type="password" autocomplete="new-password"></label></div>
    <div class="row"><button class="btn primary" type="button" id="nwGo">가입하고 약국에 들어가기</button></div><p class="muted" id="nwMsg"></p></div>`;
  if(!SY.user)return `<div class="card"><h3>약국 계정</h3><p class="muted">확인하는 중…</p></div>`;
  if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
  if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
-  ${SY.allowCreate()?`<div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·매뉴얼·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
-   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>`:''}
+  ${SY.allowCreate()?`<div class="card"><h3>약국 만들기</h3><p class="muted">이 기기의 재고·매뉴얼·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
+   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label>${titleSel('cpTitle','국장')}</div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>`:''}
   <div class="card"><h3>초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
-   <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
+   <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder=""></label>${titleSel('jpTitle','직원')}</div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
  const me=S.members.find(m=>m.uid===SY.user.uid)||{};const mgr=me.role==='owner'||me.role==='admin';const owner=me.role==='owner';
  return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
-  <p class="muted">나: <b>${esc(me.name||'')}</b> (${esc(roleLabel(me))}${me.title?` · 권한 ${ROLE[me.role]||''}`:''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
+  <p class="muted">나: <b>${esc(me.name||'')}</b> (${esc(roleLabel(me))}${roleLabel(me)!==PERM[me.role]?` · 권한 ${PERM[me.role]||''}`:''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
   <div class="grid2"><label class="field">내 이름<input id="myName" value="${esc(me.name||'')}"></label><label class="field">내 직함 (비우면 "${ROLE[me.role]||''}")<input id="myTitle" maxlength="20" value="${esc(me.title||'')}" placeholder=""></label></div>
   <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button><button class="btn sm" type="button" id="emJump">이메일 변경</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
- <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${m.title?` · 권한 ${ROLE[m.role]||''}`:''}</span></span>
-  ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
+ <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${roleLabel(m)!==PERM[m.role]?` · 권한 ${PERM[m.role]||''}`:''}${m.role==='staff'&&['국장','관리자'].includes(m.title)?'<br>권한이 아직 직원이에요 · 관리자가 올려 줘야 공지·직원 초대를 할 수 있어요':''}</span></span>
+  ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner&&m.role==='staff'&&['국장','관리자'].includes(m.title)?`<button class="btn sm primary" type="button" data-promote="${esc(m.uid)}">관리자 권한 주기</button>`:''}${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
   <p class="muted">관리자는 공지를 보내고 직원을 부를 수 있어요.</p></div>
  ${mgr?`<div class="card"><h3>직원 바로 추가</h3><p class="muted">여기서 계정을 만들면 직원은 받은 이메일과 임시 비밀번호로 로그인만 하면 돼요. 초대 코드는 필요 없어요.</p>
   ${SY.lastAdded?`<div class="addok"><b>${esc(SY.lastAdded.name)}</b> 계정을 만들었어요 (${esc(roleLabel(SY.lastAdded))})<br>이메일 <span class="num">${esc(SY.lastAdded.email)}</span> · 임시 비밀번호 <b class="num">${esc(SY.lastAdded.pw)}</b>
@@ -1518,15 +1522,16 @@ function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const 
  if(q('#syIn'))q('#syIn').onclick=()=>auth('in');
  if(q('#nwGo'))q('#nwGo').onclick=()=>{const m=t=>{q('#nwMsg').textContent=t};const b=q('#nwGo');const c=q('#nwCode').value.trim().toUpperCase(),me=q('#nwMe').value.trim(),e=q('#nwE').value.trim(),p=q('#nwP').value;
   if(c.length!==6||!me||!e||p.length<6){m('초대 코드 6자리, 이름, 이메일, 비밀번호(6자 이상)를 모두 적어 주세요');return}
-  b.disabled=true;m('가입하는 중…');syJoinNew(c,me,e,p).then(()=>toast('가입하고 약국에 들어왔어요')).catch(err=>{const s=AUTH_MSG[err.code]||('문제: '+errMsg(err));toast(s);const x=$('nwMsg');if(x)x.textContent=s}).finally(()=>{if(b.isConnected)b.disabled=false})};if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
+  b.disabled=true;m('가입하는 중…');syJoinNew(c,me,e,p,q('#nwTitle').value).then(()=>toast('가입하고 약국에 들어왔어요')).catch(err=>{const s=AUTH_MSG[err.code]||('문제: '+errMsg(err));toast(s);const x=$('nwMsg');if(x)x.textContent=s}).finally(()=>{if(b.isConnected)b.disabled=false})};if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
  if(q('#syReset'))q('#syReset').onclick=()=>busy(q('#syReset'),async()=>{const e=q('#syE').value.trim();if(!e){msg('이메일을 먼저 적어 주세요');return}await SY.cloud.reset(e);msg('비밀번호 재설정 메일을 보냈어요')});
  if(q('#syOut'))q('#syOut').onclick=async()=>{await SY.cloud.logout()};
- if(q('#cpGo'))q('#cpGo').onclick=()=>busy(q('#cpGo'),async()=>{const n=q('#cpName').value.trim(),me=q('#cpMe').value.trim();if(!n||!me){msg('약국 이름과 내 이름을 적어 주세요');return}await syCreatePharm(n,me);toast('약국을 만들었어요. 초대 코드를 직원에게 알려 주세요')});
- if(q('#jpGo'))q('#jpGo').onclick=()=>busy(q('#jpGo'),async()=>{const c=q('#jpCode').value.trim().toUpperCase(),me=q('#jpMe').value.trim();if(c.length!==6||!me){msg('6자리 코드와 내 이름을 적어 주세요');return}await syJoinPharm(c,me);toast('약국에 들어왔어요')});
+ if(q('#cpGo'))q('#cpGo').onclick=()=>busy(q('#cpGo'),async()=>{const n=q('#cpName').value.trim(),me=q('#cpMe').value.trim();if(!n||!me){msg('약국 이름과 내 이름을 적어 주세요');return}await syCreatePharm(n,me,q('#cpTitle').value);toast('약국을 만들었어요. 초대 코드를 직원에게 알려 주세요')});
+ if(q('#jpGo'))q('#jpGo').onclick=()=>busy(q('#jpGo'),async()=>{const c=q('#jpCode').value.trim().toUpperCase(),me=q('#jpMe').value.trim();if(c.length!==6||!me){msg('6자리 코드와 내 이름을 적어 주세요');return}await syJoinPharm(c,me,q('#jpTitle').value);toast('약국에 들어왔어요')});
  if(q('#codeCopy'))q('#codeCopy').onclick=()=>copyText(`${S.pharm.name} 약국 비서 초대 코드: ${S.pharm.inviteCode}`);
  if(q('#codeNew'))q('#codeNew').onclick=()=>busy(q('#codeNew'),async()=>{await syNewCode();toast('새 초대 코드를 만들었어요')});
  if(q('#myNameSave'))q('#myNameSave').onclick=()=>busy(q('#myNameSave'),async()=>{const n=q('#myName').value.trim(),ti=(q('#myTitle')?q('#myTitle').value:'').trim().slice(0,20);if(!n)return;await SY.cloud.set(P()+'/members/'+SY.user.uid,{name:n,title:ti},true);toast('이름·직함을 저장했어요')});
  body.querySelectorAll('[data-role]').forEach(s=>s.onchange=()=>busy(s,async()=>{await SY.cloud.set(P()+'/members/'+s.dataset.role,{role:s.value},true);toast('역할을 바꿨어요')}));
+ body.querySelectorAll('[data-promote]').forEach(b=>b.onclick=()=>busy(b,async()=>{await SY.cloud.set(P()+'/members/'+b.dataset.promote,{role:'admin'},true);toast('관리자 권한을 줬어요')}));
  body.querySelectorAll('[data-kick]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 내보내기';setTimeout(()=>{armed=false;b.textContent='내보내기'},3000);return}busy(b,async()=>{await SY.cloud.del(P()+'/members/'+b.dataset.kick);toast('내보냈어요')})}});
  if(q('#amGo'))q('#amGo').onclick=()=>{const m=t=>{const x=q('#amMsg');if(x)x.textContent=t};const b=q('#amGo');
   const name=q('#amName').value.trim(),email=q('#amEmail').value.trim().toLowerCase(),pw=q('#amPw').value,role=q('#amRole').value,title=q('#amTitle')?q('#amTitle').value:'';
@@ -1692,7 +1697,7 @@ const orderForMe=o=>o.by!==ME()&&(!o.to||!o.to.length||o.to.includes(ME()));
 const orderSt=(o,u)=>(o.st||{})[u||ME()]||{};
 const orderDone=o=>{const r=orderTo(o);return r.length>0&&r.every(m=>orderSt(o,m.uid).done)};
 const myTodo=()=>S.orders.filter(o=>orderForMe(o)&&!orderSt(o).done);
-function teamPopupItems(){return S.orders.filter(o=>orderForMe(o)&&!orderSt(o).seen&&!orderSt(o).done).map(o=>({id:'o:'+o.id,text:'[전달사항] '+o.text+(o.due?` (기한 ${dLabel(o.due)})`:''),byName:o.byName||memName(o.by),when:whenLabel(new Date(o.at)),important:!!o.imp}))}
+function teamPopupItems(){return S.orders.filter(o=>o.popup!==false&&orderForMe(o)&&!orderSt(o).seen&&!orderSt(o).done).map(o=>({id:'o:'+o.id,text:'[전달사항] '+o.text+(o.due?` (기한 ${dLabel(o.due)})`:''),byName:o.byName||memName(o.by),when:whenLabel(new Date(o.at)),important:!!o.imp}))}
 async function orderMark(id,what,on){const now=Date.now();const v=on===false?{[what]:0}:{[what]:now,...(what==='done'?{seen:now}:{})};
  const o=S.orders.find(x=>x.id===id);if(o){o.st={...(o.st||{}),[ME()]:{...orderSt(o),...v}};teamChanged()}
  return tSet(P()+'/orders/'+id,{st:{[ME()]:v}},true)}
@@ -1709,6 +1714,7 @@ function drawOrders(body){
  body.innerHTML=(mgr?`<div class="card memo-new c-pink" id="oForm"><h3>새 전달사항</h3><textarea id="oText" rows="3" placeholder=""></textarea>
   ${S.members.length>1?`<div class="field">받는 사람<div class="wdays" id="oTo">${[{uid:'*',name:'모두'}].concat(S.members.filter(m=>m.uid!==ME())).map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${m.uid==='*'?'checked':''}><span>${esc(m.name)}</span></label>`).join('')}</div></div>`:''}
   <div class="grid2"><label class="field">기한 (선택)<input type="date" id="oDue"></label><label class="chk" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="oImp"> 중요 (위에 고정)</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="oPop" checked> 약국 PC에 즉시 팝업 (포스트잇)</label></div>
   <div class="row"><button class="btn primary" type="button" id="oSend">전달하기</button></div></div>`
   :`<p class="muted">국장님·관리자가 보낸 업무 지시예요. 읽으면 "확인했어요", 끝내면 "완료"를 눌러 주세요. 보낸 사람에게 바로 보여요.</p>`)+
   `<div class="alist">${active.length?active.map(card).join(''):'<p class="muted">진행 중인 전달사항이 없어요.</p>'}</div>`+
@@ -1717,7 +1723,7 @@ function drawOrders(body){
  const f=q('#oForm');if(f)f.querySelectorAll('#oTo input').forEach(x=>x.addEventListener('change',()=>{if(x.value==='*'&&x.checked)f.querySelectorAll('#oTo input').forEach(y=>{if(y!==x)y.checked=false});else if(x.checked)f.querySelector('#oTo input[value="*"]').checked=false}));
  if(q('#oSend'))q('#oSend').onclick=async()=>{const text=q('#oText').value.trim();if(!text){toast('전달할 내용을 적어 주세요');return}
   const c=[...body.querySelectorAll('#oTo input:checked')].map(x=>x.value);const to=!c.length||c.includes('*')?[]:c;
-  q('#oSend').disabled=true;if(await tSet(P()+'/orders/'+uid(),{text:text.slice(0,2000),to,due:q('#oDue').value||'',imp:q('#oImp').checked,by:ME(),byName:myName(),at:Date.now(),st:{}})){toast('전달했어요');redrawPanel()}else q('#oSend').disabled=false};
+  q('#oSend').disabled=true;if(await tSet(P()+'/orders/'+uid(),{text:text.slice(0,2000),to,due:q('#oDue').value||'',imp:q('#oImp').checked,popup:q('#oPop').checked,by:ME(),byName:myName(),at:Date.now(),st:{}})){toast('전달했어요');redrawPanel()}else q('#oSend').disabled=false};
  body.querySelectorAll('[data-os]').forEach(b=>b.onclick=()=>orderMark(b.dataset.os,'seen'));
  body.querySelectorAll('[data-od]').forEach(b=>b.onclick=async()=>{if(await orderMark(b.dataset.od,'done'))toast('완료로 표시했어요')});
  body.querySelectorAll('[data-ou]').forEach(b=>b.onclick=()=>orderMark(b.dataset.ou,'done',false));
@@ -2277,7 +2283,7 @@ function altFoot(body){if(body.querySelector('.altfoot'))return;const f=document
  new MutationObserver(()=>{if(!busy&&!el.querySelector('.sd'))split()}).observe(el,{childList:true,characterData:true,subtree:true});split()})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791262286';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791267476';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

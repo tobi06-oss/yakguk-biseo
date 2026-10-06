@@ -1,11 +1,11 @@
 {
- "version": "0.5.27",
- "notes": "사이드바에서 창을 열면 잠깐 기본 크기로 넓어졌다가 닫으면 다시 사이드바로",
+ "version": "0.5.29",
+ "notes": "공지사항·전달사항을 보낼 때 \"약국 PC에 즉시 팝업(포스트잇)\" 선택",
  "files": [
   {
    "p": "index.html",
-   "sha256": "a4b0600524ee9004847627579c73a19bd9cfb66086410c17fd28cb9eb2931053",
-   "size": 308143
+   "sha256": "2c67adf19d3d734296ce6d0113bdb062fdccb2fca2c1a28f0405f49db6205174",
+   "size": 309779
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "9fa9be47ca0fc397e6f3f7380a7fae6bf259b044b357dfd70165c0bf44e8974d",
+   "sha256": "18d2b67bc26f4686ded2bc2a6f2efd860e32a63ec4a34624394394b087e7e867",
    "size": 212
   },
   {
