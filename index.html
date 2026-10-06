@@ -1158,7 +1158,7 @@ function drawMemo(body){
    <button type="button" data-pin="${m.id}" aria-label="${m.pin?'고정 풀기':'고정'}">${m.pin?'고정 풀기':'고정'}</button><button type="button" data-al="${m.id}">알림</button>${window.desk?`<button type="button" data-dk="${m.id}">${m.desk?'바탕화면에서 떼기':'바탕화면에 붙이기'}</button>`:''}<button type="button" data-ed="${m.id}">고치기</button><button type="button" data-del="${m.id}">삭제</button></span></div></div>`).join('')
    :`<p class="muted">${k?'찾는 메모가 없어요':'아직 메모가 없어요. 위에 적고 메모 추가를 누르세요.'}</p>`;
   grid.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.pin);m.pin=!m.pin;saveMemo();list()});
-  grid.querySelectorAll('[data-dk]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.dk);m.desk=m.desk?null:{top:false};saveMemo();toast(m.desk?'바탕화면에 붙였어요':'바탕화면에서 뗐어요');list()});
+  grid.querySelectorAll('[data-dk]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.dk);m.desk=m.desk?null:{top:true};saveMemo();toast(m.desk?'바탕화면에 붙였어요':'바탕화면에서 뗐어요');list()});
   grid.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{memoEdit=b.dataset.ed;drawMemo(body);body.scrollTop=0});
   grid.querySelectorAll('[data-al]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.al);alarmEdit={new:true,text:m.text,color:m.color};panelState.tab='alarms';redrawPanel()});
   grid.querySelectorAll('[data-del]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';b.classList.add('arm');setTimeout(()=>{armed=false;b.textContent='삭제';b.classList.remove('arm')},3000);return}
@@ -1942,7 +1942,7 @@ function drawMyNote(body){
   const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
    ${items.length?`<div class="row"><button class="btn sm" type="button" id="mnExp">모두 펼치기</button><button class="btn sm" type="button" id="mnCol">모두 접기</button></div>`:''}`;
   list.innerHTML=head+(items.map(m=>{const o=mnOpenHas(m.id)||!!nq;
-   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span><span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span></button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span>${m.fromName==='약국 매뉴얼'?'':`<span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span>`}</button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
   const bk=list.querySelector('#mnBack');if(bk)bk.onclick=()=>{mnCat=null;mnOpen=null;mnOpenSet.clear();run()};
   const ex=list.querySelector('#mnExp');if(ex)ex.onclick=()=>{items.forEach(m=>mnOpenSet.add(m.id));run()};
   const co=list.querySelector('#mnCol');if(co)co.onclick=()=>{mnOpenSet.clear();mnOpen=null;run()};
@@ -2115,7 +2115,7 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
 const manualOpen=new Set();const mOpenHas=id=>openItem===id||manualOpen.has(id);
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791255356';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791255857';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
