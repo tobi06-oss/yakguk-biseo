@@ -1,11 +1,11 @@
 {
- "version": "0.5.9",
- "notes": "첫 화면 검색창 · 업데이트 확인 단추(톱니 왼쪽) · 누르기 쉬운 단추 크기 · 직원 나가기 단추 없앰",
+ "version": "0.5.10",
+ "notes": "개인 업무수첩도 매뉴얼처럼 분류별로 · 매뉴얼·수첩에 모두 펼치기/접기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "920d6ab03d8babfde7e649fffc35eb15e78f331993dfd143b8a8be51ffa02a6a",
-   "size": 278451
+   "sha256": "9b388a639eb864e0182dc8841a63e4391a0c1361408c01b0a739eaccb68a9947",
+   "size": 281317
   },
   {
    "p": "main.js",
@@ -39,8 +39,8 @@
   },
   {
    "p": "package.json",
-   "sha256": "c6ba0ddcf0d91987ec28152eb84b2e0e55bee3d3fbf540d57ca1aa0aeeadff2f",
-   "size": 211
+   "sha256": "d9e8b075460205c6a8911b6c50edaad3b62297f8168034d67d573d003b5b912f",
+   "size": 212
   },
   {
    "p": "icon.png",

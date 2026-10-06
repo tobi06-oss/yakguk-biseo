@@ -777,15 +777,17 @@ function drawManual(body){
   if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
   const cats=groupBy(S.manual,m=>m.sec||'기타');
   if(!q&&!manualCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-cat="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
-   list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;run()});return}
+   list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;manualOpen.clear();run()});return}
   const items=q?S.manual.filter(m=>norm(m.sec+' '+m.h+' '+m.body).includes(nq)):S.manual.filter(m=>(m.sec||'기타')===manualCat);
-  const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${SY.user&&items.length?`<div class="row"><button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button></div>`:''}`;
-  list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${openItem===m.id||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${openItem===m.id||!!q}">${esc(m.h)}${q?` <span class="sub">${esc(m.sec)}</span>`:''}</button>${openItem===m.id||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
-  $('mBack')&&($('mBack').onclick=()=>{manualCat=null;openItem=null;run()});
-  list.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{openItem=openItem===b.dataset.item?null:b.dataset.item;run()});
+  const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
+  list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${mOpenHas(m.id)||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${mOpenHas(m.id)||!!q}">${esc(m.h)}${q?` <span class="sub">${esc(m.sec)}</span>`:''}</button>${mOpenHas(m.id)||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+  $('mBack')&&($('mBack').onclick=()=>{manualCat=null;openItem=null;manualOpen.clear();run()});
+  list.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{const i=b.dataset.item;if(mOpenHas(i)){manualOpen.delete(i);if(openItem===i)openItem=null}else manualOpen.add(i);run()});
   list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editId=b.dataset.edit;run()});
   list.querySelectorAll('[data-tonote]').forEach(b=>b.onclick=()=>mnFromManual([b.dataset.tonote],b));
   $('mToNoteAll')&&($('mToNoteAll').onclick=e=>mnFromManual(items.map(m=>m.id),e.currentTarget));
+  $('mExpAll')&&($('mExpAll').onclick=()=>{items.forEach(m=>manualOpen.add(m.id));run()});
+  $('mColAll')&&($('mColAll').onclick=()=>{manualOpen.clear();openItem=null;run()});
   list.querySelectorAll('[data-form]').forEach(d=>{const m=S.manual.find(x=>x.id===d.dataset.form);d.replaceWith(manualForm(m,run))});
  };
  $('mq').oninput=run;run();
@@ -1289,7 +1291,7 @@ $('input').addEventListener('input',autosize);
 $('stopBtn').addEventListener('click',()=>ctl?.abort());
 $('menuBtn').addEventListener('click',()=>openPanel('settings'));
 $('altTile').addEventListener('click',()=>openPanel('alt'));
-$('book').addEventListener('click',()=>{manualCat=null;openItem=null;openPanel('manual')});
+$('book').addEventListener('click',()=>{manualCat=null;openItem=null;manualOpen.clear();openPanel('manual')});
 $('memoTile').addEventListener('click',()=>window.drawTeam&&S.pharm?openPanel('memo',dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':'memos'):openPanel('memo',unreadNotices().length?'notices':dueAlarms().length||S.memo.alarms.length&&!S.memo.memos.length?'alarms':S.pharm&&S.notices.length?'notices':'memos'));
 $('img').addEventListener('change',e=>{const f=e.target.files[0];if(f)setImg(f);e.target.value=''});
 $('imgDel').addEventListener('click',()=>setImg(null));
@@ -1903,7 +1905,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-S.mynotes=[];let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
+S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '기타';if(m.sec)return m.sec;if(m.fromName==='약국 매뉴얼'){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return x.sec}return '기타'};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
 const mnPath=()=>'users/'+SY.user.uid+'/notes';
 function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
  try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e))}catch(e){console.warn(e)}}
@@ -1930,11 +1932,20 @@ function drawMyNote(body){
  if(panelState.tab==='add'||mnEdit){body.innerHTML=lock;body.appendChild(mnForm(panelState.tab==='add'?null:S.mynotes.find(x=>x.id===mnEdit)));return}
  body.innerHTML=lock+mnInboxHtml()+`<input class="search" id="mnQ" type="search" placeholder="내 수첩 검색" value="${esc(mnQ)}"><div id="mnList" style="display:flex;flex-direction:column;gap:8px"></div>`;
  const run=()=>{mnQ=body.querySelector('#mnQ').value;const nq=norm(mnQ.trim()),list=body.querySelector('#mnList');
-  if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요.</p></div>';return}
-  const items=mnSorted().filter(m=>!nq||norm((m.title||'')+' '+(m.body||'')).includes(nq));
-  list.innerHTML=(nq?`<p class="muted">${items.length}개 찾았어요</p>`:'')+(items.map(m=>{const o=mnOpen===m.id||!!nq;
-   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}</span><span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span></button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
-  list.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{mnOpen=mnOpen===b.dataset.mi?null:b.dataset.mi;run()});
+  if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
+  if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)}
+  const cats=groupBy(mnSorted(),mnSec);
+  if(!nq&&!mnCat){list.innerHTML=cats.map(([sec,arr])=>`<button class="cat" type="button" data-mc="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>`).join('');
+   list.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{mnCat=b.dataset.mc;mnOpen=null;mnOpenSet.clear();run()});return}
+  const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):mnSorted().filter(m=>mnSec(m)===mnCat);
+  const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
+   ${items.length?`<div class="row"><button class="btn sm" type="button" id="mnExp">모두 펼치기</button><button class="btn sm" type="button" id="mnCol">모두 접기</button></div>`:''}`;
+  list.innerHTML=head+(items.map(m=>{const o=mnOpenHas(m.id)||!!nq;
+   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span><span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span></button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+  const bk=list.querySelector('#mnBack');if(bk)bk.onclick=()=>{mnCat=null;mnOpen=null;mnOpenSet.clear();run()};
+  const ex=list.querySelector('#mnExp');if(ex)ex.onclick=()=>{items.forEach(m=>mnOpenSet.add(m.id));run()};
+  const co=list.querySelector('#mnCol');if(co)co.onclick=()=>{mnOpenSet.clear();mnOpen=null;run()};
+  list.querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{const i=b.dataset.mi;if(mnOpenHas(i)){mnOpenSet.delete(i);if(mnOpen===i)mnOpen=null}else mnOpenSet.add(i);run()});
   list.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{mnEdit=b.dataset.me;redrawPanel();body.scrollTop=0});
   list.querySelectorAll('[data-mp]').forEach(b=>b.onclick=()=>{const m=S.mynotes.find(x=>x.id===b.dataset.mp);if(m)mnPut(m.id,{pin:!m.pin})});
   list.querySelectorAll('[data-ms]').forEach(b=>b.onclick=()=>{mnPre=new Set([b.dataset.ms]);panelState.tab='send';redrawPanel()});
@@ -1944,19 +1955,21 @@ function drawMyNote(body){
 }
 function mnForm(m){
  const f=document.createElement('div');f.className='card';
- f.innerHTML=`<div class="field">제목<input id="mnT" maxlength="100" value="${esc(m?m.title||'':'')}"></div>
+ const secs=[...new Set(S.mynotes.map(mnSec).concat((S.manual||[]).map(x=>x.sec||'기타')))];
+ f.innerHTML=`<div class="field">분류<input id="mnS" list="mnSecs" maxlength="40" value="${esc(m?mnSec(m):(mnCat||''))}"><datalist id="mnSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+ <div class="field">제목<input id="mnT" maxlength="100" value="${esc(m?m.title||'':'')}"></div>
  <div class="field">내용<textarea id="mnB" rows="8" maxlength="5000">${esc(m?m.body||'':'')}</textarea></div>
  <div class="row"><button class="btn primary" type="button" id="mnSave">저장</button>${m?'<button class="btn" type="button" id="mnCancel">취소</button>':''}</div>`;
  const q=s=>f.querySelector(s);
- q('#mnSave').onclick=async()=>{const title=q('#mnT').value.trim().slice(0,100),b=q('#mnB').value.trim().slice(0,5000);
+ q('#mnSave').onclick=async()=>{const sec=q('#mnS').value.trim().slice(0,40)||'기타',title=q('#mnT').value.trim().slice(0,100),b=q('#mnB').value.trim().slice(0,5000);
   if(!title&&!b){toast('제목이나 내용을 적어 주세요');return}
   q('#mnSave').disabled=true;const now=Date.now();const id=m?m.id:'n'+uid();
-  const ok=await mnPut(id,m?{title,body:b,upd:now}:{title,body:b,pin:false,at:now,upd:now});
-  if(ok){toast(m?'고쳤어요':'내 수첩에 저장했어요');mnEdit=null;mnOpen=id;panelState.tab='list';redrawPanel&&redrawPanel()}else if(q('#mnSave'))q('#mnSave').disabled=false};
+  const ok=await mnPut(id,m?{sec,title,body:b,upd:now}:{sec,title,body:b,pin:false,at:now,upd:now});
+  if(ok){toast(m?'고쳤어요':'내 수첩에 저장했어요');mnEdit=null;mnOpen=id;mnCat=sec;panelState.tab='list';redrawPanel&&redrawPanel()}else if(q('#mnSave'))q('#mnSave').disabled=false};
  if(m)q('#mnCancel').onclick=()=>{mnEdit=null;redrawPanel()};
  setTimeout(()=>{const i=q(m?'#mnB':'#mnT');if(i&&i.isConnected)i.focus()},30);
  return f}
-$('myNoteTile')&&$('myNoteTile').addEventListener('click',()=>{mnEdit=null;mnOpen=null;mnQ='';openPanel('mynote')});
+$('myNoteTile')&&$('myNoteTile').addEventListener('click',()=>{mnEdit=null;mnOpen=null;mnCat=null;mnOpenSet.clear();mnQ='';openPanel('mynote')});
 renderMyNoteTile();
 
 /* --- 개인 업무수첩 보내기: pharmacies/{pid}/inbox/{받는uid}/items/{id} {from,fromName,at,notes:[{title,body}]}
@@ -1972,7 +1985,7 @@ function mnInboxHtml(){if(!(S.mninbox||[]).length)return '';
 function bindMnInbox(body){
  body.querySelectorAll('[data-mnin]').forEach(b=>b.onclick=async()=>{const x=S.mninbox.find(y=>y.id===b.dataset.mnin);if(!x)return;b.disabled=true;
   const now=Date.now();let ok=true;
-  for(const [i,n] of (x.notes||[]).entries()){const id='n'+uid()+i;const d={title:String(n.title||'').slice(0,100),body:String(n.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:x.fromName||''};
+  for(const [i,n] of (x.notes||[]).entries()){const id='n'+uid()+i;const d={sec:String(n.sec||'기타').slice(0,40),title:String(n.title||'').slice(0,100),body:String(n.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:x.fromName||''};
    S.mynotes.push({id,...d});if(!(await tSet(mnPath()+'/'+id,d,true))){ok=false;break}}
   if(ok){await tDel(P()+'/inbox/'+SY.user.uid+'/items/'+x.id);S.mninbox=S.mninbox.filter(y=>y.id!==x.id);toast(`${(x.notes||[]).length}개를 내 수첩에 넣었어요`)}
   myNoteChanged();if(redrawPanel)redrawPanel()});
@@ -1996,7 +2009,7 @@ function mnSendForm(){
  q('#mnPickQ').oninput=()=>{const s=norm(q('#mnPickQ').value.trim());f.querySelectorAll('#mnPick label').forEach(l=>l.hidden=!!s&&!l.dataset.t.includes(s))};
  q('#mnGo').onclick=async()=>{const ids=[...f.querySelectorAll('#mnPick input:checked')].map(x=>x.value);if(!ids.length){toast('보낼 항목을 골라 주세요');return}
   const to=q('#mnTo').value,toName=(S.members.find(m=>m.uid===to)||{}).name||'';
-  const list=ids.map(id=>S.mynotes.find(n=>n.id===id)).filter(Boolean).map(n=>({title:n.title||'',body:n.body||''}));
+  const list=ids.map(id=>S.mynotes.find(n=>n.id===id)).filter(Boolean).map(n=>({sec:mnSec(n),title:n.title||'',body:n.body||''}));
   if(JSON.stringify(list).length>800000){toast('너무 많아서 한 번에 못 보내요. 나눠서 보내 주세요');return}
   q('#mnGo').disabled=true;
   const ok=await tSet(P()+'/inbox/'+to+'/items/s'+uid(),{from:ME(),fromName:myName(),at:Date.now(),notes:list});
@@ -2011,7 +2024,7 @@ async function mnFromManual(ids,btn){
  const todo=items.filter(m=>!same(m));
  if(!todo.length){toast(items.length>1?'모두 이미 내 수첩에 있어요':'이미 내 수첩에 있어요');return}
  if(btn)btn.disabled=true;const now=Date.now();let n=0;
- for(const [i,m] of todo.entries()){const id='n'+uid()+i;const d={title:String(m.h||'').slice(0,100),body:String(m.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:'약국 매뉴얼'};
+ for(const [i,m] of todo.entries()){const id='n'+uid()+i;const d={sec:String(m.sec||'기타').slice(0,40),title:String(m.h||'').slice(0,100),body:String(m.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:'약국 매뉴얼'};
   S.mynotes.push({id,...d});if(!(await tSet(mnPath()+'/'+id,d,true)))break;n++}
  myNoteChanged();
  if(n)toast(`${n}개를 내 수첩에 담았어요`+(items.length>todo.length?` (이미 있던 ${items.length-todo.length}개 빼고)`:''));
@@ -2043,6 +2056,7 @@ function mnImportForm(){
 (()=>{const st=document.createElement('style');st.textContent=`
 .btn{min-height:40px;padding:9px 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
 .btn.sm{min-height:36px;padding:7px 13px;font-size:12.5px}
+.btn{white-space:nowrap}.panel-h .row{flex-wrap:wrap;justify-content:flex-end;gap:6px}
 .tab{min-height:40px;padding:9px 16px;cursor:pointer}
 .iconbtn{min-width:42px;min-height:42px;cursor:pointer}
 label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
@@ -2086,7 +2100,7 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
   const man=(S.manual||[]).filter(m=>norm((m.sec||'')+' '+m.h+' '+(m.body||'')).includes(nq)).slice(0,6);
   html+=sec('약국 매뉴얼',man.map(m=>row(esc(m.h),esc(m.sec||''),()=>{manualCat=null;openItem=m.id;openPanel('manual');setTimeout(()=>{const s=$('mq');if(s){s.value=m.h;s.dispatchEvent(new Event('input'))}},30)})));
   const mine=(S.mynotes||[]).filter(n=>norm((n.title||'')+' '+(n.body||'')).includes(nq)).slice(0,6);
-  html+=sec('내 수첩 (나만 보임)',mine.map(n=>row(esc(n.title||'(제목 없음)'),mnDate(n.upd||n.at),()=>{mnEdit=null;mnOpen=n.id;mnQ='';openPanel('mynote')})));
+  html+=sec('내 수첩 (나만 보임)',mine.map(n=>row(esc(n.title||'(제목 없음)'),mnDate(n.upd||n.at),()=>{mnEdit=null;mnOpen=n.id;mnCat=mnSec(n);mnQ='';openPanel('mynote')})));
   const memos=((S.memo&&S.memo.memos)||[]).filter(m=>norm(m.text||'').includes(nq)).slice(0,4);
   html+=sec('메모',memos.map(m=>row(esc(m.text),'메모 ›',()=>{memoEdit=m.id;openPanel('memo','memos')})));
   res.innerHTML=html||`<div class="none">"${esc(raw)}"에 맞는 재고·매뉴얼·수첩·메모가 없어요.${typeof M!=='undefined'&&M?'':' 재고 자료는 아직 없어요.'}</div>`;res.hidden=false;
@@ -2095,6 +2109,9 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(acts.length)acts[0]()}else if(e.key==='Escape'){inp.value='';run()}});
  x.onclick=()=>{inp.value='';run();inp.focus()};
  window.homeSearchRefresh=()=>{if(inp.value.trim())run()}})();
+
+/* --- 약국 매뉴얼: 여러 항목을 함께 펼치기 (모두 펼치기·모두 접기) --- */
+const manualOpen=new Set();const mOpenHas=id=>openItem===id||manualOpen.has(id);
 
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
