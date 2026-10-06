@@ -7,7 +7,7 @@ window.__fakeCloud=()=>{
  const call=async(op,args)=>{await ready;const rid=++n;return new Promise(r=>{wait[rid]=r;ws.send(JSON.stringify({rid,op,...args}))})};
  const setU=u=>{if(u)localStorage.setItem('fakeUser',JSON.stringify(u));else localStorage.removeItem('fakeUser');authCb&&authCb(u)};
  return{onAuth:cb=>{authCb=cb;const s=localStorage.getItem('fakeUser');setTimeout(()=>cb(s?JSON.parse(s):null),0)},
-  login:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),signup:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),reset:async()=>{},logout:async()=>setU(null),
+  login:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),signup:async e=>setU({uid:'u_'+e.replace(/\W/g,''),email:e}),reset:async()=>{},deleteMe:async()=>{window.__fakeDeleted=(window.__fakeDeleted||0)+1},logout:async()=>setU(null),
   asNewUser:async(e,p,fn)=>{if(e.includes('taken'))throw{code:'auth/email-already-in-use'};await fn({set:(path,d,merge)=>call('set',{path,data:d,merge:!!merge})},'u_'+e.replace(/\W/g,''))},changePw:async(o,n)=>{if(o!=='123456')throw{code:'auth/invalid-credential'}},
   changeEmail:async(pw,ne)=>{if(pw!=='123456')throw{code:'auth/invalid-credential'};if(ne.includes('taken'))throw{code:'auth/email-already-in-use'};window.__fakeEmailSent=ne},
   get:p=>call('get',{path:p}),getAll:c=>call('getAll',{path:c}),set:(p,d,merge)=>call('set',{path:p,data:d,merge:!!merge}),del:p=>call('del',{path:p}),

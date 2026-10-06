@@ -1,15 +1,15 @@
 {
- "version": "0.5.16",
- "notes": "프로그램 항상 위 단추 · 사이드바 모드(화면 오른쪽에 길게, 항상 위)",
+ "version": "0.5.20",
+ "notes": "사이드바 모드를 더 좁게(280): 제목 글씨 숨기고 아이콘 단추, 타일 한 줄에 2개",
  "files": [
   {
    "p": "index.html",
-   "sha256": "833df8fc49a520ff02a9b057431a8586f30bb6da3cc75143cdd7821adb443aa3",
-   "size": 289143
+   "sha256": "b13b7475ca303872ed4fd1ace7324d9c9cfa02b58f49dc280e91f82f3eb76596",
+   "size": 297280
   },
   {
    "p": "main.js",
-   "sha256": "4e30a51a816d44bbcbff1865b56a9d79404560545339123384852c50b9870b61",
+   "sha256": "6e8725f7a7aca5483360782d8963a629d57e791d8ec1e997229c9d16482e24ee",
    "size": 18511
   },
   {
@@ -34,12 +34,12 @@
   },
   {
    "p": "fakecloud.js",
-   "sha256": "994649b3a77de43177bf9ced0df1dd1ff9782ec45404cf7830193a6d75955b00",
-   "size": 2044
+   "sha256": "917bc78f4afcae38ac7db073fc66f5725ee6cc3c4f3dfb7857e0327a285f483c",
+   "size": 2113
   },
   {
    "p": "package.json",
-   "sha256": "6717dc96a13bf5a5a72d398a33cd590d91beb3bf413bebab0d8a1023d166df9f",
+   "sha256": "04e35b13c17cca1a84e9d199f0bf9f7519e742cfe02e89d4bc09d6bb44a75d14",
    "size": 212
   },
   {

@@ -633,7 +633,7 @@ function renderToday(){
  const ks=[`<span class="k"><em><i class="${M.urgent.length?'dot-bad':'dot-ok'}"></i>급한 주문</em><b>${M.urgent.length}</b></span>`,
   `<span class="k"><em><i class="${M.low.length?'dot-warn':'dot-ok'}"></i>발주</em><b>${M.low.length}</b></span>`];
  if(S.prev)ks.push(`<span class="k"><em><i class="${M.gone.length?'dot-bad':'dot-ok'}"></i>새로 0</em><b>${M.gone.length}</b></span>`);
- t.innerHTML=`<span class="d"><span>오늘의 재고 · <span class="num">${dateLabel(M.date)}</span></span><span class="go">자세히 ›</span></span><span class="ks">${ks.join('')}</span>`;t.onclick=()=>openPanel('stock');
+ t.innerHTML=`<span class="d"><span>오늘의 재고 · <span class="num">${dateLabel(M.date)}</span><span class="devtag">개발 중</span></span><span class="go">자세히 ›</span></span><span class="ks">${ks.join('')}</span>`;t.onclick=()=>openPanel('stock');
 }
 
 /* ===== 패널 ===== */
@@ -1306,7 +1306,7 @@ const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
 // 화면에 보이는 직함: 직접 적은 직함(예: 관리약사)이 있으면 그것, 없으면 권한 이름
 const roleLabel=m=>(m&&m.title)||ROLE[m&&m.role]||'';
 const enc=p=>p.replace('/','__'),dec=id=>id.replace('__','/');
-const SY={cloud:null,user:null,pid:null,unsub:[],dev:null,pushedAt:{},seenAt:{},base:{memos:{},alarms:{}},status:'off',lastSync:null,err:'',phase:'out'};
+const SY={allowCreate:()=>/개설|create/.test(decodeURIComponent(location.hash||''))||(()=>{try{return localStorage.getItem('cb-allow-create')==='1'}catch(e){return false}})(),cloud:null,user:null,pid:null,unsub:[],dev:null,pushedAt:{},seenAt:{},base:{memos:{},alarms:{}},status:'off',lastSync:null,err:'',phase:'out'};
 SY.dev=local('cb-desk-device')||(()=>{const d='pc-'+Math.random().toString(36).slice(2,8);local('cb-desk-device',d);return d})();
 const P=()=>'pharmacies/'+SY.pid;
 const hasDesk=()=>!!(window.desk&&window.desk.setMe);
@@ -1314,7 +1314,7 @@ const hasDesk=()=>!!(window.desk&&window.desk.setMe);
 function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});try{auth.languageCode='ko'}catch(e){}
  const db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
  return{onAuth:cb=>F.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:u.email}:null)),login:(e,p)=>F.signInWithEmailAndPassword(auth,e,p),signup:(e,p)=>F.createUserWithEmailAndPassword(auth,e,p),
-  reset:e=>F.sendPasswordResetEmail(auth,e),logout:()=>F.signOut(auth),
+  reset:e=>F.sendPasswordResetEmail(auth,e),deleteMe:async()=>{const u=auth.currentUser;if(u)await u.delete()},logout:()=>F.signOut(auth),
   // 다른 사람 계정을 만들고 그 사람으로 잠깐 들어가 fn 실행 (내 로그인은 그대로 유지)
   asNewUser:async(e,p,fn)=>{const app2=F.initializeApp(FB_CFG,'add-'+Date.now());
    try{const a2=F.initializeAuth(app2,{persistence:F.inMemoryPersistence});const d2=F.initializeFirestore(app2,{experimentalAutoDetectLongPolling:true});
@@ -1420,6 +1420,12 @@ async function syCreatePharm(name,me){const u=SY.user;const pid='p'+uid();const 
  await SY.cloud.set('users/'+u.uid,{pharmPid:pid},true);
  S.settings={...S.settings,name};await saveDoc('settings/main',S.settings);applySettings();
  await syStartPharm(pid)}
+// 초대 코드가 있어야 계정을 만들 수 있음: 만든 직후 코드를 확인하고, 틀리면 만든 계정을 바로 지움
+async function syJoinNew(code,me,email,pw){await SY.cloud.signup(email,pw);
+ for(let i=0;i<40&&!(SY.user&&SY.user.email===email);i++)await new Promise(r=>setTimeout(r,50));
+ let inv=null;try{inv=await SY.cloud.get('invites/'+code)}catch(e){}
+ if(!inv||!inv.pid){try{await SY.cloud.deleteMe()}catch(e){}try{await SY.cloud.logout()}catch(e){}throw{code:'nocode'}}
+ return syJoinPharm(code,me)}
 async function syJoinPharm(code,me){const u=SY.user;const inv=await SY.cloud.get('invites/'+code);if(!inv||!inv.pid)throw{code:'nocode'};
  await SY.cloud.set('pharmacies/'+inv.pid+'/members/'+u.uid,{name:me,role:'staff',email:u.email||'',code,at:Date.now()});
  await SY.cloud.set('users/'+u.uid,{pharmPid:inv.pid},true);await syStartPharm(inv.pid)}
@@ -1435,18 +1441,22 @@ async function syNewCode(){const old=S.pharm&&S.pharm.inviteCode;const code=newC
 
 /* --- 계정 화면 (설정 → 약국 계정) --- */
 const AUTH_MSG={'auth/invalid-credential':'이메일이나 비밀번호가 맞지 않아요','auth/wrong-password':'비밀번호가 맞지 않아요','auth/user-not-found':'없는 계정이에요. 새 계정 만들기를 누르세요',
- 'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/missing-password':'비밀번호를 적어 주세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요'};
+ 'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/missing-password':'비밀번호를 적어 주세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요. 국장님·관리자에게 코드를 다시 확인해 주세요'};
 function accountView(){
  if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
  if(SY.phase==='out')return `<div class="card"><h3>약국 계정</h3><p class="muted">국장님은 약국을 만들고, 직원은 초대 코드로 들어와요. 각자 자기 이메일로 계정을 만드세요. 같은 계정으로 PC·휴대폰 어디서 로그인해도 같은 자료와 공지를 받아요.</p>
   <div class="grid2"><label class="field">이메일<input id="syE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="syP" type="password" autocomplete="current-password"></label></div>
-  <div class="row"><button class="btn primary" type="button" id="syIn">로그인</button><button class="btn" type="button" id="syNew">새 계정 만들기</button><button class="btn sm" type="button" id="syReset">비밀번호 찾기</button></div><p class="muted" id="syMsg"></p></div>`;
+  <div class="row"><button class="btn primary" type="button" id="syIn">로그인</button><button class="btn sm" type="button" id="syReset">비밀번호 찾기</button></div><p class="muted" id="syMsg"></p></div>
+  <div class="card"><h3>처음이에요: 초대 코드로 가입</h3><p class="muted">계정은 국장님·관리자에게 받은 6자리 초대 코드가 있어야 만들 수 있어요. 국장님이 "직원 바로 추가"로 계정을 만들어 줬다면 위에서 로그인만 하세요.</p>
+   <div class="grid2"><label class="field">초대 코드<input id="nwCode" maxlength="6" autocomplete="off" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름 (약국 사람들에게 보이는 이름)<input id="nwMe"></label>
+   <label class="field">이메일 (로그인 아이디)<input id="nwE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="nwP" type="password" autocomplete="new-password"></label></div>
+   <div class="row"><button class="btn primary" type="button" id="nwGo">가입하고 약국에 들어가기</button></div><p class="muted" id="nwMsg"></p></div>`;
  if(!SY.user)return `<div class="card"><h3>약국 계정</h3><p class="muted">확인하는 중…</p></div>`;
  if(SY.phase==='check')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')} · 약국 정보를 확인하는 중…</p></div>`;
  if(SY.phase==='nopharm')return `<div class="card"><h3>약국 계정</h3><p class="muted">${esc(SY.user.email||'')}로 로그인했어요. 아직 약국에 들어가지 않았어요.</p><div class="row"><button class="btn sm" type="button" id="syOut">로그아웃</button></div></div>
-  <div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·매뉴얼·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
-   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>
-  <div class="card"><h3>직원: 초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
+  ${SY.allowCreate()?`<div class="card"><h3>국장님: 약국 만들기</h3><p class="muted">이 기기의 재고·매뉴얼·메모가 약국 공간에 올라가고, 직원을 부를 초대 코드가 생겨요.</p>
+   <div class="grid2"><label class="field">약국 이름<input id="cpName" value="${esc(S.settings.name||'')}"></label><label class="field">내 이름 (직원에게 보이는 이름)<input id="cpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="cpGo">약국 만들기</button></div></div>`:''}
+  <div class="card"><h3>초대 코드로 들어가기</h3><p class="muted">국장님께 받은 6자리 코드를 넣으세요. 약국 자료와 공지를 받아 와요.</p>
    <div class="grid2"><label class="field">초대 코드<input id="jpCode" maxlength="6" style="text-transform:uppercase;font-family:var(--mono)"></label><label class="field">내 이름<input id="jpMe" placeholder=""></label></div><div class="row"><button class="btn primary" type="button" id="jpGo">들어가기</button></div><p class="muted" id="syMsg"></p></div>`;
  const me=S.members.find(m=>m.uid===SY.user.uid)||{};const mgr=me.role==='owner'||me.role==='admin';const owner=me.role==='owner';
  return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
@@ -1476,7 +1486,10 @@ function accountView(){
  <div class="card"><div class="row"><button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
 function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
  const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p))});
- if(q('#syIn'))q('#syIn').onclick=()=>auth('in');if(q('#syNew'))q('#syNew').onclick=()=>auth('new');if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
+ if(q('#syIn'))q('#syIn').onclick=()=>auth('in');
+ if(q('#nwGo'))q('#nwGo').onclick=()=>{const m=t=>{q('#nwMsg').textContent=t};const b=q('#nwGo');const c=q('#nwCode').value.trim().toUpperCase(),me=q('#nwMe').value.trim(),e=q('#nwE').value.trim(),p=q('#nwP').value;
+  if(c.length!==6||!me||!e||p.length<6){m('초대 코드 6자리, 이름, 이메일, 비밀번호(6자 이상)를 모두 적어 주세요');return}
+  b.disabled=true;m('가입하는 중…');syJoinNew(c,me,e,p).then(()=>toast('가입하고 약국에 들어왔어요')).catch(err=>{const s=AUTH_MSG[err.code]||('문제: '+errMsg(err));toast(s);const x=$('nwMsg');if(x)x.textContent=s}).finally(()=>{if(b.isConnected)b.disabled=false})};if(q('#syP'))q('#syP').onkeydown=e=>{if(e.key==='Enter')auth('in')};
  if(q('#syReset'))q('#syReset').onclick=()=>busy(q('#syReset'),async()=>{const e=q('#syE').value.trim();if(!e){msg('이메일을 먼저 적어 주세요');return}await SY.cloud.reset(e);msg('비밀번호 재설정 메일을 보냈어요')});
  if(q('#syOut'))q('#syOut').onclick=async()=>{await SY.cloud.logout()};
  if(q('#cpGo'))q('#cpGo').onclick=()=>busy(q('#cpGo'),async()=>{const n=q('#cpName').value.trim(),me=q('#cpMe').value.trim();if(!n||!me){msg('약국 이름과 내 이름을 적어 주세요');return}await syCreatePharm(n,me);toast('약국을 만들었어요. 초대 코드를 직원에게 알려 주세요')});
@@ -2142,6 +2155,8 @@ html[data-hero] .today:not(.empty) .k em{color:var(--hsub)}
 html[data-hero] .today:not(.empty) .k b{color:var(--hink)}
 html[data-hero] .today:not(.empty) .k i{box-shadow:none}
 html[data-hero] .today:not(.empty) .go{background:var(--hbox);color:var(--hink);border:1px solid var(--hline)}
+.devtag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0;vertical-align:1px;background:rgba(255,255,255,.75);color:#B45309;border:1px solid rgba(180,83,9,.35)}
+.today.empty .devtag{display:none}
 .herochips{display:flex;flex-wrap:wrap;gap:8px}
 .herochip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 12px 6px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
 .herochip i{width:26px;height:26px;border-radius:50%;display:block}
@@ -2157,8 +2172,44 @@ heroApply();
  const c=document.createElement('div');c.className='card';c.innerHTML=`<h3>오늘의 재고 색</h3><div class="herochips">${HEROS.map(([k,l,a,b])=>`<button type="button" class="herochip" data-hero="${k}" aria-pressed="${heroGet()===k}"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join('')}</div><p class="muted">이 기기에만 적용돼요.</p>`;
  body.prepend(c);c.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{heroSet(b.dataset.hero);c.querySelectorAll('[data-hero]').forEach(x=>x.setAttribute('aria-pressed',x===b))})}})();
 
+/* ===== 보유약·대체약: 맨 아래에 갱신 날짜 + 재고 파일 올리기 (평소엔 눈에 덜 띄게) ===== */
+(()=>{const st=document.createElement('style');st.textContent=`
+.altfoot{margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.altfoot .when{font-size:12px;color:var(--ink-3)}
+.altfoot .up{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.altfoot .up p{margin:0;font-size:12px;color:var(--ink-3);flex:1 1 180px}
+.altfoot input[type=file]{display:none}`;document.head.appendChild(st)})();
+function altStockWhen(){const s=S.stock;if(!s)return '재고 자료가 아직 없어요';
+ const sv=s.savedAt?new Date(s.savedAt):null;const two=n=>String(n).padStart(2,'0');
+ const at=sv?`${sv.getMonth()+1}/${sv.getDate()} ${two(sv.getHours())}:${two(sv.getMinutes())}`:'';
+ return `재고 ${typeof M!=='undefined'&&M?dateLabel(M.date):''} 기준${at?` · ${s.source==='auto'?'자동 갱신':'올림'} ${at}`:''}`}
+function altFoot(body){if(body.querySelector('.altfoot'))return;const f=document.createElement('div');f.className='altfoot';f.id='altFoot';
+ f.innerHTML=`<span class="when" id="altWhen">${esc(altStockWhen())}</span>
+ <div class="up"><label class="btn sm" for="altFile" role="button" tabindex="0">재고 파일 올리기</label><input type="file" id="altFile" accept=".xls,.xlsx"><p>재고 리스트가 들어 있는 엑셀 파일(이팜 재고현황)을 올리면 바로 바뀌어요. ${window.desk&&window.desk.pickFolder?'설정 › 파일 올리기에서 이팜 폴더를 정해 두면 매일 자동으로 갱신돼요.':'PC 프로그램이 매일 올린 재고가 여기에도 자동으로 들어와요.'}</p></div>`;
+ body.appendChild(f);
+ const lb=f.querySelector('label');lb.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f.querySelector('#altFile').click()}};
+ f.querySelector('#altFile').onchange=async e=>{await onStockFile(e);setTimeout(()=>{if(redrawPanel&&panelState.kind==='alt')redrawPanel()},200)}}
+(()=>{const _d=drawAlt;drawAlt=function(body){_d(body);altFoot(body)};
+ const _r=renderToday;renderToday=function(){_r.apply(this,arguments);const w=$('altWhen');if(w)w.textContent=altStockWhen();
+  // 재고가 새로 들어왔는데 '재고 자료가 없어요' 화면이면 다시 그림
+  if(redrawPanel&&panelState.kind==='alt'&&typeof M!=='undefined'&&M&&!$('aq'))redrawPanel()}})();
+
+/* ===== 제목 아래 날짜 줄: 연동 점이 날짜 바로 옆에. 좁으면 인사말만 "…"로 줄어듦 ===== */
+(()=>{const st=document.createElement('style');st.textContent=`
+.app>header .brand{flex:1 1 auto;min-width:0}
+.app>header .brand>div{min-width:0}
+.app>header .subtitle{display:flex;align-items:center;gap:6px;min-width:0}
+.app>header .subtitle #subtitle{display:flex;min-width:0;white-space:nowrap}
+.app>header .subtitle .sg{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.app>header .subtitle .sd{flex:none}
+.app>header .subtitle .syncdot{flex:none;margin-left:0}`;document.head.appendChild(st);
+ const el=$('subtitle');if(!el)return;let busy=false;
+ const split=()=>{if(busy)return;const s=el.textContent;const k=s.lastIndexOf(' · ');busy=true;
+  el.innerHTML=k>0?`<span class="sg">${esc(s.slice(0,k))}&nbsp;·&nbsp;</span><span class="sd">${esc(s.slice(k+3))}</span>`:`<span class="sd">${esc(s)}</span>`;busy=false};
+ new MutationObserver(()=>{if(!busy&&!el.querySelector('.sd'))split()}).observe(el,{childList:true,characterData:true,subtree:true});split()})();
+
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791259172';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791262286';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
