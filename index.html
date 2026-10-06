@@ -391,7 +391,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   <div class="pins" id="pins" hidden aria-label="고정한 메모"></div>
   <div class="tiles alt-row">
     <button class="tile wide" id="memoTile" type="button"><span class="ti t-memo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/><path d="M7 8h10M7 12h6"/></svg></span><span class="tx"><span class="tt">메모·알림</span><span class="ts" id="memoSub">포스트잇 메모와 알림</span></span></button>
-    <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">대체약 유무</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
+    <button class="tile wide" id="altTile" type="button"><span class="ti t-alt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/><path d="M17 3h4v4M21 3l-4.5 4.5"/></svg></span><span class="tx"><span class="tt">보유약·대체약</span><span class="ts">병원 전화 올 때 · 같은 성분·함량·제형 재고</span></span></button>
   </div>
   <div class="favlabel" hidden>자주 쓰는 질문</div>
   <nav class="favs" id="favs" aria-label="즐겨찾기" hidden></nav>
@@ -646,7 +646,7 @@ function openPanel(kind,tab){
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
  const teamOn=!!(window.drawTeam&&S.pharm);
- const TITLES={alt:'대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
+ const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:S.pharm&&!teamOn?'공지·메모·알림':'메모·알림',settings:'설정',team:'약국'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
   const tabs=kind==='stock'?[['order','발주',M?M.low.length:0],['today','오늘 변화',M?M.gone.length+M.drop.length:0],['search','검색'],['dead','안 나가는 약',M?M.dead.length:0],['over','과다 재고',M?M.over.length:0]]
@@ -706,7 +706,7 @@ function itemCard(i){
  return `<div class="item"><div><div class="nm">${esc(i.base)}</div><div class="sub">${i.ing?esc(i.ing)+' · ':''}${i.str?esc(i.str)+' · ':''}${esc(i.co)}${i.ws?' · 사입 '+esc(i.ws):''}</div>${i.daily?`<div class="sub">하루 평균 ${fmt(r1(i.daily))}${esc(i.unit)} · ${daysWord(i.days)} · 적정 근거: ${i.src}</div>`:''}</div>
  <div class="q"><b>${fmt(i.cur)}</b> <span class="sub">${esc(i.unit)}</span><div class="sub">적정 ${i.opt?fmt(i.opt):'-'}</div>${st}</div>
  ${same.length||other.length?`<div class="alts">${same.length?'<span class="sub">같은 성분·같은 함량</span>'+same.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.co)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}${other.length?'<span class="sub">같은 성분·다른 함량</span>'+other.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.str)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}</div>`:''}</div>`}
-/* ----- 대체약 유무: 같은 성분·같은 함량·같은 제형 (병원 전화용) ----- */
+/* ----- 보유약·대체약: 같은 성분·같은 함량·같은 제형 (병원 전화용) ----- */
 const ALT_MOD=[[/서방|지속|오로스|이알|에스알|씨알|엑스알|엑스엘|지알|(?<![A-Za-z])(SR|CR|XR|ER|XL|ZR|OROS|LA)(?![A-Za-z])/i,'서방'],[/장용|(?<![A-Za-z])EC(?![A-Za-z])/i,'장용'],[/구강붕해|오디티|오디|(?<![A-Za-z])ODT(?![A-Za-z])/i,'구강붕해'],[/츄어블|저작/,'츄어블'],[/발포/,'발포'],[/설하/,'설하'],[/분산/,'분산'],[/연질|소프트/,'연질'],[/건조시럽|건조현탁/,'건조']];
 const ALT_BASE=[[/캡슐|캅셀|켑슐|캅슐/,'캡슐'],[/시럽/,'시럽'],[/현탁/,'현탁액'],[/과립/,'과립'],[/점안/,'점안액'],[/점비|비강|나잘/,'점비액'],[/흡입|에어로솔|에어로졸/,'흡입제'],[/주사|주(?=\d|$|_)/,'주사제'],[/크림/,'크림'],[/연고/,'연고'],[/겔|젤/,'겔'],[/로션/,'로션'],[/패취|패치|플라스타|카타플라스마/,'패취'],[/좌제|좌약|좌(?=\d|$)/,'좌제'],[/질정/,'질정'],[/액|용액|드링크/,'액'],[/산(?=\d|$|_)/,'산'],[/정/,'정']];
 function altForm(i){const n=String(i.base||'');let base='';for(const [re,f] of ALT_BASE)if(re.test(n)){base=f;break}
@@ -1579,8 +1579,8 @@ function localAnswer(raw){
    r.증상별.map(s=>`<div class="kv"><b>${esc(s.증상)}</b><ul>${s.성분.map(i=>`<li>${esc(i.성분)} <span class="sub">${esc(i.분류)}</span>${i.주의.length?`<br><span class="sub">${i.주의.map(esc).join('<br>')}</span>`:''}</li>`).join('')}</ul>${s.생활안내?`<span class="sub">${esc(s.생활안내)}</span>`:''}</div>`).join('')+'<p class="sub">최종 판단은 약사.</p>','OTC 상담 기준')}
  // 환자 오해
  if(/환자가/.test(pre)){const r=searchCards(q);return botCard('환자 오해 대응',r.결과.length?fmtVal(r.결과):'<p>맞는 대응 카드가 없어요.</p>','대응 카드')}
- // 대체약 유무: "리피토 대체", "아토르바스타틴 10 대체약"
- if(/대체\s*(약|조제|품|가능)?|동일\s*성분/.test(q)&&M){altQ=q.replace(/(대체\s*(약|조제|품)?\s*(있어|가능|유무|돼)?\s*\??|동일\s*성분\s*(조제)?)/g,' ').replace(STOP,' ').replace(/\s+/g,' ').trim();openPanel('alt');return botCard('대체약 유무',`<p>"${esc(altQ)}" 대체약 창을 열었어요.</p>`)}
+ // 보유약·대체약: "리피토 대체", "아토르바스타틴 10 대체약"
+ if(/대체\s*(약|조제|품|가능)?|동일\s*성분/.test(q)&&M){altQ=q.replace(/(대체\s*(약|조제|품)?\s*(있어|가능|유무|돼)?\s*\??|동일\s*성분\s*(조제)?)/g,' ').replace(STOP,' ').replace(/\s+/g,' ').trim();openPanel('alt');return botCard('보유약·대체약',`<p>"${esc(altQ)}" 대체약 창을 열었어요.</p>`)}
  // 기본: 재고 + 수첩 + 대응 카드
  const man=searchManual(q),cards=searchCards(q),howto=/번호|연락처|전화|담당|방법|어떻게|하는\s*법|절차|메뉴/.test(q)&&man.결과.length;const hits=howto?[]:stockHits(q);let html='';
  if(hits.length)html+=`<p><b>재고</b> <span class="sub">${esc(dateLabel(M.date))} 기준</span></p><div class="hits">${hits.map(itemCard).join('')}</div>`;
@@ -1891,7 +1891,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 `;
 
 /* ===== 첫 화면 정리 · 개인 업무수첩(비공개) — PC·휴대폰 공통 ===== */
-// 첫 화면 순서: 공지사항·국장님 전달사항 → 오늘의 재고 → 캘린더·인수인계 → 약국 매뉴얼·개인 업무수첩 → 메모·알림 → 고정 메모 → 대체약 유무
+// 첫 화면 순서: 공지사항·국장님 전달사항 → 오늘의 재고 → 캘린더·인수인계 → 약국 매뉴얼·개인 업무수첩 → 메모·알림 → 고정 메모 → 보유약·대체약
 // 자주 쓰는 질문과 아래 검색창은 숨김 (요소는 남겨 둬서 다른 코드가 깨지지 않게)
 (()=>{const st=document.createElement('style');st.textContent=`
 .favlabel,#favs,#chat,#form,#imgChip{display:none!important}
@@ -2098,7 +2098,7 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
   let html='';
   if(typeof M!=='undefined'&&M&&M.items){const it=M.items.filter(i=>i.hay.includes(nq)).sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur).slice(0,6);
    html+=sec('재고',it.map(i=>row(esc(i.base)+(i.str?' '+esc(i.str):''),`현재 ${fmtN(i.cur)} · 적정 ${fmtN(i.opt)}`,()=>{openPanel('stock','search');setTimeout(()=>{const s=$('sq');if(s){s.value=q;s.dispatchEvent(new Event('input'))}},30)},i.cur<i.opt?'low':'')));
-   if(it.length||/대체/.test(raw))html+=sec('대체약',[row(`"${esc(q)}" 같은 성분·함량·제형 재고`,'대체약 유무 ›',()=>{altQ=q;openPanel('alt')})])}
+   if(it.length||/대체/.test(raw))html+=sec('보유약·대체약',[row(`"${esc(q)}" 같은 성분·함량·제형 재고`,'보유약·대체약 ›',()=>{altQ=q;openPanel('alt')})])}
   const man=(S.manual||[]).filter(m=>norm((m.sec||'')+' '+m.h+' '+(m.body||'')).includes(nq)).slice(0,6);
   html+=sec('약국 매뉴얼',man.map(m=>row(esc(m.h),esc(m.sec||''),()=>{manualCat=null;openItem=m.id;openPanel('manual');setTimeout(()=>{const s=$('mq');if(s){s.value=m.h;s.dispatchEvent(new Event('input'))}},30)})));
   const mine=(S.mynotes||[]).filter(n=>norm((n.title||'')+' '+(n.body||'')).includes(nq)).slice(0,6);
@@ -2158,7 +2158,7 @@ heroApply();
  body.prepend(c);c.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{heroSet(b.dataset.hero);c.querySelectorAll('[data-hero]').forEach(x=>x.setAttribute('aria-pressed',x===b))})}})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791257537';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791258158';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
