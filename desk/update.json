@@ -1,11 +1,11 @@
 {
- "version": "0.5.29",
- "notes": "공지사항·전달사항을 보낼 때 \"약국 PC에 즉시 팝업(포스트잇)\" 선택",
+ "version": "0.5.30",
+ "notes": "메모 \"나만 보기\"(기본 켜짐) · 새 알림의 받는 사람 기본값을 \"나\"로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "2c67adf19d3d734296ce6d0113bdb062fdccb2fca2c1a28f0405f49db6205174",
-   "size": 309779
+   "sha256": "d861458c98299821f86bbb41644de4918a82e70256e602c61006535b8afcddab",
+   "size": 310138
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "18d2b67bc26f4686ded2bc2a6f2efd860e32a63ec4a34624394394b087e7e867",
+   "sha256": "a06cf662c0a2b78fa56b36777aaa670f80f0b416b6787320c83bfe64c86e5d50",
    "size": 212
   },
   {

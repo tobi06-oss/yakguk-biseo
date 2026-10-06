@@ -1092,9 +1092,9 @@ function whenLabel(o){if(!o)return '';const n=new Date(),t=new Date(n.getFullYea
 function repLabel(a){if(a.rep==='weekly')return '매주 '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·');if(a.rep==='monthly')return `매월 ${a.dom}일${a.dom>28?'(없으면 말일)':''}`;if(a.rep==='once')return '한 번';return REP[a.rep]||''}
 function dueAlarms(now=new Date()){return S.memo.alarms.filter(a=>{if(!a.on||!isFor(a))return false;const o=latestOcc(a,now);return o&&o.getTime()>ackAt(a)&&!(snzAt(a)>now.getTime())})}
 async function saveMemo(){const ok=await saveDoc('memo/main',{memos:S.memo.memos,alarms:S.memo.alarms,savedAt:new Date().toISOString()});renderMemoHome();renderStickies();return ok}
-function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:null,by:ME(),byName:myName()};
+function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};
  if(a.rep==='weekly'&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
-function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
+function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,priv:o.priv!==false,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
 
 /* 첫 화면: 타일 문구, 고정 메모 */
 function renderMemoHome(){
@@ -1143,17 +1143,18 @@ function drawMemo(body){
  const ed=memoEdit&&S.memo.memos.find(m=>m.id===memoEdit);
  body.innerHTML=`<div class="card memo-new c-${ed?ed.color:'yellow'}" id="mNew"><textarea id="mText" rows="3" placeholder="메모를 적어 두세요">${ed?esc(ed.text):''}</textarea>
   <div class="row" style="justify-content:space-between">${colorPick('mc',ed?ed.color:'yellow')}<label class="chk"><input type="checkbox" id="mPin" ${ed&&ed.pin?'checked':''}> 첫 화면에 고정</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="mPriv" ${ed?(ed.priv?'checked':''):'checked'}> 나만 보기 (약국 다른 사람에게 안 보여요)</label></div>
   <div class="row">${ed?'<button class="btn" type="button" id="mCancel">취소</button>':''}<button class="btn primary" type="button" id="mSave">${ed?'고치기':'메모 추가'}</button></div></div>
   <input class="search" id="mSearch" type="search" placeholder="메모 검색" value="${esc(memoQ)}">
   <div class="mgrid" id="mGrid"></div>`;
  const q=s=>body.querySelector(s);
  q('#mNew').addEventListener('change',e=>{if(e.target.name==='mc')q('#mNew').className='card memo-new c-'+e.target.value});
- q('#mSave').onclick=async()=>{const text=q('#mText').value.trim();if(!text){toast('메모 내용을 적어 주세요');return}const color=q('input[name=mc]:checked').value,pin=q('#mPin').checked;
-  if(ed){Object.assign(ed,{text,color,pin})}else addMemo({text,color,pin});memoEdit=null;if(await saveMemo())toast(ed?'고쳤어요':'메모를 붙였어요');redrawPanel()};
+ q('#mSave').onclick=async()=>{const text=q('#mText').value.trim();if(!text){toast('메모 내용을 적어 주세요');return}const color=q('input[name=mc]:checked').value,pin=q('#mPin').checked,priv=q('#mPriv').checked;
+  if(ed){Object.assign(ed,{text,color,pin,priv})}else addMemo({text,color,pin,priv});memoEdit=null;if(await saveMemo())toast(ed?'고쳤어요':'메모를 붙였어요');redrawPanel()};
  if(q('#mCancel'))q('#mCancel').onclick=()=>{memoEdit=null;drawMemo(body)};
  const grid=q('#mGrid');
  const list=()=>{const k=memoQ.trim();const arr=S.memo.memos.filter(m=>!k||m.text.includes(k)).sort((a,b)=>(b.pin-a.pin));
-  grid.innerHTML=arr.length?arr.map(m=>`<div class="note c-${m.color}"><div class="nt">${esc(m.text)}</div><div class="nf"><span>${m.pin?'📌 ':''}${new Date(m.at).getMonth()+1}/${new Date(m.at).getDate()}${S.members.length>1&&m.byName?' · '+esc(m.byName):''}</span><span class="na">
+  grid.innerHTML=arr.length?arr.map(m=>`<div class="note c-${m.color}"><div class="nt">${esc(m.text)}</div><div class="nf"><span>${m.pin?'📌 ':''}${m.priv?'🔒 ':''}${new Date(m.at).getMonth()+1}/${new Date(m.at).getDate()}${S.members.length>1&&m.byName&&!m.priv?' · '+esc(m.byName):''}</span><span class="na">
    <button type="button" data-pin="${m.id}" aria-label="${m.pin?'고정 풀기':'고정'}">${m.pin?'고정 풀기':'고정'}</button><button type="button" data-al="${m.id}">알림</button>${window.desk?`<button type="button" data-dk="${m.id}">${m.desk?'바탕화면에서 떼기':'바탕화면에 붙이기'}</button>`:''}<button type="button" data-ed="${m.id}">고치기</button><button type="button" data-del="${m.id}">삭제</button></span></div></div>`).join('')
    :`<p class="muted">${k?'찾는 메모가 없어요':'아직 메모가 없어요. 위에 적고 메모 추가를 누르세요.'}</p>`;
   grid.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.pin);m.pin=!m.pin;saveMemo();list()});
@@ -1166,7 +1167,7 @@ function drawMemo(body){
 }
 function alarmForm(a){
  const now=new Date();const def=new Date(now.getTime()+60*6e4);
- const v=Object.assign({text:'',color:'yellow',date:ymd(now),time:`${pad2(def.getHours())}:00`,rep:'once',days:[now.getDay()],dom:now.getDate()},a||{});
+ const v=Object.assign({text:'',color:'yellow',date:ymd(now),time:`${pad2(def.getHours())}:00`,rep:'once',days:[now.getDay()],dom:now.getDate(),to:(a&&a.id)||S.members.length<2?null:[ME()]},a||{});
  return `<div class="card memo-new c-${v.color}" id="aForm">
   <h3>${a&&a.id?'알림 고치기':'새 알림'}</h3>
   ${a&&a.id?'':`<div class="preset">${ALARM_PRESETS.map((p,i)=>`<button type="button" data-pre="${i}">${esc(p.text)}</button>`).join('')}</div>`}
@@ -1346,7 +1347,7 @@ async function syPushWhole(p,d){if(!SY.pid||!WHOLE.includes(p)||!d)return;const 
  const at=Date.now();SY.pushedAt[p]=at;SY.seenAt[enc(p)]=at;try{await SY.cloud.set(P()+'/data/'+enc(p),{j,by:SY.dev,at});syStatus('on')}catch(e){syStatus('err',errMsg(e))}}
 let memoPushT=null;
 function syPushMemo(){if(!SY.pid)return;clearTimeout(memoPushT);memoPushT=setTimeout(async()=>{const ops=[];
- for(const kind of ['memos','alarms']){const cur={};(S.memo[kind]||[]).forEach(x=>cur[x.id]=stripMemo(x));const base=SY.base[kind];
+ for(const kind of ['memos','alarms']){const cur={};(S.memo[kind]||[]).filter(x=>!x.priv).forEach(x=>cur[x.id]=stripMemo(x));const base=SY.base[kind];
   for(const id in cur){const s=canon(cur[id]);if(base[id]!==s){const prev=base[id]?JSON.parse(base[id]):null;base[id]=s;
     // 확인·다시 알림은 사람마다 따로 → 다른 사람 것과 합쳐지도록 merge
     ops.push(SY.cloud.set(P()+'/'+kind+'/'+id,{...cur[id],_by:SY.dev},kind==='alarms'&&!!prev))}}
