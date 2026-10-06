@@ -1362,7 +1362,7 @@ function syPushMemo(){if(!SY.pid)return;clearTimeout(memoPushT);memoPushT=setTim
     // 확인·다시 알림은 사람마다 따로 → 다른 사람 것과 합쳐지도록 merge
     ops.push(SY.cloud.set(P()+'/'+kind+'/'+id,{...cur[id],_by:SY.dev},kind==='alarms'&&!!prev))}}
   for(const id in base)if(!cur[id]){delete base[id];ops.push(SY.cloud.del(P()+'/'+kind+'/'+id))}}
- try{await Promise.all(ops);if(ops.length)syStatus('on')}catch(e){syStatus('err',errMsg(e))}},250)}
+ try{await Promise.all(ops);if(ops.length)syStatus('on')}catch(e){syStatus('err',errMsg(e))}wpDigest()},250)}
 function syPush(p,d){if(!SY.pid)return;if(p==='memo/main')syPushMemo();else syPushWhole(p,d)}
 function syApplyWhole(o){for(const id in o){const p=dec(id),x=o[id];if(!WHOLE.includes(p)||!x||!x.j)continue;if((SY.seenAt[id]||0)>=x.at)continue;SY.seenAt[id]=x.at;
   if(x.by===SY.dev&&SY.pushedAt[p]===x.at)continue;try{DESKDB.applyRemote(p,JSON.parse(x.j))}catch(e){}}syStatus('on')}
@@ -1393,7 +1393,7 @@ async function noticeRead(id){if(String(id).startsWith('o:'))return orderMark(St
 async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id)}catch(e){toast(errMsg(e))}}
 
 /* --- 약국 공간 시작·끝 --- */
-async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');
+async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');setTimeout(wpSync,5000);
  try{
   const remote=await SY.cloud.getAll(P()+'/data');const rm=await SY.cloud.getAll(P()+'/memos'),ra=await SY.cloud.getAll(P()+'/alarms');
   const empty=!Object.keys(remote).length&&!Object.keys(rm).length&&!Object.keys(ra).length;let down=0;
@@ -1488,6 +1488,29 @@ function acctSecHtml(){return `<div class="card"><h3>비밀번호 바꾸기</h3>
  <div class="card" id="emCard"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
   <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder=""></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
   <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>`}
+// ===== 휴대폰 푸시 알림 (앱이 닫혀 있어도 알림) =====
+const WP_KEY='BBghvos0FWP2sHCS8adsR0AxO8ZoPQZMMHs4sJ2xSC1wGhveRKc9KIHV0ztnW6jCjE5zj4FuNon3qdz36XX5weM';
+const wpIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),wpApp=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone}catch(e){return false}};
+const wpOK=()=>location.protocol==='https:'&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const wpU8=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u};
+const wpSha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function wpSub(){if(!wpOK())return null;const reg=await navigator.serviceWorker.getRegistration();return reg?await reg.pushManager.getSubscription():null}
+async function wpState(){if(!wpOK())return 'unsupported';if(Notification.permission==='denied')return 'denied';return (await wpSub())&&Notification.permission==='granted'?'on':'off'}
+async function wpSave(sub){const id=SY.user.uid+'_'+(await wpSha(sub.endpoint)).slice(0,12);await SY.cloud.set(P()+'/push/'+id,{uid:SY.user.uid,json:JSON.stringify(sub.toJSON()),at:Date.now()});return id}
+async function wpOn(){if(!SY.pid||!SY.user)throw new Error('약국 계정에 로그인되어 있어야 해요');const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('알림이 허용되지 않았어요');
+ const reg=await navigator.serviceWorker.ready;const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:wpU8(WP_KEY)});
+ await wpSave(sub);try{await reg.showNotification('알림이 켜졌어요',{body:'이제 알림 시각에 이 기기로 푸시가 와요',icon:'icon-192.png'})}catch(e){}}
+async function wpOff(){const sub=await wpSub();if(!sub)return;const id=SY.user.uid+'_'+(await wpSha(sub.endpoint)).slice(0,12);try{await SY.cloud.del(P()+'/push/'+id)}catch(e){}await sub.unsubscribe()}
+async function wpSync(){try{if(!SY.pid||!SY.user||!wpOK()||Notification.permission!=='granted')return;const sub=await wpSub();if(sub)await wpSave(sub)}catch(e){}}
+// 서버가 읽는 알림 요약 (알림이 바뀔 때마다 갱신)
+async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id','text','on','date','time','rep','days','dom','nth','to','ack','acks','snooze','snz'];
+ const l=(S.memo.alarms||[]).filter(a=>!a.priv).map(a=>{const o={};keep.forEach(k=>{if(a[k]!==undefined&&a[k]!==null)o[k]=a[k]});return o});const j=JSON.stringify(l);if(j===SY.wpJ)return;await SY.cloud.set(P()+'/pushidx/alarms',{json:j,at:Date.now()});SY.wpJ=j}catch(e){}}
+function wpCard(){if(!wpOK()&&!(wpIOS&&location.protocol==='https:'&&!wpApp()))return '';
+ return `<div class="card"><h3>휴대폰 알림 <span class="c" id="wpSt"></span></h3><p class="muted">앱이 닫혀 있거나 폰이 잠겨 있어도 알림 시각에 푸시가 와요. ${wpIOS&&!wpApp()?'<b>아이폰은 사파리에서 "공유 → 홈 화면에 추가"로 설치한 앱에서만 켤 수 있어요.</b>':'쓰는 기기마다 한 번씩 켜 두세요.'}</p><div class="row"><button class="btn primary" type="button" id="wpBtn" disabled>확인 중…</button></div><p class="muted" id="wpMsg"></p></div>`}
+function wpBind(body){const b=body.querySelector('#wpBtn');if(!b)return;const msg=t=>{const m=body.querySelector('#wpMsg');if(m)m.textContent=t};
+ const paint=async()=>{const s=await wpState();b.dataset.s=s;b.disabled=s==='unsupported'||s==='denied';b.textContent=s==='on'?'이 기기 알림 끄기':s==='unsupported'?'홈 화면에 설치한 뒤 켤 수 있어요':'이 기기에서 알림 받기';const st=body.querySelector('#wpSt');if(st)st.textContent=s==='on'?'켜짐':'꺼짐';if(s==='denied')msg('이 앱의 알림이 차단돼 있어요. 휴대폰 설정에서 알림을 허용으로 바꿔 주세요.')};
+ b.onclick=async()=>{b.disabled=true;try{if(b.dataset.s==='on'){await wpOff();msg('이 기기 알림을 껐어요')}else{await wpOn();msg('켰어요. 시험 알림이 떴는지 확인해 보세요')}}catch(e){msg('문제: '+errMsg(e))}await paint()};
+ paint()}
 function accountView(){const v=accountViewBase();return SY.user&&(SY.phase==='nopharm'||SY.phase==='check')?v+acctSecHtml():v}
 function accountViewBase(){
  if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
@@ -1512,7 +1535,7 @@ function accountViewBase(){
   <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button><button class="btn sm" type="button" id="emJump">이메일 변경</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
- <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${roleLabel(m)!==PERM[m.role]?` · 권한 ${PERM[m.role]||''}`:''}${m.role==='staff'&&['국장','관리자'].includes(m.title)?'<br>권한이 아직 직원이에요 · 관리자가 올려 줘야 공지·직원 초대를 할 수 있어요':''}</span></span>
+ ${wpCard()}<div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${roleLabel(m)!==PERM[m.role]?` · 권한 ${PERM[m.role]||''}`:''}${m.role==='staff'&&['국장','관리자'].includes(m.title)?'<br>권한이 아직 직원이에요 · 관리자가 올려 줘야 공지·직원 초대를 할 수 있어요':''}</span></span>
   ${mgr&&m.role!=='owner'&&m.uid!==SY.user.uid?`<span class="row">${owner&&m.role==='staff'&&['국장','관리자'].includes(m.title)?`<button class="btn sm primary" type="button" data-promote="${esc(m.uid)}">관리자 권한 주기</button>`:''}${owner?`<select data-role="${esc(m.uid)}" aria-label="역할"><option value="staff" ${m.role==='staff'?'selected':''}>직원</option><option value="admin" ${m.role==='admin'?'selected':''}>관리자</option></select>`:''}${owner||m.role==='staff'?`<button class="btn sm danger" type="button" data-kick="${esc(m.uid)}">내보내기</button>`:''}</span>`:''}</div>`).join('')}</div>
   <p class="muted">관리자는 공지를 보내고 직원을 부를 수 있어요.</p></div>
  ${mgr?`<div class="card"><h3>직원 바로 추가</h3><p class="muted">여기서 계정을 만들면 직원은 받은 이메일과 임시 비밀번호로 로그인만 하면 돼요. 초대 코드는 필요 없어요.</p>
@@ -1527,7 +1550,7 @@ function accountViewBase(){
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
  ${acctSecHtml()}
  <div class="card"><div class="row"><button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
-function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
+function bindAccount(body){wpBind(body);const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
  const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p));await syAfterLogin()});
  if(q('#syIn'))q('#syIn').onclick=()=>auth('in');
  if(q('#nwGo'))q('#nwGo').onclick=()=>{const m=t=>{q('#nwMsg').textContent=t};const b=q('#nwGo');const c=q('#nwCode').value.trim().toUpperCase(),me=q('#nwMe').value.trim(),e=q('#nwE').value.trim(),p=q('#nwP').value;
@@ -2294,7 +2317,7 @@ function altFoot(body){if(body.querySelector('.altfoot'))return;const f=document
  new MutationObserver(()=>{if(!busy&&!el.querySelector('.sd'))split()}).observe(el,{childList:true,characterData:true,subtree:true});split()})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791269891';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791270735';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

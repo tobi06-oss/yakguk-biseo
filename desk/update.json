@@ -1,11 +1,11 @@
 {
- "version": "0.5.33",
- "notes": "모바일: 패널을 아래로 쓸어내리면 닫힘",
+ "version": "0.5.34",
+ "notes": "휴대폰 푸시 알림(앱이 닫혀 있거나 잠겨 있어도 알림) 추가",
  "files": [
   {
    "p": "index.html",
-   "sha256": "ac87020d461cb7a9a1c4a987bebe500b308401fe9ea2b85bf6181a530129332e",
-   "size": 312513
+   "sha256": "b2e9cf661b1e8b82bf00fea7ed6d01040fd7d9649cbb4a1ce9c56cdb022764de",
+   "size": 316900
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "fefd8d1d6d0534369b425b8cc05454595c3b5765e458d80620d2520be77b4292",
+   "sha256": "02399266663243c73b0a87b5a9dedf9ce3cb7e420f242b504413e1bdb512dcd5",
    "size": 212
   },
   {
