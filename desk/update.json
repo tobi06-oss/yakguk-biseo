@@ -1,21 +1,21 @@
 {
- "version": "0.5.23",
- "notes": "캘린더: 날짜 더블클릭 또는 ＋ 메모 버튼으로 그날 메모 남기기",
+ "version": "0.5.27",
+ "notes": "사이드바에서 창을 열면 잠깐 기본 크기로 넓어졌다가 닫으면 다시 사이드바로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "49930401178868ecee8adef6c9a3ccd56a4f45cef7b7e08284382a0a65b1d2ec",
-   "size": 301527
+   "sha256": "a4b0600524ee9004847627579c73a19bd9cfb66086410c17fd28cb9eb2931053",
+   "size": 308143
   },
   {
    "p": "main.js",
-   "sha256": "24714d51884aeb27218a10e23052488109f80fef8d5fb6e7a69c4cd4ee420977",
-   "size": 18729
+   "sha256": "53eef9377c5d7489a444a7ec06b0c054548c7a88b3c27c07db6010fd36cc86a7",
+   "size": 19343
   },
   {
    "p": "preload.js",
-   "sha256": "6a7f381d849abc2a821aaaf326e4f99afc531da834b0b87960ec36d780d615c7",
-   "size": 1731
+   "sha256": "16a1aeeb636e5d92801b69dd9fe4b04479dd34184de1f0068af82eeacb04d389",
+   "size": 1791
   },
   {
    "p": "alarmcore.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "40022d12f0c8670f7f8ae4682ee18c70ef7ddcca993c02c0275488baa6de2cab",
+   "sha256": "9fa9be47ca0fc397e6f3f7380a7fae6bf259b044b357dfd70165c0bf44e8974d",
    "size": 212
   },
   {

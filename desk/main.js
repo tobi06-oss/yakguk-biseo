@@ -153,6 +153,12 @@ function applySide(on,boot){if(!win||win.isDestroyed())return false;
  else{win.setMinimumSize(380,560);const b=data.desk.bounds||{width:480,height:860};win.setBounds(b);win.setAlwaysOnTop(!!data.desk.winTop)}
  data.desk.side=!!on;saveData();return !!on}
 ipcMain.handle('win-side',(e,on)=>applySide(!!on));
+// 사이드바에서 패널을 열면 잠깐 기본 폭으로 넓혔다가(오른쪽 끝 기준), 닫으면 다시 사이드바로
+ipcMain.handle('win-side-temp',(e,on)=>{if(!win||win.isDestroyed()||!data.desk.side)return false;
+ const wa=screen.getDisplayMatching(win.getBounds()).workArea;
+ if(on){const w=Math.max(380,Math.min((data.desk.bounds&&data.desk.bounds.width)||480,wa.width));win.setMinimumSize(380,560);win.setBounds({x:wa.x+wa.width-w,y:wa.y,width:w,height:wa.height})}
+ else{win.setMinimumSize(240,400);win.setBounds({x:wa.x+wa.width-SIDE_W,y:wa.y,width:SIDE_W,height:wa.height})}
+ return !!on});
 // 프로그램 창 항상 위
 ipcMain.handle('win-top',(e,on)=>{if(data.desk.side){data.desk.sideTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on,'floating')}else{data.desk.winTop=!!on;saveData();if(win&&!win.isDestroyed())win.setAlwaysOnTop(!!on)}return !!on});
 ipcMain.on('imported',(e,info)=>{data.desk.lastImport={...info,at:new Date().toISOString()};saveData()});

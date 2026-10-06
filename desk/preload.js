@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('desk',{
  restartUpdate:()=>ipcRenderer.send('update-restart'),
  setWinTop:on=>ipcRenderer.invoke('win-top',on),
  setWinSide:on=>ipcRenderer.invoke('win-side',on),
+ setWinSideTemp:on=>ipcRenderer.invoke('win-side-temp',on),
  onUpdate:f=>ipcRenderer.on('update',(e,u)=>f(u)),
  // 포스트잇 알림 창
  onItems:f=>ipcRenderer.on('items',(e,items,ring)=>f(items,ring)),

@@ -1313,7 +1313,7 @@ const hasDesk=()=>!!(window.desk&&window.desk.setMe);
 function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});try{auth.languageCode='ko'}catch(e){}
  const db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
  return{onAuth:cb=>F.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:u.email}:null)),login:(e,p)=>F.signInWithEmailAndPassword(auth,e,p),signup:(e,p)=>F.createUserWithEmailAndPassword(auth,e,p),
-  reset:e=>F.sendPasswordResetEmail(auth,e),deleteMe:async()=>{const u=auth.currentUser;if(u)await u.delete()},logout:()=>F.signOut(auth),
+  reset:e=>F.sendPasswordResetEmail(auth,e),deleteMe:async()=>{const u=auth.currentUser;if(u)await u.delete()},logout:()=>F.signOut(auth),refreshUser:async()=>{const u=auth.currentUser;if(!u)return null;await u.reload();return{uid:u.uid,email:u.email}},
   // 다른 사람 계정을 만들고 그 사람으로 잠깐 들어가 fn 실행 (내 로그인은 그대로 유지)
   asNewUser:async(e,p,fn)=>{const app2=F.initializeApp(FB_CFG,'add-'+Date.now());
    try{const a2=F.initializeAuth(app2,{persistence:F.inMemoryPersistence});const d2=F.initializeFirestore(app2,{experimentalAutoDetectLongPolling:true});
@@ -1400,16 +1400,43 @@ async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');
 function syStopPharm(){SY.unsub.forEach(f=>{try{f()}catch(e){}});SY.unsub=[];SY.pid=null;S.members=[];S.notices=[];S.pharm=null;SY.base={memos:{},alarms:{}};if(typeof teamReset==='function')teamReset();if(typeof myNoteInboxReset==='function')myNoteInboxReset();
  if(hasDesk())window.desk.setNotices([]);renderMemoHome();syStatus('off')}
 function syLeaveLocal(){syStopPharm();SY.phase='nopharm';syRedraw()}
+// 비로그인일 때 설정 톱니 왼쪽에 보이는 로그인 단추
+function syLoginBtn(){const mb=$('menuBtn');if(!mb)return;let b=$('loginBtn');
+ if(!b){b=document.createElement('button');b.type='button';b.id='loginBtn';b.className='loginbtn';b.textContent='로그인';b.title='약국 계정으로 로그인';b.setAttribute('aria-label','로그인');b.onclick=()=>openPanel('settings','account');
+  const st=document.createElement('style');st.textContent='.loginbtn{display:inline-flex;align-items:center;height:42px;padding:0 15px;border-radius:21px;border:1px solid var(--accent,#2F5597);background:var(--accent,#2F5597);color:var(--on-accent,#fff);font-weight:700;font-size:13.5px;cursor:pointer;flex:none;white-space:nowrap}.loginbtn[hidden]{display:none}html.sidemode .loginbtn{height:34px;padding:0 11px;font-size:12.5px}@media (max-width:520px){.loginbtn{height:36px;padding:0 12px;font-size:12.5px}}';document.head.appendChild(st)}
+ if(b.nextElementSibling!==mb)mb.before(b);
+ b.hidden=!(SY.cloud&&SY.phase==='out')}
+// 로그인·이메일 변경 뒤 화면에 결과를 확실히 보여 주기
+function syForceRedraw(){try{document.activeElement&&document.activeElement.blur&&document.activeElement.blur()}catch(e){}if(redrawPanel&&panelState.kind==='settings'&&panelState.tab==='account')redrawPanel()}
+function syClosePanel(){const sc=document.querySelector('.scrim');if(sc)sc.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))}
+async function syAfterLogin(){for(let i=0;i<60&&!(SY.user&&(SY.phase==='in'||SY.phase==='nopharm'));i++)await new Promise(r=>setTimeout(r,200));
+ if(SY.phase==='in'){syClosePanel();toast('로그인했어요')}
+ else if(SY.phase==='nopharm'){toast('로그인했어요. 약국에 들어가 주세요');syForceRedraw()}
+ else syForceRedraw()}
+let syEmTimer=null,syEmFocus=false;
+function syWatchEmail(ne){try{localStorage.setItem('cb-email-pending',ne)}catch(e){}
+ clearInterval(syEmTimer);let n=0;
+ const done=async relogin=>{clearInterval(syEmTimer);syEmTimer=null;try{localStorage.removeItem('cb-email-pending')}catch(e){}
+  if(relogin){toast('이메일이 바뀌었어요. 새 이메일로 다시 로그인해 주세요');try{await SY.cloud.logout()}catch(e){}}
+  else{if(SY.user)SY.user.email=ne;if(SY.pid&&SY.user)SY.cloud.set('pharmacies/'+SY.pid+'/members/'+SY.user.uid,{email:ne},true).catch(()=>{});toast('이메일이 바뀌었어요: '+ne);syForceRedraw()}};
+ const tick=async()=>{if(!syEmTimer||!SY.user||!SY.cloud||!SY.cloud.refreshUser)return;if(++n>360){clearInterval(syEmTimer);syEmTimer=null;return}
+  try{const u=await SY.cloud.refreshUser();if(u&&u.email&&u.email.toLowerCase()===ne)done(false)}
+  catch(e){if(/token-expired|invalid-user-token|user-disabled|requires-recent/.test((e&&e.code)||''))done(true)}};
+ syEmTick=tick;syEmTimer=setInterval(tick,5000);
+ if(!syEmFocus){syEmFocus=true;window.addEventListener('focus',()=>{syEmTick&&syEmTick()})}}
+let syEmTick=null;
 async function syOnUser(u){
- if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';if(typeof myNoteStop==='function')myNoteStop();window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
+ if(!u){syStopPharm();SY.user=null;SY.lastAdded=null;SY.phase='out';syLoginBtn();if(typeof myNoteStop==='function')myNoteStop();window.__me=undefined;if(hasDesk())window.desk.setMe('local');syRedraw();return}
  if(SY.user&&SY.user.uid===u.uid&&SY.pid)return;
- syStopPharm();SY.user=u;window.__me=u.uid;if(typeof myNoteStart==='function')myNoteStart(u);if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syRedraw();
+ syStopPharm();SY.user=u;window.__me=u.uid;if(typeof myNoteStart==='function')myNoteStart(u);if(hasDesk())window.desk.setMe(u.uid);SY.phase='check';syLoginBtn();syRedraw();
+ try{const pe=localStorage.getItem('cb-email-pending');if(pe&&u.email&&u.email.toLowerCase()===pe){localStorage.removeItem('cb-email-pending');toast('이메일이 바뀌었어요: '+u.email)}}catch(e){}
  try{const ptr=await SY.cloud.get('users/'+u.uid);const pid=ptr&&ptr.pharmPid;const mem=pid&&await SY.cloud.get('pharmacies/'+pid+'/members/'+u.uid);
   if(mem){if(u.email&&mem.email!==u.email)SY.cloud.set('pharmacies/'+pid+'/members/'+u.uid,{email:u.email},true).catch(()=>{});return syStartPharm(pid)}
   SY.phase='nopharm';syRedraw()}catch(e){SY.phase='nopharm';syStatus('err',errMsg(e))}}
 function syInit(){
  try{SY.cloud=window.__fakeCloud?window.__fakeCloud():(window.FB?fbCloud():null)}catch(e){console.error(e);SY.cloud=null}
  if(SY.cloud)SY.cloud.onAuth(u=>syOnUser(u));
+ SY.phase=SY.phase||'out';syLoginBtn();
  if(hasDesk()&&window.desk.onNoticeRead)window.desk.onNoticeRead(id=>noticeRead(id))}
 const CODE_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const newCode=()=>Array.from({length:6},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join('');
 async function syCreatePharm(name,me){const u=SY.user;const pid='p'+uid();const code=newCode();
@@ -1441,7 +1468,13 @@ async function syNewCode(){const old=S.pharm&&S.pharm.inviteCode;const code=newC
 /* --- 계정 화면 (설정 → 약국 계정) --- */
 const AUTH_MSG={'auth/invalid-credential':'이메일이나 비밀번호가 맞지 않아요','auth/wrong-password':'비밀번호가 맞지 않아요','auth/user-not-found':'없는 계정이에요. 새 계정 만들기를 누르세요',
  'auth/email-already-in-use':'이미 있는 계정이에요. 로그인을 누르세요','auth/missing-password':'비밀번호를 적어 주세요','auth/operation-not-allowed':'이메일 로그인이 꺼져 있어요 (Firebase 설정 확인)','auth/requires-recent-login':'다시 로그인한 뒤 해 주세요','auth/weak-password':'비밀번호는 6자 이상','auth/invalid-email':'이메일 형식이 아니에요','auth/network-request-failed':'인터넷 연결을 확인하세요','auth/too-many-requests':'잠시 뒤 다시 해 주세요',nocode:'초대 코드가 맞지 않아요. 국장님·관리자에게 코드를 다시 확인해 주세요'};
-function accountView(){
+function acctSecHtml(){return `<div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
+  <div class="row"><button class="btn" type="button" id="pwGo">바꾸기</button></div><p class="muted" id="pwMsg"></p></div>
+ <div class="card" id="emCard"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
+  <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder=""></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
+  <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>`}
+function accountView(){const v=accountViewBase();return SY.user&&(SY.phase==='nopharm'||SY.phase==='check')?v+acctSecHtml():v}
+function accountViewBase(){
  if(!SY.cloud)return `<div class="card"><h3>약국 계정</h3><p class="muted">연동 모듈을 불러오지 못했어요.</p></div>`;
  if(SY.phase==='out')return `<div class="card"><h3>약국 계정</h3><p class="muted">국장님은 약국을 만들고, 직원은 초대 코드로 들어와요. 각자 자기 이메일로 계정을 만드세요. 같은 계정으로 PC·휴대폰 어디서 로그인해도 같은 자료와 공지를 받아요.</p>
   <div class="grid2"><label class="field">이메일<input id="syE" type="email" autocomplete="username"></label><label class="field">비밀번호 (6자 이상)<input id="syP" type="password" autocomplete="current-password"></label></div>
@@ -1461,7 +1494,7 @@ function accountView(){
  return `<div class="card"><h3>${esc(S.pharm&&S.pharm.name||'약국')} <span class="c">${SY.status==='err'?'연동 문제':'연동 중'}</span></h3>
   <p class="muted">나: <b>${esc(me.name||'')}</b> (${esc(roleLabel(me))}${me.title?` · 권한 ${ROLE[me.role]||''}`:''}) · ${esc(SY.user.email||'')}${SY.lastSync?` · 마지막 동기화 ${SY.lastSync.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`:''}${SY.err?`<br>문제: ${esc(SY.err)}`:''}</p>
   <div class="grid2"><label class="field">내 이름<input id="myName" value="${esc(me.name||'')}"></label><label class="field">내 직함 (비우면 "${ROLE[me.role]||''}")<input id="myTitle" maxlength="20" value="${esc(me.title||'')}" placeholder=""></label></div>
-  <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button></div>
+  <div class="row"><button class="btn sm" type="button" id="myNameSave">이름·직함 저장</button><button class="btn sm" type="button" id="emJump">이메일 변경</button></div>
   ${mgr&&S.pharm?`<div class="invite"><span class="sub">직원 초대 코드</span><b class="num">${esc(S.pharm.inviteCode||'')}</b><button class="btn sm" type="button" id="codeCopy">복사</button><button class="btn sm" type="button" id="codeNew">새 코드</button></div><p class="muted">직원은 각자 계정을 만든 뒤 이 코드로 들어와요. 코드가 새어 나갔으면 새 코드를 만드세요 (이미 들어온 직원은 그대로).</p>`:''}
  </div>
  <div class="card"><h3>약국 사람 <span class="c">${S.members.length}명</span></h3><div class="alist">${S.members.map(m=>`<div class="mrow"><span><b>${esc(m.name||'')}</b>${m.uid===SY.user.uid?' (나)':''} <span class="pill ${m.role==='owner'?'p-low':m.role==='admin'?'p-ok':'p-none'}">${esc(roleLabel(m))}</span><br><span class="sub">${esc(m.email||'')}${m.title?` · 권한 ${ROLE[m.role]||''}`:''}</span></span>
@@ -1477,14 +1510,10 @@ function accountView(){
    <label class="field">역할 (권한)<select id="amRole"><option value="staff">직원</option>${owner?'<option value="admin">관리자</option>':''}</select></label></div>
   <div class="row"><button class="btn primary" type="button" id="amGo">계정 만들고 추가</button></div>
   <p class="muted" id="amMsg">이메일이 없는 직원은 park@chambareun.kr 처럼 지어서 써도 돼요. 다만 그 경우 "비밀번호 찾기" 메일은 못 받아요.</p></div>`:''}
- <div class="card"><h3>비밀번호 바꾸기</h3><div class="grid2"><label class="field">지금 비밀번호<input id="pwOld" type="password" autocomplete="current-password"></label><label class="field">새 비밀번호 (6자 이상)<input id="pwNew" type="password" autocomplete="new-password"></label></div>
-  <div class="row"><button class="btn" type="button" id="pwGo">바꾸기</button></div><p class="muted" id="pwMsg"></p></div>
- <div class="card"><h3>로그인 이메일 바꾸기</h3><p class="muted">지금: <b>${esc(SY.user.email||'')}</b></p>
-  <div class="grid2"><label class="field">새 이메일<input id="emNew" type="email" autocomplete="off" placeholder=""></label><label class="field">지금 비밀번호 (본인 확인)<input id="emPw" type="password" autocomplete="current-password"></label></div>
-  <div class="row"><button class="btn" type="button" id="emGo">확인 메일 보내기</button></div><p class="muted" id="emMsg">새 이메일로 온 메일의 링크를 누르면 바뀌어요. 바뀐 뒤에는 새 이메일로 다시 로그인하세요. 약국 자료는 그대로예요.</p></div>
+ ${acctSecHtml()}
  <div class="card"><div class="row"><button class="btn" type="button" id="syOut">로그아웃 (이 기기 자료는 남아요)</button></div></div>`}
 function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const m=q('#syMsg');if(m)m.textContent=t;else toast(t)};const busy=async(b,f)=>{if(b)b.disabled=true;try{await f()}catch(e){msg(AUTH_MSG[e.code]||('문제: '+errMsg(e)))}finally{if(b&&b.isConnected)b.disabled=false}};
- const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p))});
+ const auth=kind=>busy(q(kind==='new'?'#syNew':'#syIn'),async()=>{const e=q('#syE').value.trim(),p=q('#syP').value;if(!e||!p){msg('이메일과 비밀번호를 적어 주세요');return}msg(kind==='new'?'계정 만드는 중…':'로그인 중…');await (kind==='new'?SY.cloud.signup(e,p):SY.cloud.login(e,p));await syAfterLogin()});
  if(q('#syIn'))q('#syIn').onclick=()=>auth('in');
  if(q('#nwGo'))q('#nwGo').onclick=()=>{const m=t=>{q('#nwMsg').textContent=t};const b=q('#nwGo');const c=q('#nwCode').value.trim().toUpperCase(),me=q('#nwMe').value.trim(),e=q('#nwE').value.trim(),p=q('#nwP').value;
   if(c.length!==6||!me||!e||p.length<6){m('초대 코드 6자리, 이름, 이메일, 비밀번호(6자 이상)를 모두 적어 주세요');return}
@@ -1510,10 +1539,11 @@ function bindAccount(body){const q=s=>body.querySelector(s);const msg=t=>{const 
  if(q('#pwGo'))q('#pwGo').onclick=()=>{const m=t=>{const x=q('#pwMsg');if(x)x.textContent=t};const o=q('#pwOld').value,n=q('#pwNew').value;
   if(!o||n.length<6){m('지금 비밀번호와 새 비밀번호(6자 이상)를 적어 주세요');return}const b=q('#pwGo');b.disabled=true;m('바꾸는 중…');
   SY.cloud.changePw(o,n).then(()=>{q('#pwOld').value='';q('#pwNew').value='';m('비밀번호를 바꿨어요');toast('비밀번호를 바꿨어요')}).catch(e=>m(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e)))).finally(()=>{if(b.isConnected)b.disabled=false})};
+ if(q('#emJump'))q('#emJump').onclick=()=>{const c=q('#emCard');if(c){c.scrollIntoView({block:'center'});const i=q('#emNew');i&&i.focus()}};
  if(q('#emGo'))q('#emGo').onclick=()=>{const m=t=>{const x=q('#emMsg');if(x)x.textContent=t};const ne=q('#emNew').value.trim().toLowerCase(),pw=q('#emPw').value;
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ne)){m('새 이메일을 바르게 적어 주세요');return}if(ne===(SY.user.email||'').toLowerCase()){m('지금 이메일과 같아요');return}if(!pw){m('지금 비밀번호를 적어 주세요');return}
   const b=q('#emGo');b.disabled=true;m('보내는 중…');
-  SY.cloud.changeEmail(pw,ne).then(()=>{q('#emPw').value='';m(`${ne}로 확인 메일을 보냈어요. 메일의 링크를 누르면 로그인 이메일이 바뀌어요. (메일이 안 보이면 스팸함도 확인해 주세요)`);toast('확인 메일을 보냈어요')})
+  SY.cloud.changeEmail(pw,ne).then(()=>{q('#emPw').value='';m(`${ne}로 확인 메일을 보냈어요. 메일의 링크를 누르면 바뀌어요. 누른 뒤 이 화면으로 돌아오면 바뀌었는지 자동으로 알려 드려요. (메일이 안 보이면 스팸함도 확인해 주세요)`);toast('확인 메일을 보냈어요');syWatchEmail(ne)})
    .catch(e=>m(e&&e.code==='auth/email-already-in-use'?'이미 다른 계정이 쓰는 이메일이에요':(AUTH_MSG[e&&e.code]||('문제: '+errMsg(e))))).finally(()=>{if(b.isConnected)b.disabled=false})};
  if(q('#syLeave'))q('#syLeave').onclick=()=>busy(q('#syLeave'),async()=>{if(!confirmTwice(q('#syLeave')))return;await SY.cloud.del(P()+'/members/'+SY.user.uid);await SY.cloud.set('users/'+SY.user.uid,{pharmPid:null},true);syLeaveLocal()})}
 
@@ -1770,13 +1800,28 @@ function calFormHtml(kind,s){
   <label class="chk"><input type="checkbox" id="fHol" ${holidayOff()?'checked':''}> 공휴일엔 기본 근무 쉼 (공휴일에 문 열면 그날만 "이날 근무 편집")</label>
   <div class="row"><button class="btn" type="button" data-fx>닫기</button><button class="btn primary" type="button" id="fSaveB">기본 근무표 저장</button></div></div>`}
  return ''}
+// 날짜 칸 위에 바로 뜨는 메모 입력창 (더블클릭)
+function calQuickMemo(s,anchor){document.querySelectorAll('.cpop').forEach(x=>x.remove());if(!anchor)return;
+ const r=anchor.getBoundingClientRect(),W=Math.min(272,innerWidth-16);
+ const p=document.createElement('div');p.className='cpop';p.style.width=W+'px';
+ p.innerHTML=`<b>${esc(dLabel(s))} 메모</b><textarea rows="3" maxlength="500" aria-label="메모" placeholder="Enter 저장 · Shift+Enter 줄바꿈 · Esc 닫기"></textarea><div class="row"><button class="btn sm" type="button" data-x>취소</button><button class="btn sm primary" type="button" data-ok>저장</button></div>`;
+ document.body.appendChild(p);
+ const h=p.offsetHeight;let left=Math.max(8,Math.min(r.left+r.width/2-W/2,innerWidth-W-8)),top=r.bottom+6;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);
+ p.style.left=left+'px';p.style.top=top+'px';
+ const ta=p.querySelector('textarea'),ok=p.querySelector('[data-ok]');ta.focus();
+ const off=()=>{p.remove();document.removeEventListener('mousedown',out,true)};
+ const out=e=>{if(!p.contains(e.target))off()};setTimeout(()=>document.addEventListener('mousedown',out,true),0);
+ p.querySelector('[data-x]').onclick=off;
+ const save=async()=>{const t=ta.value.trim();if(!t){toast('메모를 적어 주세요');return}ok.disabled=true;
+  if(await tSet(P()+'/events/'+uid(),{from:s,to:'',title:t.slice(0,500),time:'',kind:'memo',by:ME(),byName:myName(),at:Date.now()})){off();calSel=s;toast('메모를 남겼어요');redrawPanel()}else ok.disabled=false};
+ ok.onclick=save;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();save()}else if(e.key==='Escape')off()}}
 function calBind(body){
  const q=s=>body.querySelector(s);const mgr=isMgr();
  q('#cPrev').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);redrawPanel()};
  q('#cNext').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);redrawPanel()};
  q('#cToday').onclick=()=>{const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1);calSel=todayS();redrawPanel()};
- body.querySelectorAll('[data-d]').forEach(b=>b.onclick=e=>{calSel=b.dataset.d;const d=pd(calSel);if(d.getMonth()!==calMonth.getMonth())calMonth=new Date(d.getFullYear(),d.getMonth(),1);const dbl=e.detail>=2;if(dbl)calForm='memo';else if(calForm!=='base')calForm=null;redrawPanel();
-  if(dbl)setTimeout(()=>{const f=body.querySelector('.cform'),t=f&&f.querySelector('#fTitle');if(f)f.scrollIntoView({block:'nearest'});t&&t.focus()},30)}); // 날짜 더블클릭 = 그날 메모 남기기
+ body.querySelectorAll('[data-d]').forEach(b=>b.onclick=e=>{calSel=b.dataset.d;const d=pd(calSel);if(d.getMonth()!==calMonth.getMonth())calMonth=new Date(d.getFullYear(),d.getMonth(),1);const dbl=e.detail>=2;if(calForm!=='base')calForm=null;redrawPanel();
+  if(dbl)setTimeout(()=>calQuickMemo(calSel,document.querySelector('[data-d="'+calSel+'"]')),30)}); // 날짜 더블클릭 = 그 자리에서 바로 메모 입력
  body.querySelectorAll('[data-cf]').forEach(b=>b.onclick=()=>{calForm=calForm===b.dataset.cf?null:b.dataset.cf;redrawPanel();setTimeout(()=>{const f=body.querySelector('.cform');f&&f.scrollIntoView({block:'nearest'})},30)});
  body.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{calForm=null;redrawPanel()});
  body.querySelectorAll('[data-evx]').forEach(b=>armBtn(b,()=>tDel(P()+'/events/'+b.dataset.evx)));
@@ -1895,7 +1940,7 @@ const TEAM_CSS=`
 .cd .cn{font-size:9.5px;color:var(--ink-2);margin-top:auto}
 .dots i,.legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:2px;vertical-align:middle}
 .legend{margin:6px 0 10px}.legend i{margin-left:6px}
-i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--ok)}i.mm{background:#E0A526}.drow.memo .mtx{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
+i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--ok)}i.mm{background:#E0A526}.cpop{position:fixed;z-index:99999;display:flex;flex-direction:column;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px -8px rgba(0,0,0,.4)}.cpop b{font-size:13px}.cpop textarea{width:100%;min-height:66px;resize:none;box-sizing:border-box}.cpop .row{justify-content:flex-end}.drow.memo .mtx{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
 .dayc h3{margin-bottom:6px}.redt{color:var(--bad)}
 .dsec{margin:8px 0}.dsec>b{font-size:13px;color:var(--ink-2)}
 .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
@@ -2347,7 +2392,14 @@ html.sidemode .devtag{display:none}
    const ssync=on=>{sb.setAttribute('aria-pressed',on?'true':'false');sb.title=on?'사이드바 모드 켜짐 — 누르면 원래 창으로':'사이드바 모드: 화면 오른쪽에 길게 붙이기 (옆의 핀으로 고정을 켜고 끌 수 있어요)';sb.setAttribute('aria-label',sb.title);
     sync(on?deskCfg.sideTop!==false:!!deskCfg.winTop);document.documentElement.classList.toggle('sidemode',on)};
    ssync(!!deskCfg.side);tb.after(sb);
-   sb.onclick=async()=>{const on=await window.desk.setWinSide(sb.getAttribute('aria-pressed')!=='true');deskCfg.side=on;ssync(on);toast(on?'오른쪽 사이드바로 붙였어요':'원래 창으로 돌아왔어요')}}}
+   sb.onclick=async()=>{window.__sideTempReset&&window.__sideTempReset();const on=await window.desk.setWinSide(sb.getAttribute('aria-pressed')!=='true');deskCfg.side=on;ssync(on);toast(on?'오른쪽 사이드바로 붙였어요':'원래 창으로 돌아왔어요')}}}
+ // 사이드바에서 창(패널)을 열면 잠깐 기본 크기로 넓어졌다가, 닫으면 다시 사이드바로
+ if(window.desk.setWinSideTemp){let temp=false;const root=document.documentElement;
+  const expand=async()=>{if(!deskCfg.side||temp)return;temp=true;root.classList.remove('sidemode');await window.desk.setWinSideTemp(true)};
+  const collapse=async()=>{if(!temp)return;temp=false;await window.desk.setWinSideTemp(false);if(deskCfg.side)root.classList.add('sidemode')};
+  const _op=openPanel;openPanel=function(){const r=_op.apply(this,arguments);expand();return r};
+  new MutationObserver(()=>{if(temp&&!document.querySelector('.scrim'))collapse()}).observe(document.body,{childList:true});
+  window.__sideTempReset=()=>{temp=false}}
  window.desk.onUpdate&&window.desk.onUpdate(u=>{deskCfg.update=u;updBanner();updBtnSync();if(u.state==='ready')toast(`새 버전(${u.version})을 받았어요`);if(redrawPanel&&panelState.kind==='settings')redrawPanel()});updBanner();
  syInit();
  window.desk.ready()}
