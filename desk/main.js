@@ -48,7 +48,9 @@ function createWin(){
  if(data.desk.side)setTimeout(()=>applySide(true,true),0);
  win.loadFile(path.join(__dirname,'index.html'));
  win.webContents.once('did-finish-load',()=>DESK.ok()); // 새 버전이 잘 켜졌음
- win.once('ready-to-show',()=>{if(!startHidden)win.show()});
+ // 업데이트로 다시 켜졌거나 버전이 바뀐 첫 실행이면 숨김(--hidden)이어도 창을 띄움
+ const justUpdated=!!data.desk.showNext||(data.desk.lastVersion?data.desk.lastVersion!==VERSION:!!(DESK.bundledVersion&&DESK.cmp(VERSION,DESK.bundledVersion)>0));data.desk.showNext=false;data.desk.lastVersion=VERSION;saveData();
+ win.once('ready-to-show',()=>{if(!startHidden||justUpdated){win.show();win.focus()}});
  const keep=()=>{if(data.desk.side)return;if(!win.isMaximized()&&!win.isMinimized())data.desk.bounds=win.getBounds();saveData()};
  win.on('resized',keep);win.on('moved',keep);
  win.on('close',e=>{if(quitting)return;e.preventDefault();win.hide();
@@ -201,7 +203,7 @@ async function checkUpdate(manual){
   upd={state:'ready',version:v,notes:m.notes||'',err:''};updSend();return upd
  }catch(e){upd={...upd,state:'error',err:String(e&&e.message||e)};if(manual)updSend();return upd}}
 ipcMain.handle('update-check',()=>checkUpdate(true));
-ipcMain.on('update-restart',()=>{if(upd.state!=='ready')return;quitting=true;saveData(true);app.relaunch();app.exit(0)});
+ipcMain.on('update-restart',()=>{if(upd.state!=='ready')return;quitting=true;data.desk.showNext=true;saveData(true);app.relaunch({args:process.argv.slice(1).filter(a=>a!=='--hidden')});app.exit(0)});
 
 /* ---------- 화면과 주고받기 ---------- */
 ipcMain.handle('load-all',()=>data.docs);

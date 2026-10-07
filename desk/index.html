@@ -1531,6 +1531,10 @@ const stripAll=m=>({memos:(m.memos||[]).map(stripMemo),alarms:clean(m.alarms||[]
 function syStatus(s,err){SY.status=s;SY.err=err||'';if(s==='on')SY.lastSync=new Date();const el=$('syncDot');if(el){el.hidden=s==='off';el.className='syncdot '+s;el.title=s==='on'?'연동 중':s==='err'?'연동 문제: '+SY.err:'연결 중'}
  syRedraw()}
 function syRedraw(){if(redrawPanel&&panelState.kind==='settings'&&panelState.tab==='account'&&!document.activeElement?.closest('.panel input,.panel select'))redrawPanel()}
+// Enter로 보내기 (한글 입력 중 Enter는 글자 확정만 되므로, 확정되면 바로 보냄)
+function enterSubmit(el,fn,allowShift){let pend=false;
+ el.addEventListener('keydown',e=>{if(e.key!=='Enter'||(allowShift&&e.shiftKey))return;if(e.isComposing||e.keyCode===229){pend=true;return}e.preventDefault();pend=false;fn()});
+ el.addEventListener('compositionend',()=>{if(pend){pend=false;setTimeout(fn,0)}})}
 const errMsg=e=>e&&(e.code==='permission-denied'?'권한이 없어요 (보안 규칙 확인 필요)':e.code||e.message)||'알 수 없는 문제';
 
 /* --- 자료 올리기·받기 --- */
@@ -2081,9 +2085,9 @@ function calQuickMemo(s,anchor){document.querySelectorAll('.cpop').forEach(x=>x.
  const off=()=>{p.remove();document.removeEventListener('mousedown',out,true)};
  const out=e=>{if(!p.contains(e.target))off()};setTimeout(()=>document.addEventListener('mousedown',out,true),0);
  p.querySelector('[data-x]').onclick=off;
- const save=async()=>{const t=ta.value.trim();if(!t){toast('메모를 적어 주세요');return}ok.disabled=true;
+ const save=async()=>{if(ok.disabled)return;const t=ta.value.trim();if(!t){toast('메모를 적어 주세요');return}ok.disabled=true;
   if(await tSet(P()+'/events/'+uid(),{from:s,to:'',title:t.slice(0,500),time:'',kind:'memo',by:ME(),byName:myName(),at:Date.now()})){off();calSel=s;toast('메모를 남겼어요');redrawPanel()}else ok.disabled=false};
- ok.onclick=save;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();save()}else if(e.key==='Escape')off()}}
+ ok.onclick=save;enterSubmit(ta,save,true);ta.addEventListener('keydown',e=>{if(e.key==='Escape')off()})}
 function calBind(body){
  calRestore(body);{const f=body.querySelector('.cform');if(f){const s=()=>calSnap(body);f.addEventListener('input',e=>{const i=e.target;const u=i.dataset&&(i.dataset.sa||i.dataset.sp);if(u&&i.value.trim()){const c=f.querySelector(`[data-su="${u}"]`);if(c)c.checked=true}s()});f.addEventListener('change',s)}}
  const q=s=>body.querySelector(s);const mgr=isMgr();
@@ -2194,7 +2198,7 @@ function drawHand(body){
  if(q('#hDoneT'))q('#hDoneT').onclick=()=>{handShowDone=!handShowDone;redrawPanel()};
  const send=async id=>{const i=body.querySelector(`[data-ci="${id}"]`);const t=i.value.trim();if(!t)return;i.value='';await tSet(P()+'/handover/'+id,{cm:{[uid()]:{by:ME(),byName:myName(),text:t.slice(0,500),at:Date.now()}}},true)};
  body.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>send(b.dataset.cs));
- body.querySelectorAll('[data-ci]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();send(i.dataset.ci)}});
+ body.querySelectorAll('[data-ci]').forEach(i=>enterSubmit(i,()=>send(i.dataset.ci)));
  body.querySelectorAll('[data-cx]').forEach(b=>armBtn(b,()=>{const [h,c]=b.dataset.cx.split('|');tSet(P()+'/handover/'+h,{cm:{[c]:deleteMark()}},true)},'정말?'));
  body.querySelectorAll('[data-hh]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hh);handSetHold(b.dataset.hh,!handHold(h))});
  body.querySelectorAll('[data-hd]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hd);handSetDone(b.dataset.hd,!handDone(h))});

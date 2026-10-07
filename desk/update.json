@@ -1,16 +1,16 @@
 {
- "version": "0.6.10",
- "notes": "캘린더: 이날 근무 편집 — 시간만 적어도 근무로 저장, 입력 중 화면이 다시 그려져도 유지, 저장 후 서버 확인",
+ "version": "0.6.11",
+ "notes": "캘린더 메모(더블클릭)·인수인계 댓글: 한글 입력 중 Enter로도 저장, PC 업데이트 후 창이 다시 뜸",
  "files": [
   {
    "p": "index.html",
-   "sha256": "d864b734f7528e48ed79e615df7038683c4171af173c09fe7081baeeec7a5b9b",
-   "size": 369591
+   "sha256": "c69041ef332d9949b14f6d1a126457f82a2c9c0d0536f22444710a54fc191796",
+   "size": 369945
   },
   {
    "p": "main.js",
-   "sha256": "0cca93abe8579ccffe1342191d3b5e47bc4256c7b39320954d0f269fb9e8115c",
-   "size": 19680
+   "sha256": "8a566210bc70eae57a5380482911a8505a32e83456b2b576e4d7f44bef7956d6",
+   "size": 20128
   },
   {
    "p": "preload.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "cdde578e47a86a0f738d957c95d1a869390cd6f60289432ccb8a8f66051e2f8d",
+   "sha256": "33a66ba623d4db03c2ffaa9fead35674f7a4bf0754dd7008a0eae07331c4fe2d",
    "size": 212
   },
   {
