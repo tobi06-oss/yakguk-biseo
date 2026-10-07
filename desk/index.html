@@ -2003,7 +2003,15 @@ const isRed=s=>pd(s).getDay()===0||!!HOLI[s]||S.events.some(e=>e.kind==='off'&&e
 const iWork=s=>dayShift(s).some(x=>x.u===ME()&&!x.leave);
 function calPending(){const mgr=isMgr();return (mgr?S.leaves.filter(l=>l.status==='pending').length+S.swaps.filter(w=>w.status==='accepted').length:0)+S.swaps.filter(w=>w.status==='asked'&&w.to===ME()).length}
 async function saveDayShift(s,list){return tSet(P()+'/shifts/'+s.slice(0,7),{d:{[s.slice(8)]:list}},true)}
+// 캘린더 입력 폼: 다른 자료가 들어와 화면이 다시 그려져도 적던 내용이 지워지지 않게 보관
+let calDraft=null;
+const fkey=i=>i.id||(i.dataset.bu?`${i.dataset.bu}|${i.dataset.bd}|${i.dataset.bk}`:'');
+function calSnap(body){const f=body.querySelector('.cform');if(!f){calDraft=null;return}const k=f.dataset.k||'',v={};
+ f.querySelectorAll('input,select,textarea').forEach(i=>{const n=fkey(i);if(n)v[n]=i.type==='checkbox'||i.type==='radio'?i.checked:i.value});calDraft={k,v,sel:calSel}}
+function calRestore(body){const f=body.querySelector('.cform');if(!f||!calDraft||calDraft.k!==(f.dataset.k||'')||calDraft.sel!==calSel)return;
+ f.querySelectorAll('input,select,textarea').forEach(i=>{const n=fkey(i);if(!n||!(n in calDraft.v))return;if(i.type==='checkbox'||i.type==='radio')i.checked=calDraft.v[n];else i.value=calDraft.v[n]})}
 function drawCal(body){
+ if(!calForm)calDraft=null;
  if(!calMonth){const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1)}if(!calSel)calSel=todayS();
  const mgr=isMgr(),y=calMonth.getFullYear(),m=calMonth.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay()),last=new Date(y,m+1,0);
  const weeks=Math.ceil((first.getDay()+last.getDate())/7);const cells=[];
@@ -2058,6 +2066,7 @@ function calFormHtml(kind,s){
   return `<div class="card cform" data-k="base"><h4>기본 근무표</h4><p class="muted">요일마다 오전·오후 근무 시간을 따로 적어 두면(예: 오전 9:00-13:30, 오후 14:00-19:00 · 한쪽만 써도 돼요) 캘린더에 매주 자동으로 들어가요. 쉬는 날은 비워 두세요. 특정 날만 다르면 그날을 눌러 "이날 근무 편집".</p>
   <div class="tablewrap"><table class="btab"><thead><tr><th></th>${order.map(d=>`<th class="${d===0?'redt':''}">${WD[d]}</th>`).join('')}</tr></thead><tbody>${S.members.map(m=>`<tr><td>${esc(m.name)}</td>${order.map(d=>`<td>${(()=>{const q=shiftParts((b[m.uid]||{})[d]);return `<input class="tin" data-bu="${esc(m.uid)}" data-bd="${d}" data-bk="a" value="${esc(q.a)}" placeholder="오전"><input class="tin" data-bu="${esc(m.uid)}" data-bd="${d}" data-bk="p" value="${esc(q.p)}" placeholder="오후">`})()}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
   <label class="chk"><input type="checkbox" id="fHol" ${holidayOff()?'checked':''}> 공휴일엔 기본 근무 쉼 (공휴일에 문 열면 그날만 "이날 근무 편집")</label>
+  <p class="warnbox" id="fErr" hidden></p>
   <div class="row"><button class="btn" type="button" data-fx>닫기</button><button class="btn primary" type="button" id="fSaveB">기본 근무표 저장</button></div></div>`}
  return ''}
 // 날짜 칸 위에 바로 뜨는 메모 입력창 (더블클릭)
@@ -2076,6 +2085,7 @@ function calQuickMemo(s,anchor){document.querySelectorAll('.cpop').forEach(x=>x.
   if(await tSet(P()+'/events/'+uid(),{from:s,to:'',title:t.slice(0,500),time:'',kind:'memo',by:ME(),byName:myName(),at:Date.now()})){off();calSel=s;toast('메모를 남겼어요');redrawPanel()}else ok.disabled=false};
  ok.onclick=save;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();save()}else if(e.key==='Escape')off()}}
 function calBind(body){
+ calRestore(body);{const f=body.querySelector('.cform');if(f){const s=()=>calSnap(body);f.addEventListener('input',s);f.addEventListener('change',s)}}
  const q=s=>body.querySelector(s);const mgr=isMgr();
  q('#cPrev').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);redrawPanel()};
  q('#cNext').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);redrawPanel()};
@@ -2086,7 +2096,7 @@ function calBind(body){
  body.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{calForm=null;redrawPanel()});
  body.querySelectorAll('[data-evx]').forEach(b=>armBtn(b,()=>tDel(P()+'/events/'+b.dataset.evx)));
  const f=body.querySelector('.cform'),k=f&&f.dataset.k,s=calSel;
- const done=msg=>{calForm=null;toast(msg);redrawPanel()};
+ const done=msg=>{calForm=null;calDraft=null;toast(msg);redrawPanel()};
  if(q('#fSave'))q('#fSave').onclick=async()=>{
   if(k==='event'){const title=q('#fTitle').value.trim(),from=q('#fFrom').value,to=q('#fTo').value;if(!title||!from){toast('날짜와 내용을 적어 주세요');return}if(to&&to<from){toast('끝나는 날이 시작보다 빨라요');return}
    if(await tSet(P()+'/events/'+uid(),{from,to:to||'',title:title.slice(0,200),time:q('#fTime').value||'',kind:q('#fKind').value,by:ME(),byName:myName(),at:Date.now()}))done('일정을 추가했어요')}
@@ -2101,7 +2111,14 @@ function calBind(body){
    if(await saveDayShift(s,list))done('이날 근무를 저장했어요')}};
  if(q('#fReset'))q('#fReset').onclick=async()=>{if(await saveDayShift(s,null))done('기본 근무로 되돌렸어요')};
  if(q('#fSaveB'))q('#fSaveB').onclick=async()=>{const w={},tmp={};body.querySelectorAll('[data-bu]').forEach(i=>{const k=i.dataset.bu+'|'+i.dataset.bd;(tmp[k]=tmp[k]||{u:i.dataset.bu,d:i.dataset.bd,a:'',p:''})[i.dataset.bk]=i.value});Object.values(tmp).forEach(x=>{const v=shiftJoin(x.a,x.p);if(v)(w[x.u]=w[x.u]||{})[x.d]=v});
-  if(await tSet(P()+'/shifts/base',{w,holidayOff:q('#fHol').checked,at:Date.now(),by:ME()}))done('기본 근무표를 저장했어요')};
+  const sb=q('#fSaveB');sb.disabled=true;sb.textContent='저장 중…';
+  if(await tSet(P()+'/shifts/base',{w,holidayOff:q('#fHol').checked,at:Date.now(),by:ME()})){
+   // 서버에 실제로 들어갔는지 다시 읽어서 확인
+   let back=null;try{back=await SY.cloud.get(P()+'/shifts/base')}catch(e){}
+   const ok=back&&JSON.stringify(back.w||{})===JSON.stringify(w);S.shiftDocs={...S.shiftDocs,base:back||{w,holidayOff:q('#fHol').checked}};
+   if(ok){calDraft=null;done(`기본 근무표를 저장했어요 (${Object.keys(w).map(memName).join(', ')||'근무 없음'})`)}
+   else{sb.disabled=false;sb.textContent='기본 근무표 저장';const e=q('#fErr');if(e){e.hidden=false;e.textContent='저장했는데 서버에 반영되지 않았어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'}}}
+  else{sb.disabled=false;sb.textContent='기본 근무표 저장';const e=q('#fErr');if(e){e.hidden=false;e.textContent='저장하지 못했어요. '+(isMgr()?'인터넷 연결을 확인해 주세요.':'근무표는 국장·관리자 권한이 있어야 고칠 수 있어요.')}}};
  // 휴가 결재
  body.querySelectorAll('[data-la]').forEach(b=>b.onclick=async()=>{if(await tSet(P()+'/leaves/'+b.dataset.la,{status:'approved',decBy:ME(),decAt:Date.now()},true))toast('승인했어요')});
  body.querySelectorAll('[data-lr]').forEach(b=>b.onclick=async()=>{if(await tSet(P()+'/leaves/'+b.dataset.lr,{status:'rejected',decBy:ME(),decAt:Date.now()},true))toast('반려했어요')});

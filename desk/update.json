@@ -1,11 +1,11 @@
 {
- "version": "0.6.8",
- "notes": "알림 종 단추(검색칸 옆): 알림 켜기 · 근무일만 · 알림 끄기 — 내 계정 기준, PC·휴대폰 같이",
+ "version": "0.6.9",
+ "notes": "캘린더: 기본 근무표 등 입력 중 화면이 다시 그려져도 적던 내용 유지, 저장 후 서버 확인",
  "files": [
   {
    "p": "index.html",
-   "sha256": "be4eb399cefe7f2a8fa861ef1342db1aee4d329cbb8da9d6dfff3869cb14f57a",
-   "size": 366729
+   "sha256": "2577fe833b56a390544c4120d99f0cdd204ef5778a2cd2042445c26465537620",
+   "size": 368789
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "d192267642597cdced3f7175e843750590e6748fd52ddb4a5afd88dac5772f61",
+   "sha256": "eb86e8be3f202c9e81f341f6b52cae4d3c96ee2475fb21fdc2126bbc6bbc00ac",
    "size": 211
   },
   {
