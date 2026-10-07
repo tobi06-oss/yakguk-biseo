@@ -2006,7 +2006,7 @@ function calPending(){const mgr=isMgr();return (mgr?S.leaves.filter(l=>l.status=
 async function saveDayShift(s,list){return tSet(P()+'/shifts/'+s.slice(0,7),{d:{[s.slice(8)]:list}},true)}
 // 캘린더 입력 폼: 다른 자료가 들어와 화면이 다시 그려져도 적던 내용이 지워지지 않게 보관
 let calDraft=null;
-const fkey=i=>i.id||(i.dataset.bu?`${i.dataset.bu}|${i.dataset.bd}|${i.dataset.bk}`:'');
+const fkey=i=>i.id||(i.dataset.bu?`${i.dataset.bu}|${i.dataset.bd}|${i.dataset.bk}`:i.dataset.su?'su|'+i.dataset.su:i.dataset.sa?'sa|'+i.dataset.sa:i.dataset.sp?'sp|'+i.dataset.sp:'');
 function calSnap(body){const f=body.querySelector('.cform');if(!f){calDraft=null;return}const k=f.dataset.k||'',v={};
  f.querySelectorAll('input,select,textarea').forEach(i=>{const n=fkey(i);if(n)v[n]=i.type==='checkbox'||i.type==='radio'?i.checked:i.value});calDraft={k,v,sel:calSel}}
 function calRestore(body){const f=body.querySelector('.cform');if(!f||!calDraft||calDraft.k!==(f.dataset.k||'')||calDraft.sel!==calSel)return;
@@ -2086,7 +2086,7 @@ function calQuickMemo(s,anchor){document.querySelectorAll('.cpop').forEach(x=>x.
   if(await tSet(P()+'/events/'+uid(),{from:s,to:'',title:t.slice(0,500),time:'',kind:'memo',by:ME(),byName:myName(),at:Date.now()})){off();calSel=s;toast('메모를 남겼어요');redrawPanel()}else ok.disabled=false};
  ok.onclick=save;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();save()}else if(e.key==='Escape')off()}}
 function calBind(body){
- calRestore(body);{const f=body.querySelector('.cform');if(f){const s=()=>calSnap(body);f.addEventListener('input',s);f.addEventListener('change',s)}}
+ calRestore(body);{const f=body.querySelector('.cform');if(f){const s=()=>calSnap(body);f.addEventListener('input',e=>{const i=e.target;const u=i.dataset&&(i.dataset.sa||i.dataset.sp);if(u&&i.value.trim()){const c=f.querySelector(`[data-su="${u}"]`);if(c)c.checked=true}s()});f.addEventListener('change',s)}}
  const q=s=>body.querySelector(s);const mgr=isMgr();
  q('#cPrev').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);redrawPanel()};
  q('#cNext').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);redrawPanel()};
@@ -2108,8 +2108,13 @@ function calBind(body){
   else if(k==='swap'){const to=q('#fTo2').value,back=q('#fBack').value;const tm=S.members.find(m=>m.uid===to);
    if(back&&to&&!dayShift(back).some(x=>x.u===to)){toast(`${tm.name} 님은 ${dLabel(back)}에 근무가 없어요`);return}
    if(await tSet(P()+'/swaps/'+uid(),{from:ME(),fromName:myName(),date:s,to:to||'',toName:tm?tm.name:'',back:to?back||'':'',note:q('#fNote').value.trim().slice(0,200),status:'asked',at:Date.now()}))done('근무 교환을 요청했어요')}
-  else if(k==='shift'){const list=S.members.filter(m=>body.querySelector(`[data-su="${m.uid}"]`).checked).map(m=>({u:m.uid,t:shiftJoin(body.querySelector(`[data-sa="${m.uid}"]`).value,body.querySelector(`[data-sp="${m.uid}"]`).value)}));
-   if(await saveDayShift(s,list))done('이날 근무를 저장했어요')}};
+  else if(k==='shift'){const v=(a,u)=>body.querySelector(`[data-${a}="${u}"]`);
+   // 시간을 적었으면 체크를 안 해도 근무로 넣음
+   const list=S.members.filter(m=>v('su',m.uid).checked||v('sa',m.uid).value.trim()||v('sp',m.uid).value.trim()).map(m=>({u:m.uid,t:shiftJoin(v('sa',m.uid).value,v('sp',m.uid).value)}));
+   if(await saveDayShift(s,list)){let back=null;try{back=await SY.cloud.get(P()+'/shifts/'+s.slice(0,7))}catch(e){}
+    const got=back&&back.d&&back.d[s.slice(8)];if(back){S.shiftDocs={...S.shiftDocs,[s.slice(0,7)]:back}}
+    if(Array.isArray(got)&&got.length===list.length)done(list.length?`${dLabel(s)} 근무를 저장했어요 (${list.map(x=>memName(x.u)).join(', ')})`:`${dLabel(s)}은 근무 없음으로 저장했어요`);
+    else toast('저장했는데 서버에 반영되지 않았어요. 다시 눌러 주세요')}}};
  if(q('#fReset'))q('#fReset').onclick=async()=>{if(await saveDayShift(s,null))done('기본 근무로 되돌렸어요')};
  if(q('#fSaveB'))q('#fSaveB').onclick=async()=>{const w={},tmp={};body.querySelectorAll('[data-bu]').forEach(i=>{const k=i.dataset.bu+'|'+i.dataset.bd;(tmp[k]=tmp[k]||{u:i.dataset.bu,d:i.dataset.bd,a:'',p:''})[i.dataset.bk]=i.value});Object.values(tmp).forEach(x=>{const v=shiftJoin(x.a,x.p);if(v)(w[x.u]=w[x.u]||{})[x.d]=v});
   const sb=q('#fSaveB');sb.disabled=true;sb.textContent='저장 중…';
@@ -2639,7 +2644,7 @@ html.sidemode .bellbtn{width:42px}`;document.head.appendChild(st);
  renderBell()}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791368698';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791369876';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

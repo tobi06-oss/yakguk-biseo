@@ -1,11 +1,11 @@
 {
- "version": "0.6.9",
- "notes": "캘린더: 기본 근무표 등 입력 중 화면이 다시 그려져도 적던 내용 유지, 저장 후 서버 확인",
+ "version": "0.6.10",
+ "notes": "캘린더: 이날 근무 편집 — 시간만 적어도 근무로 저장, 입력 중 화면이 다시 그려져도 유지, 저장 후 서버 확인",
  "files": [
   {
    "p": "index.html",
-   "sha256": "2577fe833b56a390544c4120d99f0cdd204ef5778a2cd2042445c26465537620",
-   "size": 368789
+   "sha256": "d864b734f7528e48ed79e615df7038683c4171af173c09fe7081baeeec7a5b9b",
+   "size": 369591
   },
   {
    "p": "main.js",
@@ -39,8 +39,8 @@
   },
   {
    "p": "package.json",
-   "sha256": "eb86e8be3f202c9e81f341f6b52cae4d3c96ee2475fb21fdc2126bbc6bbc00ac",
-   "size": 211
+   "sha256": "cdde578e47a86a0f738d957c95d1a869390cd6f60289432ccb8a8f66051e2f8d",
+   "size": 212
   },
   {
    "p": "icon.png",
