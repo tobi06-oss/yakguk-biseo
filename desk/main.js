@@ -73,7 +73,8 @@ function buildTray(){
 
 /* ---------- 포스트잇 알림 창 (항상 위, 화면 중앙) ---------- */
 let shownKeys=new Set();
-function checkAlarms(){
+let workInit=false;
+function checkAlarms(){if(!workInit){workInit=true;core.setWork(data.desk&&data.desk.work)}
  const now=new Date();const me=data.desk.me||'local';const due=core.dueAlarms(memo().alarms,now,me);
  const items=due.map(a=>{const o=core.latestOcc(a,now);return{kind:'alarm',id:a.id,text:a.text,color:a.color||'yellow',when:core.whenLabel(o),rep:core.repLabel(a),late:now-o>15*60e3,key:a.id+':'+o.getTime()}});
  if(brief)items.unshift(brief);
@@ -105,6 +106,8 @@ ipcMain.on('alarm-act',(e,id,act)=>{
  setDoc('memo/main',{...m,savedAt:new Date().toISOString()});
 });
 ipcMain.on('set-me',(e,me)=>{data.desk.me=me||'local';saveData();checkAlarms()});
+// 알림 모드 + 내 근무일(약국 캘린더) — 종 단추
+ipcMain.on('set-work',(e,w)=>{if(JSON.stringify(data.desk.work||null)===JSON.stringify(w||null))return;data.desk.work=w||null;core.setWork(data.desk.work);saveData();checkAlarms()});
 ipcMain.on('set-notices',(e,list)=>{data.desk.notices=list||[];checkAlarms()});
 ipcMain.on('show-brief',(e,b)=>{brief={kind:'brief',key:'brief:'+Date.now(),...b};checkAlarms()});
 

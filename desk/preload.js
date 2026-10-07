@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('desk',{
  imported:info=>ipcRenderer.send('imported',info),
  ready:()=>ipcRenderer.send('renderer-ready'),
  setMe:me=>ipcRenderer.send('set-me',me),
+ setWork:w=>ipcRenderer.send('set-work',w),
  setNotices:l=>ipcRenderer.send('set-notices',l),
  onNoticeRead:f=>ipcRenderer.on('notice-read',(e,id)=>f(id)),
  showBrief:b=>ipcRenderer.send('show-brief',b),

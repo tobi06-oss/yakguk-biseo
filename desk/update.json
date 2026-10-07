@@ -1,26 +1,26 @@
 {
- "version": "0.6.5",
- "notes": "인수인계: 포스트잇 게시판, 안 읽은 글 빨간 숫자, 읽음·처리 표시, PC 포스트잇",
+ "version": "0.6.8",
+ "notes": "알림 종 단추(검색칸 옆): 알림 켜기 · 근무일만 · 알림 끄기 — 내 계정 기준, PC·휴대폰 같이",
  "files": [
   {
    "p": "index.html",
-   "sha256": "2eac8495c4152613097f1c1e2fa59c34ca9805815f5035fbcac0192d60f01516",
-   "size": 356348
+   "sha256": "be4eb399cefe7f2a8fa861ef1342db1aee4d329cbb8da9d6dfff3869cb14f57a",
+   "size": 366729
   },
   {
    "p": "main.js",
-   "sha256": "53eef9377c5d7489a444a7ec06b0c054548c7a88b3c27c07db6010fd36cc86a7",
-   "size": 19343
+   "sha256": "0cca93abe8579ccffe1342191d3b5e47bc4256c7b39320954d0f269fb9e8115c",
+   "size": 19680
   },
   {
    "p": "preload.js",
-   "sha256": "16a1aeeb636e5d92801b69dd9fe4b04479dd34184de1f0068af82eeacb04d389",
-   "size": 1791
+   "sha256": "80cc228af72a85bde3c5410c14f5f455762f7f4aa9c76e04e3bb296f9890e6a4",
+   "size": 1835
   },
   {
    "p": "alarmcore.js",
-   "sha256": "20cf0fabff348676c27cafb9e5f62a6682a383418593d1830900d11612d6a6e9",
-   "size": 2756
+   "sha256": "21700fed0c1d51f70534afb7c0c0f823d2df98bc6f2a56e184b1f5711e7f000c",
+   "size": 3154
   },
   {
    "p": "popup.html",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "7baddb9359aecdbe7f82ef84baec71f5390ae7fd7590689583524bae69290735",
+   "sha256": "d192267642597cdced3f7175e843750590e6748fd52ddb4a5afd88dac5772f61",
    "size": 211
   },
   {
