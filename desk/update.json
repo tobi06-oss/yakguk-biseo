@@ -1,11 +1,11 @@
 {
- "version": "0.6.11",
- "notes": "캘린더 메모(더블클릭)·인수인계 댓글: 한글 입력 중 Enter로도 저장, PC 업데이트 후 창이 다시 뜸",
+ "version": "0.6.12",
+ "notes": "재고 부족 목록: 체크칸 대신 확인·보류·예외 단추",
  "files": [
   {
    "p": "index.html",
-   "sha256": "c69041ef332d9949b14f6d1a126457f82a2c9c0d0536f22444710a54fc191796",
-   "size": 369945
+   "sha256": "570105e9806a46b8a4774b7fe4a9dae1747849f73e057aa3acd63a7d90440b73",
+   "size": 372942
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "33a66ba623d4db03c2ffaa9fead35674f7a4bf0754dd7008a0eae07331c4fe2d",
+   "sha256": "446342bf40b8eab1803bba85df4ee8b097fa751340bd845d72af5d2037323d51",
    "size": 212
   },
   {

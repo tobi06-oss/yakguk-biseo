@@ -648,7 +648,7 @@ function buildModel(){
  // 금액 ABC (기간 조제 금액 기준)
  const abc={};{const arr=Object.entries(P).filter(([,x])=>x.n>0).map(([c,x])=>[c,(+x.u||0)*(+x.q||(+x.d||0)*per)]).sort((a,b)=>b[1]-a[1]);
   const tot=arr.reduce((s,a)=>s+a[1],0)||1;let cum=0;arr.forEach(([c,v])=>{cum+=v;abc[c]=cum-v<tot*.8?'A':cum-v<tot*.95?'B':'C'})}
- const ordOn={};const now=Date.now();Object.entries(S.ord||{}).forEach(([c,o])=>{if(!o||now-o.at>3*864e5)return;ordOn[c]=o});
+ const ordOn={},holdOn={};const now=Date.now();Object.entries(S.ord||{}).forEach(([c,o])=>{if(!o||now-o.at>3*864e5)return;if(o.kind==='hold')holdOn[c]=o;else ordOn[c]=o});
  const items=st.rows.map(r=>{const raw=String(r[0]),code=String(r[1]||''),p=parseName(raw),pf=P[code],ex=S.exc[code]||null,hi=HI[code];
   const cur=+r[5]||0,fileOpt=+r[6]||0,base=+r[4]||1,ess=!!(ex&&ex.ess),psy=PSY.test(raw);
   const n=pf&&+pf.n||0,daily0=pf&&+pf.d||0,perrx=pf&&+pf.p||0,T0=pf&&+pf.T||per,ds=n>0?dailyStats(code):null,tags=[];
@@ -677,6 +677,7 @@ function buildModel(){
   const cl=x=>x>=1?Math.ceil(x-1e-9):Math.round(x*100)/100; // 병·통을 소수로 쓰는 약(0.04병 등)은 올림하지 않음
   mn=cl(mn);opt=cl(opt);
   if(ex&&ex.opt!=null&&ex.opt!==''){opt=+ex.opt;mn=Math.min(mn||Math.ceil(opt/2),opt);src='예외'}
+  if(ex&&ex.skip){mn=0;src='알림 제외'}
   const last=(pf&&pf.last)||(hi&&hi.l)||'',idle=last?dayDiff(last,date):null;
   const o=ordOn[code];const onOrd=o&&!(cur>o.cur0&&st.savedAt&&new Date(st.savedAt).getTime()>o.at)?+o.q||0:0;
   // 주문 단위: 품목 예외 > 재고현황 기본수량(병·포 등) > 입고 기록으로 추정한 통 단위
@@ -691,7 +692,9 @@ function buildModel(){
  // 같은 성분·같은 함량 다른 제품: 대체 가능 재고 / 다른 제품으로 바뀐 약
  items.forEach(i=>{const sib=i.key?(byKey[i.key]||[]).filter(x=>x!==i):[];i.alt=sib.filter(x=>x.cur>0).sort((a,b)=>b.cur-a.cur).slice(0,2);
   const act=sib.filter(x=>x.idle!=null&&x.idle<30&&(x.cls==='F'||x.cls==='S')).sort((a,b)=>b.n-a.n)[0];i.repl=act||null});
- const low=items.filter(i=>i.mn>0&&i.cur+i.onOrd<i.mn).sort((a,b)=>(b.ess-a.ess)||((a.days??a.cur/a.mn*Pd)-(b.days??b.cur/b.mn*Pd)));
+ items.forEach(i=>{i.hold=!!holdOn[i.code]});
+ const held=items.filter(i=>i.hold&&i.mn>0&&i.cur+i.onOrd<i.mn);
+ const low=items.filter(i=>!i.hold&&i.mn>0&&i.cur+i.onOrd<i.mn).sort((a,b)=>(b.ess-a.ess)||((a.days??a.cur/a.mn*Pd)-(b.days??b.cur/b.mn*Pd)));
  const urgent=low.filter(i=>i.cur<=0||(i.days!=null?i.days<Pd+1:i.cur<i.mn*.5));
  const isDisp=c=>!!(P[c]&&(P[c].n>0||P[c].d>0)||HI[c]);
  const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)&&isDisp(c)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]||{},i:byCode[c]||(P[c]&&P[c].n?{cls:P[c].n/(+P[c].T||per)*30>=4?'F':P[c].n/(+P[c].T||per)*30>=1?'S':'N',opt:0,alt:[]}:null)})):[];
@@ -709,7 +712,7 @@ function buildModel(){
  const goneFS=gone.filter(g=>g.i?(g.i.cls==='F'||g.i.cls==='S'):false).length;
  const kpi={gone:gone.length,goneFS,low:low.length,val:Math.round(iv),dval:Math.round(dval),dead:deadAct.length,deadVal:Math.round(deadAct.reduce((s,i)=>s+i.cur*i.price,0))};
  const dd=S.daily&&S.daily.dates?S.daily.dates.length:0;
- return{items,byKey,byIng,byCode,low,urgent,gone,drop,dead:deadAct,deadAct,deadWatch,over,check,date,prevDate:S.prev&&S.prev.date||'',cover:COV,Pd,SZ,cnt,per,kpi,rop,hol,stale,season:SEA,dailyDays:dd}
+ return{items,byKey,byIng,byCode,low,held,urgent,gone,drop,dead:deadAct,deadAct,deadWatch,over,check,date,prevDate:S.prev&&S.prev.date||'',cover:COV,Pd,SZ,cnt,per,kpi,rop,hol,stale,season:SEA,dailyDays:dd}
 }
 /* 매일 재고 기록: 조제약만, 최근 60일 */
 async function recordDaily(){const st=S.stock;if(!st||!st.date||!st.rows)return;const P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{};
@@ -794,8 +797,12 @@ function orderText(groups){return `[발주 목록] ${dateLabel(M.date)} 재고 �
 const TAGC={'향정':'p-low','추세↑':'p-low','계절':'p-low','연휴':'p-low'};
 const clsTag=i=>(i.ess?'<span class="pill p-low">필수</span> ':'')+(i.tags||[]).map(x=>`<span class="pill ${TAGC[x]||'p-none'}">${x}</span> `).join('')+(i.cls?`<span class="pill p-none" title="조제 빈도 ${i.cls} · 금액 ${i.abc||'-'}">${i.cls}${i.abc?'·'+i.abc:''}</span>`:'');
 const daysTxt=d=>d==null?'-':d<1?'1일 미만':fmt(Math.round(d))+'일';
-async function toggleOrd(code){const i=M&&M.byCode[code];if(!i)return;const n={...(S.ord||{})};
- if(n[code]&&Date.now()-n[code].at<3*864e5)delete n[code];else n[code]={q:i.need||Math.max(0,i.opt-i.cur),at:Date.now(),cur0:i.cur,name:i.base};
+// 부족 목록 단추: 확인(주문함) · 보류(3일 안 보기) · 예외(부족 알림 안 함)
+async function setSkip(code,on){const i=M&&M.byCode[code];const n={...S.exc};
+ if(on)n[code]={...(n[code]||{opt:null,name:i?i.base:code,note:'부족 목록에서 뺌'}),skip:true};else if(n[code]){n[code]={...n[code],skip:false};if(n[code].opt==null&&!n[code].pack&&!n[code].ess&&n[code].lv==null)delete n[code]}
+ if(await saveDoc('exceptions/main',{items:n})){S.exc=n;renderToday();toast(on?`${i?i.base:''} — 부족 알림에서 뺐어요 (설정 › 품목 예외에서 되돌릴 수 있어요)`:'다시 부족 알림에 넣었어요');redrawPanel&&redrawPanel()}}
+async function toggleOrd(code,kind){kind=kind||'ok';const i=M&&M.byCode[code];if(!i&&kind!=='undo')return;const n={...(S.ord||{})};
+ if(kind==='undo'||(n[code]&&(n[code].kind||'ok')===kind&&Date.now()-n[code].at<3*864e5))delete n[code];else n[code]={q:kind==='ok'?(i.need||Math.max(0,i.opt-i.cur)):0,at:Date.now(),cur0:i.cur,name:i.base,kind};
  // 3일 지난 표시는 정리
  Object.keys(n).forEach(c=>{if(Date.now()-n[c].at>3*864e5)delete n[c]});
  if(await saveDoc('stock/ordered',{items:n})){S.ord=n;renderToday();redrawPanel&&redrawPanel()}}
@@ -805,12 +812,18 @@ function drawStock(body){
   const groups=groupBy(M.low,i=>i.ws||'사입처 정보 없음').sort((a,b)=>(a[0]==='사입처 정보 없음')-(b[0]==='사입처 정보 없음')||b[1].length-a[1].length);
   body.innerHTML=`<div class="stats"><div class="stat"><div class="k">부족</div><div class="v">${M.low.length}</div></div><div class="stat"><div class="k">급함</div><div class="v">${M.urgent.length}</div></div><div class="stat"><div class="k">규모</div><div class="v" style="font-size:15px">${M.SZ.name}</div></div></div>
   ${M.stale>=2?`<p class="warnbox">⚠ 재고 자료가 ${dateLabel(M.date)} 것이에요 (${M.stale}영업일 전). 오늘 조제약품현황을 올려 주세요.</p>`:''}${M.hol?`<p class="warnbox">${dateLabel(M.hol.start)}부터 ${M.hol.len}일 쉬어요. 자주 쓰는 약은 연휴 일수만큼 더 채우도록 최소·적정재고를 올렸어요.</p>`:''}
-  <div class="row" style="justify-content:space-between"><p class="muted">${dateLabel(M.date)} 재고 · (현재고 + 주문중)이 주문선(적정재고의 ${M.rop}%) 아래인 약 · 필수약·남은 일수 적은 순. 주문했으면 ✓를 눌러 두세요(3일 동안 다시 안 떠요).</p>${M.low.length?'<button class="btn sm" type="button" id="cpAll">전체 복사</button>':''}</div>
-  <style>.otbl td:first-child{white-space:normal;max-width:38vw;min-width:110px}.otbl td,.otbl th{padding-left:4px;padding-right:4px}</style>${M.low.length?groups.map(([w,a],gi)=>`<div class="card"><h3>${esc(w)} <span class="row"><span class="c">${a.length}품목</span><button class="btn sm" type="button" data-cp="${gi}">복사</button></span></h3><div class="tablewrap"><table class="otbl"><thead><tr><th>약품</th><th>현재 · 주문선/적정</th><th>주문</th><th>✓</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span> ${clsTag(i)}${altTxt(i)}</td><td>${fmt(i.cur)}<div class="sub">${fmt(i.mn)} / ${fmt(i.opt)}</div><div class="sub">${i.days!=null?daysTxt(i.days)+' 남음':''}${i.onOrd?` +${fmt(i.onOrd)} 주문중`:''}</div></td><td class="short">${fmt(i.need)} ${esc(i.unit)}${packTxt(i)}</td><td><button class="btn sm" type="button" data-ord="${esc(i.code)}" aria-pressed="${!!i.onOrd}">${i.onOrd?'✓':'□'}</button></td></tr>`).join('')}</tbody></table></div></div>`).join(''):'<div class="card"><p class="muted">주문선 아래로 내려간 약이 없어요.</p></div>'}
-  ${Object.keys(S.ord||{}).length?`<p class="sub">주문함 표시 ${Object.keys(S.ord).length}개 · 재고가 늘어나면 자동으로 빠져요.</p>`:''}`;
+  <div class="row" style="justify-content:space-between"><p class="muted">${dateLabel(M.date)} 재고 · (현재고 + 주문중)이 주문선(적정재고의 ${M.rop}%) 아래인 약 · 필수약·남은 일수 적은 순. <b>확인</b>: 주문했어요(3일 동안 주문중으로 빠짐) · <b>보류</b>: 3일 동안 안 보기 · <b>예외</b>: 이 약은 부족 알림 안 함.</p>${M.low.length?'<button class="btn sm" type="button" id="cpAll">전체 복사</button>':''}</div>
+  <style>.otbl td:first-child{white-space:normal;max-width:38vw;min-width:110px}.otbl td,.otbl th{padding-left:4px;padding-right:4px}.otbl td:last-child{width:58px}
+.ostk{display:flex;flex-direction:column;gap:4px}.ob{min-width:52px;height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.ob.ok{background:var(--accent);border-color:var(--accent);color:#fff}.ob.hold:hover{border-color:#C98A00;color:#9A6A00}.ob.skip:hover{border-color:var(--bad);color:var(--bad)}.ob.arm{background:var(--bad);border-color:var(--bad);color:#fff}
+.dnl .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}.dnl .drow:first-of-type{border-top:0}</style>${M.low.length?groups.map(([w,a],gi)=>`<div class="card"><h3>${esc(w)} <span class="row"><span class="c">${a.length}품목</span><button class="btn sm" type="button" data-cp="${gi}">복사</button></span></h3><div class="tablewrap"><table class="otbl"><thead><tr><th>약품</th><th>현재 · 주문선/적정</th><th>주문</th><th></th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span> ${clsTag(i)}${altTxt(i)}</td><td>${fmt(i.cur)}<div class="sub">${fmt(i.mn)} / ${fmt(i.opt)}</div><div class="sub">${i.days!=null?daysTxt(i.days)+' 남음':''}${i.onOrd?` +${fmt(i.onOrd)} 주문중`:''}</div></td><td class="short">${fmt(i.need)} ${esc(i.unit)}${packTxt(i)}</td><td><div class="ostk"><button class="ob ok" type="button" data-ord="${esc(i.code)}" data-k="ok">확인</button><button class="ob hold" type="button" data-ord="${esc(i.code)}" data-k="hold">보류</button><button class="ob skip" type="button" data-skip="${esc(i.code)}">예외</button></div></td></tr>`).join('')}</tbody></table></div></div>`).join(''):'<div class="card"><p class="muted">주문선 아래로 내려간 약이 없어요.</p></div>'}
+  ${(()=>{const now=Date.now(),on=Object.entries(S.ord||{}).filter(([,o])=>o&&now-o.at<3*864e5).sort((a,b)=>b[1].at-a[1].at);if(!on.length)return '';
+   return `<div class="card dnl"><h3>확인·보류한 약 <span class="c">${on.length}</span></h3><p class="sub">3일이 지나거나(보류) 재고가 늘면(확인) 저절로 빠져요.</p>${on.map(([c,o])=>`<div class="drow"><span>${esc(o.name||c)} <span class="sub">${o.kind==='hold'?'보류':'확인 · 주문 '+fmt(o.q)}</span></span><button class="btn sm" type="button" data-undo="${esc(c)}">되돌리기</button></div>`).join('')}</div>`})()}`;
   $('cpAll')&&($('cpAll').onclick=()=>copyText(orderText(groups)));
   body.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>copyText(orderText([groups[+b.dataset.cp]])));
-  body.querySelectorAll('[data-ord]').forEach(b=>b.onclick=()=>toggleOrd(b.dataset.ord));
+  body.querySelectorAll('[data-ord]').forEach(b=>b.onclick=()=>toggleOrd(b.dataset.ord,b.dataset.k));
+  body.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>toggleOrd(b.dataset.undo,'undo'));
+  body.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>{if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='정말?';setTimeout(()=>{if(b.isConnected){b.classList.remove('arm');b.textContent='예외'}},3000);return}setSkip(b.dataset.skip,true)});
  }else if(t==='today'){
   if(!S.prev){body.innerHTML='<div class="card"><p class="muted">비교할 이전 재고가 없어요. 다음 날 재고(또는 조제약품현황) 파일이 들어오면 어제와 비교해서 새로 0이 된 약을 보여드려요.</p></div>';return}
   body.innerHTML=`<p class="muted">${dateLabel(M.prevDate)} → ${dateLabel(M.date)} 비교 · 조제한 적 있는 약만</p>
@@ -992,15 +1005,15 @@ function drawSettings(body){
   const rows=Object.entries(S.exc);
   body.innerHTML=`<div class="card"><h3>품목 예외</h3><p class="muted">약마다 따로 정해요. <b>적정</b>: 계산값 대신 쓸 적정재고(비우면 계산값). <b>주문 단위</b>: 박스 수량처럼 주문량을 이 단위로 올림. <b>입고 지연</b>: 품귀로 늦게 들어오는 약은 2~3일 (안전재고가 커짐). <b>필수</b>: 떨어지면 안 되는 약 — 서비스수준을 올리고, 거의 안 나가도 1건분은 두고, 부족 목록 맨 위에 둬요.</p>
    <div id="excList">${rows.length?rows.map(([c,e])=>{const i=M&&M.byCode[c];return `<div class="exc" style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(i?i.base:e.name||c)}<br><span class="sub">${esc(e.note||'')}${i?` · 계산 주문선 ${fmt(i.mn)} / 적정 ${fmt(i.opt)}`:''}</span>
-    <span class="row" style="gap:6px;margin-top:6px;align-items:center"><label class="sub">적정 <input type="number" min="0" value="${esc(e.opt??'')}" data-exc="${esc(c)}" placeholder="계산값" style="width:84px"></label><label class="sub">주문 단위 <input type="number" min="0" value="${esc(e.pack||'')}" data-pack="${esc(c)}" placeholder="없음" style="width:70px"></label><label class="sub">입고 지연 <input type="number" min="0" max="14" step="0.5" value="${esc(e.lv??'')}" data-lv="${esc(c)}" placeholder="${LEAD_SD}일" style="width:64px"></label><label class="chk sub" style="margin:0"><input type="checkbox" data-ess="${esc(c)}" ${e.ess?'checked':''} style="width:auto"> 필수</label></span></span><button class="btn sm danger" type="button" data-excdel="${esc(c)}">빼기</button></div>`}).join(''):'<p class="muted">아직 없어요.</p>'}</div>
+    <span class="row" style="gap:6px;margin-top:6px;align-items:center"><label class="sub">적정 <input type="number" min="0" value="${esc(e.opt??'')}" data-exc="${esc(c)}" placeholder="계산값" style="width:84px"></label><label class="sub">주문 단위 <input type="number" min="0" value="${esc(e.pack||'')}" data-pack="${esc(c)}" placeholder="없음" style="width:70px"></label><label class="sub">입고 지연 <input type="number" min="0" max="14" step="0.5" value="${esc(e.lv??'')}" data-lv="${esc(c)}" placeholder="${LEAD_SD}일" style="width:64px"></label><label class="chk sub" style="margin:0"><input type="checkbox" data-ess="${esc(c)}" ${e.ess?'checked':''} style="width:auto"> 필수</label><label class="chk sub" style="margin:0"><input type="checkbox" data-skp="${esc(c)}" ${e.skip?'checked':''} style="width:auto"> 부족 알림 안 함</label></span></span><button class="btn sm danger" type="button" data-excdel="${esc(c)}">빼기</button></div>`}).join(''):'<p class="muted">아직 없어요.</p>'}</div>
    <input class="search" id="excQ" type="search" placeholder="예외로 둘 약 찾기"><div id="excRes"></div>
    <div class="row"><button class="btn primary" type="button" id="excSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
   $('excQ').oninput=()=>{const q=norm($('excQ').value);const out=$('excRes');if(!q||!M){out.innerHTML='';return}
    out.innerHTML=M.items.filter(i=>i.hay.includes(q)&&!S.exc[i.code]).slice(0,8).map(i=>`<div class="exc"><span>${esc(i.base)} <span class="sub">주문선 ${fmt(i.mn)} · 적정 ${fmt(i.opt)}</span></span><span></span><button class="btn sm" type="button" data-excadd="${esc(i.code)}">추가</button></div>`).join('');
    out.querySelectorAll('[data-excadd]').forEach(b=>b.onclick=()=>{const i=M.byCode[b.dataset.excadd];S.exc={...S.exc,[i.code]:{opt:null,name:i.base,note:'직접 정함'}};redrawPanel()})};
   body.querySelectorAll('[data-excdel]').forEach(b=>b.onclick=()=>{const n={...S.exc};delete n[b.dataset.excdel];S.exc=n;redrawPanel()});
-  $('excSave').onclick=async()=>{const n={};body.querySelectorAll('[data-exc]').forEach(inp=>{const c=inp.dataset.exc;const pk=body.querySelector(`[data-pack="${c}"]`),es=body.querySelector(`[data-ess="${c}"]`),lv=body.querySelector(`[data-lv="${c}"]`);
-    n[c]={...S.exc[c],opt:inp.value===''?null:Math.max(0,+inp.value||0),pack:Math.max(0,+(pk&&pk.value)||0),lv:lv&&lv.value!==''?Math.max(0,+lv.value||0):null,ess:!!(es&&es.checked)}});
+  $('excSave').onclick=async()=>{const n={};body.querySelectorAll('[data-exc]').forEach(inp=>{const c=inp.dataset.exc;const pk=body.querySelector(`[data-pack="${c}"]`),es=body.querySelector(`[data-ess="${c}"]`),lv=body.querySelector(`[data-lv="${c}"]`),sk=body.querySelector(`[data-skp="${c}"]`);
+    n[c]={...S.exc[c],opt:inp.value===''?null:Math.max(0,+inp.value||0),pack:Math.max(0,+(pk&&pk.value)||0),lv:lv&&lv.value!==''?Math.max(0,+lv.value||0):null,ess:!!(es&&es.checked),skip:!!(sk&&sk.checked)}});
    if(await saveDoc('exceptions/main',{items:n})){S.exc=n;renderToday();toast('품목 예외를 저장했어요');redrawPanel()}};
  }else if(t==='favs'){drawFavEdit(body)}
  else{
