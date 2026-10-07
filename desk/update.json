@@ -1,11 +1,11 @@
 {
- "version": "0.5.36",
- "notes": "캘린더 근무시간을 오전/오후로 나눠 적기",
+ "version": "0.6.0",
+ "notes": "재고관리 강화: 규모별 적정재고(안전재고·재주문점), 품절·부족·장기미조제 매일 알림, 조제약품현황 하나로 매일 갱신",
  "files": [
   {
    "p": "index.html",
-   "sha256": "3a3b4f72ad109033051358b8926220fcab2349cfaca96cfc630944dd4b685a93",
-   "size": 318565
+   "sha256": "16b3aa87b378d6a8fe441e503d629ad249d25501b6239962fb5d3261d2fb1eb9",
+   "size": 333221
   },
   {
    "p": "main.js",
@@ -39,8 +39,8 @@
   },
   {
    "p": "package.json",
-   "sha256": "a0a516dc4e95d34655f9193fce337cef772c49452025e09f34b8501edfc0da1a",
-   "size": 212
+   "sha256": "fad32678eb955739e7a31fe683e389098d1dd0bf60994007cc6a64d737c7f6e4",
+   "size": 211
   },
   {
    "p": "icon.png",
