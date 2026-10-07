@@ -588,8 +588,8 @@ function fallbackCopy(txt){const ta=document.createElement('textarea');ta.classN
 function dateLabel(d){return d?`${+d.slice(4,6)}/${+d.slice(6)}`:''}
 
 /* ===== 저장소 상태 ===== */
-const DEFAULT_SETTINGS={name:'우리 약국',tel:'',leadDays:0,bufferDays:7,periodDays:184,size:'auto',briefTime:'13:30',briefOn:true};
-const S={stock:null,prev:null,profile:{items:{}},settings:{...DEFAULT_SETTINGS},exc:{},ord:{},manual:[],ready:{}};
+const DEFAULT_SETTINGS={name:'우리 약국',tel:'',leadDays:0,bufferDays:7,periodDays:184,size:'auto',briefTime:'13:30',briefOn:true,rop:50};
+const S={stock:null,prev:null,profile:{items:{}},settings:{...DEFAULT_SETTINGS},exc:{},ord:{},kpi:{days:{}},daily:null,season:null,manual:[],ready:{}};
 let db=null,canWrite=true,M=null; // M = 계산된 재고 모델
 
 function parseName(raw){let base=raw,ing='',str='';const m=raw.match(/^(.*)_\((.*)\)$/);
@@ -603,61 +603,133 @@ function parseName(raw){let base=raw,ing='',str='';const m=raw.match(/^(.*)_\((.
   - 분류: 금액 ABC(80/95%) × 조제 빈도 F/S/N(월 4건↑ / 1건↑ / 그 밑, 평균 조제 간격 기준) + 필수약
   - 규모(소형/중형/대형·문전)는 추정 처방전 수로 자동, 설정에서 바꿀 수 있음
   - 재고 포지션 = 현재고 + 주문해 둔 양(주문함 표시) */
-const SIZE={s:{name:'소형',z:1.28,D:3,act:180},m:{name:'중형',z:1.65,D:5,act:90},l:{name:'대형·문전',z:2.05,D:7,act:90}};
+const SIZE={s:{name:'소형',z:1.28,D:14,act:180},m:{name:'중형',z:1.65,D:12,act:90},l:{name:'대형·문전',z:2.05,D:7,act:90}};
+const LUMPY_DAYS=7,LEAD_SD=1; // 처방 1건이 평균 7일치 이상이면 '큰 처방' 약 · 입고 지연 변동(일)
 const WATCH_DAYS=60,RX_LINES=3.5;
+// 향정신성의약품(대표 성분): 1건분 넘게 쌓지 않음
+const PSY=/졸피뎀|알프라졸람|로라제팜|디아제팜|클로나제팜|에티졸람|트리아졸람|브로마제팜|클로바잠|클로티아제팜|옥사제팜|클로르디아제폭시드|플루라제팜|에스조피클론|조피클론|미다졸람|펜터민|펜디메트라진|마진돌|디에틸프로피온|로르메타제팜|플루니트라제팜|페노바르비탈|토피솔람|쿠아제팜|자낙스|스틸녹스|졸피드|리보트릴|아티반|디아제팜/;
 const ymd8=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 const d8=s=>new Date(+String(s).slice(0,4),+String(s).slice(4,6)-1,+String(s).slice(6,8));
 const dayDiff=(a,b)=>Math.round((d8(b)-d8(a))/864e5);
+const addDays=(s,n)=>{const d=d8(s);d.setDate(d.getDate()+n);return ymd8(d)};
+// 쉬는 날: 일요일·공휴일·약국 휴무(캘린더) — 캘린더가 없는 화면에서는 일요일만
+function closedDay(s){const d=d8(s),iso=`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;try{if(typeof isRed==='function')return isRed(iso)}catch(e){}return d.getDay()===0}
+// 앞으로 며칠 안에 시작하는 2일 이상 연휴 (연휴 대비)
+function holidayAhead(today){for(let i=1;i<=3;i++){const s=addDays(today,i);if(!closedDay(s))continue;let n=0;while(n<10&&closedDay(addDays(s,n)))n++;if(n>=2)return{start:s,len:n,inDays:i};i+=n}return null}
+function bizDaysBetween(a,b){let n=0;for(let s=addDays(a,1);s<=b&&n<60;s=addDays(s,1))if(!closedDay(s))n++;return n}
 function sizeInfo(){const P=(S.profile&&S.profile.items)||{},per=+S.profile.periodDays||+S.settings.periodDays||184;
  let lines=0;Object.values(P).forEach(x=>lines+=+x.n||0);
  const rx=lines?lines/(per*6/7)/RX_LINES:0,auto=!lines?'m':rx<60?'s':rx<150?'m':'l';
- const set=S.settings.size&&S.settings.size!=='auto'?S.settings.size:'';return{rx,auto,key:set||auto,manual:!!set,...SIZE[set||auto]}}
+ const set=S.settings.size&&S.settings.size!=='auto'?S.settings.size:'';const b=SIZE[set||auto],s=S.settings;return{rx,auto,key:set||auto,manual:!!set,...b,z:Math.round((b.z+(+s.zAdj||0))*100)/100,D:+s.cycleDays||b.D,zAdj:+s.zAdj||0,cyc:+s.cycleDays||0}}
+/* 매일 재고 기록(stock/daily)으로: 품절 일수, 최근 사용 속도, 통 단위 추정 */
+const PACKS=[10,14,20,28,30,50,60,90,100,120,200,250,300,500,1000];
+function dailyStats(code){const D=S.daily;if(!D||!D.dates||!D.c||!D.c[code])return null;const v=D.c[code],ds=D.dates;
+ let zero=0,days=0,use=0,cov=0;const incs=[];
+ for(let k=0;k<ds.length;k++){if(v[k]==null)continue;days++;if(v[k]<=0)zero++}
+ const from=ds.length?addDays(ds[ds.length-1],-28):'';
+ for(let k=1;k<ds.length;k++){if(v[k]==null||v[k-1]==null)continue;const g=dayDiff(ds[k-1],ds[k]);if(g<=0||g>4)continue;const diff=v[k-1]-v[k];
+  if(diff>=0){if(ds[k]>=from){use+=diff;cov+=g}}else incs.push({inc:-diff,g})}
+ const recent=cov>=10?use/cov:null;
+ let pack=0;if(incs.length>=2&&recent!=null){const adj=incs.map(x=>x.inc+recent*x.g),tol=x=>Math.max(2,recent*x.g*.6+1);
+  for(let j=PACKS.length-1;j>=0;j--){const p=PACKS[j];if(p>Math.max(...adj)+2)continue;if(adj.every((a,i)=>{const m=Math.max(1,Math.round(a/p));return Math.abs(a-m*p)<=tol(incs[i])})){pack=p;break}}}
+ return{zero,days,recent,pack,incN:incs.length}}
+function seasonOn(){const s=S.season;if(!s||!s.from||!s.to)return null;const ly=ymd8(new Date(Date.now()-365*864e5));
+ return ly>=addDays(s.from,-7)&&ly<=addDays(s.to,-7)?s:null}
 function buildModel(){
  const st=S.stock;if(!st||!st.rows)return null;
  const set=S.settings,P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{},per=+S.profile.periodDays||+set.periodDays||184;
  const SZ=sizeInfo(),lead=+set.leadDays||0,Pd=1+lead; // 주문 주기 1일 + 들어오기까지 걸리는 날
+ const rop=set.rop==null?50:+set.rop; // 자주 쓰는 약: 적정재고의 몇 %에서 주문
  const dm=String(st.meta||'').match(/~\s*(\d{8})/),date=st.date||(dm?dm[1]:ymd8(new Date()));
+ const today=ymd8(new Date()),hol=holidayAhead(today>date?today:date),SEA=seasonOn(),SI=(SEA&&SEA.items)||{};
+ const stale=today>date?bizDaysBetween(date,today):0;
  const prevMap={};(S.prev&&S.prev.rows||[]).forEach(r=>prevMap[String(r[1])]={cur:+r[5]||0,name:r[0]});
  // 금액 ABC (기간 조제 금액 기준)
  const abc={};{const arr=Object.entries(P).filter(([,x])=>x.n>0).map(([c,x])=>[c,(+x.u||0)*(+x.q||(+x.d||0)*per)]).sort((a,b)=>b[1]-a[1]);
   const tot=arr.reduce((s,a)=>s+a[1],0)||1;let cum=0;arr.forEach(([c,v])=>{cum+=v;abc[c]=cum-v<tot*.8?'A':cum-v<tot*.95?'B':'C'})}
  const ordOn={};const now=Date.now();Object.entries(S.ord||{}).forEach(([c,o])=>{if(!o||now-o.at>3*864e5)return;ordOn[c]=o});
  const items=st.rows.map(r=>{const raw=String(r[0]),code=String(r[1]||''),p=parseName(raw),pf=P[code],ex=S.exc[code]||null,hi=HI[code];
-  const cur=+r[5]||0,fileOpt=+r[6]||0,ess=!!(ex&&ex.ess);
-  const n=pf&&+pf.n||0,daily=pf&&+pf.d||0,perrx=pf&&+pf.p||0,T=pf&&+pf.T||per;
-  const lam=n/T,sigma=perrx*Math.sqrt(lam*1.25),month=n/T*30;
-  const cls=n>0||daily>0?(month>=4?'F':month>=1?'S':'N'):(hi||pf)?'N':'';   // '' = 조제한 적 없는 약(일반약 등)
+  const cur=+r[5]||0,fileOpt=+r[6]||0,base=+r[4]||1,ess=!!(ex&&ex.ess),psy=PSY.test(raw);
+  const n=pf&&+pf.n||0,daily0=pf&&+pf.d||0,perrx=pf&&+pf.p||0,T0=pf&&+pf.T||per,ds=n>0?dailyStats(code):null,tags=[];
+  // 품절 보정: 재고가 0이던 날은 수요를 못 봤으니 기간에서 뺌 (판매 손실 보정)
+  const zero=ds?Math.min(ds.zero,T0-14):0,T=Math.max(14,T0-Math.max(0,zero));if(zero>0)tags.push('품절보정');
+  let daily=n>0?(pf.q?+pf.q:daily0*T0)/T:daily0,lam=n/T,month=n/T*30;
+  // 계절: 작년 같은 시기에 더 많이 나갔으면 그만큼 준비
+  const sv=SI[code];if(sv&&sv.T){const dl=sv.q/sv.T,ml=sv.n/sv.T*30;if(dl>daily*1.2&&sv.n>=2){daily=daily>0?Math.min(dl,daily*3):dl;/* 잘못 뽑은 파일 대비 최대 3배 */lam=Math.max(lam,sv.n/sv.T);month=Math.max(month,ml);tags.push('계절')}}
+  const lumpy=n>0&&perrx>=daily*LUMPY_DAYS; // 큰 처방 약: 투약량 변동계수 1.0 가정
+  const sL=ex&&ex.lv!=null&&ex.lv!==''?+ex.lv:LEAD_SD;
+  let cls=n>0||daily>0?(month>=4?'F':month>=1?'S':'N'):(hi||pf)?'N':'';   // '' = 조제한 적 없는 약(일반약 등)
+  // 추세: 최근 4주 사용 속도(매일 재고 기록)가 6개월 평균과 크게 다르면 반영 (늘 때는 바로, 줄 때는 절반만)
+  let trend=0;if(cls==='F'&&ds&&ds.recent!=null&&ds.days>=14&&daily>0){const rt=ds.recent/daily;if(rt>=1.5){daily=ds.recent;lam*=rt;trend=1;tags.push('추세↑')}else if(rt<=.5){daily=(daily+ds.recent)/2;trend=-1;tags.push('추세↓')}}
+  const sigma=perrx*Math.sqrt(lam*(lumpy?2:1.25));
   const g=abc[code]||'';const z=Math.max(1,Math.min(2.6,SZ.z+(g==='A'?-.3:g==='C'?.3:0)+(ess?.3:0)));
   let mn=0,opt=0,src;
-  if(cls==='F'){mn=Math.max(daily*Pd+z*sigma*Math.sqrt(Pd),perrx);opt=mn+daily*SZ.D;src='계산'}
-  else if(cls==='S'){mn=opt=perrx||daily*30;src='1건분'}
-  else if(cls==='N'){mn=opt=ess?perrx:0;src=ess?'필수 1건분':'주문형'}
+  if(cls==='F'){const s0=Math.max(daily*Pd+z*Math.sqrt(Pd*sigma*sigma+daily*daily*sL*sL),perrx*(lumpy?2:1.5));opt=s0+daily*(psy?Math.min(7,SZ.D):SZ.D);mn=Math.max(s0,opt*rop/100);src=lumpy?'계산·큰 처방':'계산';
+   if(hol){mn+=daily*hol.len;opt+=daily*hol.len;tags.push('연휴')}}
+  else if(cls==='S'){mn=perrx||daily*30;opt=lumpy&&!psy?mn*2:mn;src=opt>mn?'1~2건분':'1건분'}
+  else if(cls==='N'){const rep=n>=2;mn=opt=(ess||rep)?perrx:0;src=ess?'필수 1건분':rep?'반복 1건분':'주문형';if(rep)tags.push('반복')}
   else{mn=0;opt=fileOpt;src=fileOpt?'프로그램(참고)':''} // 조제한 적 없는 약은 부족 판정에서 뺌
-  mn=Math.ceil(mn);opt=Math.ceil(opt);
+  if(psy){tags.push('향정');if(cls!=='F'){mn=Math.min(mn,perrx||mn);opt=Math.min(opt,perrx||opt)}}
+  const cl=x=>x>=1?Math.ceil(x-1e-9):Math.round(x*100)/100; // 병·통을 소수로 쓰는 약(0.04병 등)은 올림하지 않음
+  mn=cl(mn);opt=cl(opt);
   if(ex&&ex.opt!=null&&ex.opt!==''){opt=+ex.opt;mn=Math.min(mn||Math.ceil(opt/2),opt);src='예외'}
   const last=(pf&&pf.last)||(hi&&hi.l)||'',idle=last?dayDiff(last,date):null;
   const o=ordOn[code];const onOrd=o&&!(cur>o.cur0&&st.savedAt&&new Date(st.savedAt).getTime()>o.at)?+o.q||0:0;
-  let need=Math.max(0,opt-cur-onOrd);const pack=ex&&+ex.pack||0;if(need>0&&pack>0)need=Math.ceil(need/pack)*pack;
+  // 주문 단위: 품목 예외 > 재고현황 기본수량(병·포 등) > 입고 기록으로 추정한 통 단위
+  const pack=ex&&+ex.pack||(base>1?base:0)||(ds&&ds.pack)||0,packSrc=ex&&+ex.pack?'예외':base>1?'기본수량':ds&&ds.pack?'추정':'';
+  let need=Math.max(0,opt-cur-onOrd);if(need>0&&pack>0)need=Math.ceil(need/pack)*pack;
   const price=pf&&+pf.u||hi&&+hi.u||0,days=daily>0?cur/daily:null;
-  return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
-   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,days,ex,disp:!!cls,...p,
+  return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
+   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,...p,
    prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
  const byKey={},byIng={},byCode={};
  items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
+ // 같은 성분·같은 함량 다른 제품: 대체 가능 재고 / 다른 제품으로 바뀐 약
+ items.forEach(i=>{const sib=i.key?(byKey[i.key]||[]).filter(x=>x!==i):[];i.alt=sib.filter(x=>x.cur>0).sort((a,b)=>b.cur-a.cur).slice(0,2);
+  const act=sib.filter(x=>x.idle!=null&&x.idle<30&&(x.cls==='F'||x.cls==='S')).sort((a,b)=>b.n-a.n)[0];i.repl=act||null});
  const low=items.filter(i=>i.mn>0&&i.cur+i.onOrd<i.mn).sort((a,b)=>(b.ess-a.ess)||((a.days??a.cur/a.mn*Pd)-(b.days??b.cur/b.mn*Pd)));
  const urgent=low.filter(i=>i.cur<=0||(i.days!=null?i.days<Pd+1:i.cur<i.mn*.5));
  const isDisp=c=>!!(P[c]&&(P[c].n>0||P[c].d>0)||HI[c]);
- const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)&&isDisp(c)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]||{},i:byCode[c]||null})):[];
+ const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)&&isDisp(c)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]||{},i:byCode[c]||(P[c]&&P[c].n?{cls:P[c].n/(+P[c].T||per)*30>=4?'F':P[c].n/(+P[c].T||per)*30>=1?'S':'N',opt:0,alt:[]}:null)})):[];
  const drop=S.prev?items.filter(i=>i.prev!=null&&i.daily>0&&(i.prev-i.cur)>i.daily*3).sort((a,b)=>(b.prev-b.cur)/b.daily-(a.prev-a.cur)/a.daily):[];
- // 장기미조제: 조제한 적 있는 약 중 재고가 있고 최근 조제일에서 60일 넘게 지난 약 (금액 큰 순)
+ // 장기미조제: 조제한 적 있는 약 중 재고가 있고 최근 조제일에서 60일 넘게 지난 약 (다른 제품으로 바뀐 약 먼저, 금액 큰 순)
  const val=i=>i.cur*i.price;
- const idleAll=items.filter(i=>i.disp&&i.cur>0&&!i.ess&&i.idle!=null&&i.idle>=WATCH_DAYS).sort((a,b)=>val(b)-val(a)||b.idle-a.idle);
+ const idleAll=items.filter(i=>i.disp&&i.cur>0&&!i.ess&&i.idle!=null&&i.idle>=WATCH_DAYS).sort((a,b)=>(!!b.repl-!!a.repl)||val(b)-val(a)||b.idle-a.idle);
  const deadAct=idleAll.filter(i=>i.idle>=SZ.act),deadWatch=idleAll.filter(i=>i.idle<SZ.act);
  const over=items.filter(i=>(i.cls==='F'||i.cls==='S')&&i.opt>0&&i.daily>0&&i.cur>i.opt*4&&i.cur>i.daily*60).sort((a,b)=>b.cur*b.price-a.cur*a.price);
- const cnt={F:0,S:0,N:0,A:0,B:0,C:0};items.forEach(i=>{if(i.cls)cnt[i.cls]++;if(i.abc)cnt[i.abc]++});
- return{items,byKey,byIng,byCode,low,urgent,gone,drop,dead:deadAct,deadAct,deadWatch,over,date,prevDate:S.prev&&S.prev.date||'',cover:Pd+SZ.D,Pd,SZ,cnt,per}
+ // 재고 확인 필요: 마이너스 재고, 오늘 조제했는데 재고가 어제와 같음
+ const check=items.filter(i=>i.disp&&(i.cur<0||(S.prev&&i.prev!=null&&i.prev>0&&i.prev===i.cur&&i.last===date&&S.prev.date&&S.prev.date<date))).map(i=>({i,why:i.cur<0?'마이너스 재고':'오늘 조제했는데 재고가 어제와 같음'}));
+ const cnt={F:0,S:0,N:0,A:0,B:0,C:0,L:0,R:0,PSY:0};items.forEach(i=>{if(i.cls)cnt[i.cls]++;if(i.abc)cnt[i.abc]++;if(i.lumpy&&(i.cls==='F'||i.cls==='S'))cnt.L++;if(i.tags.includes('반복'))cnt.R++;if(i.psy&&i.disp)cnt.PSY++});
+ // 성과 지표: 품절은 재고를 두기로 한 약(F·S)만 셈
+ let iv=0,dval=0;items.forEach(i=>{if(i.disp&&i.cur>0)iv+=i.cur*i.price;dval+=i.daily*i.price});
+ const goneFS=gone.filter(g=>g.i?(g.i.cls==='F'||g.i.cls==='S'):false).length;
+ const kpi={gone:gone.length,goneFS,low:low.length,val:Math.round(iv),dval:Math.round(dval),dead:deadAct.length,deadVal:Math.round(deadAct.reduce((s,i)=>s+i.cur*i.price,0))};
+ const dd=S.daily&&S.daily.dates?S.daily.dates.length:0;
+ return{items,byKey,byIng,byCode,low,urgent,gone,drop,dead:deadAct,deadAct,deadWatch,over,check,date,prevDate:S.prev&&S.prev.date||'',cover:Pd+SZ.D,Pd,SZ,cnt,per,kpi,rop,hol,stale,season:SEA,dailyDays:dd}
 }
-function stockBrief(){if(!M)return null;const p=S.prev?`품절 ${M.gone.length} · `:'';return `${dateLabel(M.date)} 재고 · ${p}부족 ${M.low.length} · 장기미조제 ${M.deadAct.length}`}
+/* 매일 재고 기록: 조제약만, 최근 60일 */
+async function recordDaily(){const st=S.stock;if(!st||!st.date||!st.rows)return;const P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{};
+ const old=S.daily&&S.daily.dates?S.daily:{dates:[],c:{}};const D={dates:old.dates.slice(),c:{}};Object.keys(old.c||{}).forEach(c=>D.c[c]=old.c[c].slice());
+ const curMap={};st.rows.forEach(r=>curMap[String(r[1])]=Math.round((+r[5]||0)*100)/100);
+ let k=D.dates.indexOf(st.date);if(k<0){D.dates.push(st.date);D.dates.sort();k=D.dates.indexOf(st.date);Object.keys(D.c).forEach(c=>D.c[c].splice(k,0,null))}
+ new Set([...Object.keys(P).filter(c=>P[c].n>0),...Object.keys(HI)]).forEach(c=>{if(!D.c[c])D.c[c]=D.dates.map(()=>null);D.c[c][k]=curMap[c]??0});
+ while(D.dates.length>60){D.dates.shift();Object.keys(D.c).forEach(c=>D.c[c].shift())}
+ Object.keys(D.c).forEach(c=>{if(D.c[c].every(x=>x==null))delete D.c[c]});
+ if(JSON.stringify(D)===JSON.stringify(old))return;if(await saveDoc('stock/daily',D))S.daily=D}
+/* 성과 기록: 재고 날짜마다 한 줄 (stock/kpi). 2~3개월 쌓이면 기준 조정에 씀 */
+async function recordKpi(){const m=buildModel();if(!m||!S.prev)return;const days={...((S.kpi&&S.kpi.days)||{})};
+ const k=m.kpi,row={...k,z:m.SZ.z,D:m.SZ.D,size:m.SZ.key};const old=days[m.date];if(old&&JSON.stringify(old)===JSON.stringify(row))return;days[m.date]=row;
+ const keys=Object.keys(days).sort();keys.slice(0,Math.max(0,keys.length-400)).forEach(d=>delete days[d]);
+ if(await saveDoc('stock/kpi',{days}))S.kpi={days}}
+function kpiAdvice(){const d=(S.kpi&&S.kpi.days)||{},keys=Object.keys(d).sort().slice(-60),n=keys.length;
+ if(n<14)return{n,msg:`기록 ${n}일째예요. 14일 넘게 쌓이면 기준을 올릴지 내릴지 알려드려요.`};
+ const avg=f=>keys.reduce((s,k)=>s+(+f(d[k])||0),0)/n;const g=avg(x=>x.goneFS),inv=avg(x=>x.dval?x.val/x.dval:0),D=M?M.SZ.D:12;
+ let msg,lvl='ok';
+ if(g>=1){lvl='up';msg=`재고를 두는 약(F·S)이 하루 평균 ${r1(g)}개씩 품절돼요. 설정 › 기준에서 서비스수준을 한 단계 올리거나 주문 간격을 늘려 보세요.`}
+ else if(g<0.2&&inv>D+7){lvl='down';msg=`품절은 거의 없고(하루 ${r1(g)}개) 조제약 재고가 평균 ${fmt(Math.round(inv))}일치예요. 주문 간격을 줄이거나 과다 재고 탭의 약을 정리하면 묶인 돈을 줄일 수 있어요.`}
+ else msg=`품절 하루 ${r1(g)}개 · 재고 평균 ${fmt(Math.round(inv))}일치 — 지금 기준이 적당해 보여요.`;
+ return{n,g,inv,lvl,msg}}
+function stockBrief(){if(!M)return null;const p=S.prev?`품절 ${M.gone.length} · `:'';return `${M.stale>=2?`⚠ 자료가 ${M.stale}영업일 지났어요 · `:''}${dateLabel(M.date)} 재고 · ${p}부족 ${M.low.length} · 장기미조제 ${M.deadAct.length}${M.hol?` · 연휴(${dateLabel(M.hol.start)}~ ${M.hol.len}일) 대비`:''}`}
 
 /* ===== 오늘의 재고 한 줄 ===== */
 function renderToday(){
@@ -690,7 +762,7 @@ function openPanel(kind,tab){
  const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:'메모·알림',settings:'설정',team:'약국'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
-  const tabs=kind==='stock'?[['order','부족',M?M.low.length:0],['today','품절',M?M.gone.length:0],['dead','장기미조제',M?M.deadAct.length:0],['search','검색'],['over','과다 재고',M?M.over.length:0],['basis','기준']]
+  const tabs=kind==='stock'?[['order','부족',M?M.low.length:0],['today','품절',M?M.gone.length:0],['dead','장기미조제',M?M.deadAct.length:0],['search','검색'],['over','과다 재고',M?M.over.length:0],['kpi','성과'],['basis','기준']]
    :kind==='alt'?[]
    :kind==='mynote'?(SY.user?[['list','내 수첩',S.mynotes.length||null],['add','새로 쓰기'],['import','매뉴얼에서 가져오기']].concat(S.pharm?[['send','동료에게 보내기']]:[]):[])
    :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
@@ -712,8 +784,11 @@ function needStock(body){if(M)return false;body.innerHTML='<div class="card"><p 
 /* ----- 재고 패널 ----- */
 function groupBy(arr,f){const g={};arr.forEach(i=>{const k=f(i);(g[k]=g[k]||[]).push(i)});return Object.entries(g)}
 const nmStr=i=>`${i.base}${i.str?' '+i.str:''}`;
+const altTxt=i=>i&&i.alt&&i.alt.length?`<div class="sub">대체 가능: ${i.alt.map(x=>`${esc(x.base)} ${fmt(x.cur)}`).join(', ')}</div>`:'';
+const packTxt=i=>i.pack?`<div class="sub">${fmt(i.pack)}${esc(i.unit)} 단위${i.packSrc==='추정'?'(추정)':''}</div>`:'';
 function orderText(groups){return `[발주 목록] ${dateLabel(M.date)} 재고 기준\n`+groups.map(([w,a])=>`\n■ ${w}\n`+a.filter(i=>i.need>0).map(i=>`- ${nmStr(i)}: 현재 ${fmt(i.cur)}${i.onOrd?` (주문중 ${fmt(i.onOrd)})`:''} / 적정 ${fmt(i.opt)} → 주문 ${fmt(i.need)}${i.unit}`).join('\n')).join('\n')}
-const clsTag=i=>(i.ess?'<span class="pill p-low">필수</span> ':'')+(i.cls?`<span class="pill p-none" title="조제 빈도 ${i.cls} · 금액 ${i.abc||'-'}">${i.cls}${i.abc?'·'+i.abc:''}</span>`:'');
+const TAGC={'향정':'p-low','추세↑':'p-low','계절':'p-low','연휴':'p-low'};
+const clsTag=i=>(i.ess?'<span class="pill p-low">필수</span> ':'')+(i.tags||[]).map(x=>`<span class="pill ${TAGC[x]||'p-none'}">${x}</span> `).join('')+(i.cls?`<span class="pill p-none" title="조제 빈도 ${i.cls} · 금액 ${i.abc||'-'}">${i.cls}${i.abc?'·'+i.abc:''}</span>`:'');
 const daysTxt=d=>d==null?'-':d<1?'1일 미만':fmt(Math.round(d))+'일';
 async function toggleOrd(code){const i=M&&M.byCode[code];if(!i)return;const n={...(S.ord||{})};
  if(n[code]&&Date.now()-n[code].at<3*864e5)delete n[code];else n[code]={q:i.need||Math.max(0,i.opt-i.cur),at:Date.now(),cur0:i.cur,name:i.base};
@@ -725,8 +800,9 @@ function drawStock(body){
  if(t==='order'){
   const groups=groupBy(M.low,i=>i.ws||'사입처 정보 없음').sort((a,b)=>(a[0]==='사입처 정보 없음')-(b[0]==='사입처 정보 없음')||b[1].length-a[1].length);
   body.innerHTML=`<div class="stats"><div class="stat"><div class="k">부족</div><div class="v">${M.low.length}</div></div><div class="stat"><div class="k">급함</div><div class="v">${M.urgent.length}</div></div><div class="stat"><div class="k">규모</div><div class="v" style="font-size:15px">${M.SZ.name}</div></div></div>
+  ${M.stale>=2?`<p class="warnbox">⚠ 재고 자료가 ${dateLabel(M.date)} 것이에요 (${M.stale}영업일 전). 오늘 조제약품현황을 올려 주세요.</p>`:''}${M.hol?`<p class="warnbox">${dateLabel(M.hol.start)}부터 ${M.hol.len}일 쉬어요. 자주 쓰는 약은 연휴 일수만큼 더 채우도록 최소·적정재고를 올렸어요.</p>`:''}
   <div class="row" style="justify-content:space-between"><p class="muted">${dateLabel(M.date)} 재고 · (현재고 + 주문중)이 최소재고보다 적은 약 · 필수약·남은 일수 적은 순. 주문했으면 ✓를 눌러 두세요(3일 동안 다시 안 떠요).</p>${M.low.length?'<button class="btn sm" type="button" id="cpAll">전체 복사</button>':''}</div>
-  ${M.low.length?groups.map(([w,a],gi)=>`<div class="card"><h3>${esc(w)} <span class="row"><span class="c">${a.length}품목</span><button class="btn sm" type="button" data-cp="${gi}">복사</button></span></h3><div class="tablewrap"><table><thead><tr><th>약품</th><th>현재</th><th>최소/적정</th><th>주문</th><th>✓</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span> ${clsTag(i)}</td><td>${fmt(i.cur)}<div class="sub">${i.days!=null?daysTxt(i.days)+' 남음':''}${i.onOrd?` +${fmt(i.onOrd)} 주문중`:''}</div></td><td>${fmt(i.mn)} / ${fmt(i.opt)}</td><td class="short">${fmt(i.need)} ${esc(i.unit)}</td><td><button class="btn sm" type="button" data-ord="${esc(i.code)}" aria-pressed="${!!i.onOrd}">${i.onOrd?'✓':'□'}</button></td></tr>`).join('')}</tbody></table></div></div>`).join(''):'<div class="card"><p class="muted">최소재고보다 적은 약이 없어요.</p></div>'}
+  <style>.otbl td:first-child{white-space:normal;max-width:38vw;min-width:110px}.otbl td,.otbl th{padding-left:4px;padding-right:4px}</style>${M.low.length?groups.map(([w,a],gi)=>`<div class="card"><h3>${esc(w)} <span class="row"><span class="c">${a.length}품목</span><button class="btn sm" type="button" data-cp="${gi}">복사</button></span></h3><div class="tablewrap"><table class="otbl"><thead><tr><th>약품</th><th>현재 · 최소/적정</th><th>주문</th><th>✓</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span> ${clsTag(i)}${altTxt(i)}</td><td>${fmt(i.cur)}<div class="sub">${fmt(i.mn)} / ${fmt(i.opt)}</div><div class="sub">${i.days!=null?daysTxt(i.days)+' 남음':''}${i.onOrd?` +${fmt(i.onOrd)} 주문중`:''}</div></td><td class="short">${fmt(i.need)} ${esc(i.unit)}${packTxt(i)}</td><td><button class="btn sm" type="button" data-ord="${esc(i.code)}" aria-pressed="${!!i.onOrd}">${i.onOrd?'✓':'□'}</button></td></tr>`).join('')}</tbody></table></div></div>`).join(''):'<div class="card"><p class="muted">최소재고보다 적은 약이 없어요.</p></div>'}
   ${Object.keys(S.ord||{}).length?`<p class="sub">주문함 표시 ${Object.keys(S.ord).length}개 · 재고가 늘어나면 자동으로 빠져요.</p>`:''}`;
   $('cpAll')&&($('cpAll').onclick=()=>copyText(orderText(groups)));
   body.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>copyText(orderText([groups[+b.dataset.cp]])));
@@ -734,7 +810,8 @@ function drawStock(body){
  }else if(t==='today'){
   if(!S.prev){body.innerHTML='<div class="card"><p class="muted">비교할 이전 재고가 없어요. 다음 날 재고(또는 조제약품현황) 파일이 들어오면 어제와 비교해서 새로 0이 된 약을 보여드려요.</p></div>';return}
   body.innerHTML=`<p class="muted">${dateLabel(M.prevDate)} → ${dateLabel(M.date)} 비교 · 조제한 적 있는 약만</p>
-  <div class="card"><h3>품절 — 어제는 있었는데 0이 된 약 <span class="c">${M.gone.length}</span></h3>${M.gone.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>어제</th><th>하루 평균</th><th>1건 평균</th><th>적정</th><th>사입처</th></tr></thead><tbody>${M.gone.map(g=>`<tr><td>${esc(parseName(g.name).base)}</td><td>${fmt(g.prev)}</td><td>${g.pf.d?fmt(r1(g.pf.d)):'-'}</td><td>${g.pf.p?fmt(r1(g.pf.p)):'-'}</td><td>${g.i&&g.i.opt?fmt(g.i.opt):'-'}</td><td>${esc(g.pf.w||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>'}</div>
+  <div class="card"><h3>품절 — 어제는 있었는데 0이 된 약 <span class="c">${M.gone.length}</span></h3>${M.gone.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>어제</th><th>하루 평균</th><th>1건 평균</th><th>적정</th><th>사입처</th></tr></thead><tbody>${M.gone.map(g=>`<tr><td>${esc(parseName(g.name).base)}${altTxt(g.i)}</td><td>${fmt(g.prev)}</td><td>${g.pf.d?fmt(r1(g.pf.d)):'-'}</td><td>${g.pf.p?fmt(r1(g.pf.p)):'-'}</td><td>${g.i&&g.i.opt?fmt(g.i.opt):'-'}</td><td>${esc(g.pf.w||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>'}</div>
+  ${M.check.length?`<div class="card"><h3>재고 확인 필요 <span class="c">${M.check.length}</span></h3><p class="muted">이팜 재고가 실제와 다를 수 있어요. 선반을 세어 보고 이팜 재고를 고쳐 주세요.</p><div class="tablewrap"><table><thead><tr><th>약품</th><th>이팜 재고</th><th>이유</th></tr></thead><tbody>${M.check.map(x=>`<tr><td>${esc(x.i.base)}</td><td>${fmt(x.i.cur)}</td><td>${x.why}</td></tr>`).join('')}</tbody></table></div></div>`:''}
   <div class="card"><h3>평소보다 빨리 나간 약 <span class="c">${M.drop.length}</span></h3><p class="muted">하루 사이에 평소 3일치 넘게 나간 약</p>${M.drop.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>이전</th><th>지금</th><th>평소 하루</th></tr></thead><tbody>${M.drop.slice(0,40).map(i=>`<tr><td>${esc(i.base)}</td><td>${fmt(i.prev)}</td><td>${fmt(i.cur)}</td><td>${fmt(r1(i.daily))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>'}</div>`;
  }else if(t==='search'){
   body.innerHTML='<input class="search" id="sq" type="search" placeholder="약 이름, 성분, 제약회사, 사입처, 약품코드" autocomplete="off"><div id="sres"></div>';
@@ -744,21 +821,27 @@ function drawStock(body){
   $('sq').oninput=run;run();$('sq').focus();
  }else if(t==='dead'){
   const sum=a=>a.reduce((s,i)=>s+i.cur*i.price,0);
-  const tbl=a=>a.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>재고</th><th>미조제</th><th>금액</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span></td><td>${fmt(i.cur)} ${esc(i.unit)}</td><td>${fmt(i.idle)}일</td><td>${i.price?fmt(Math.round(i.cur*i.price))+'원':'-'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>';
-  body.innerHTML=`<p class="muted">조제한 적 있는 약(전문·일반 구분 없이) 중 재고가 남아 있고 마지막 조제일에서 오래 지난 약이에요. 금액이 큰 순. 필수약은 빼요.</p>
+  const tbl=a=>a.length?`<div class="tablewrap"><table><thead><tr><th>약품</th><th>재고</th><th>미조제</th><th>금액</th></tr></thead><tbody>${a.map(i=>`<tr><td>${esc(i.base)} <span class="sub">${esc(i.str)}</span>${i.repl?`<div class="sub" style="color:var(--bad)">같은 성분 ${esc(i.repl.base)}로 바뀜 → 반품·교품 우선</div>`:''}${i.psy?' <span class="pill p-low">향정</span>':''}</td><td>${fmt(i.cur)} ${esc(i.unit)}</td><td>${fmt(i.idle)}일</td><td>${i.price?fmt(Math.round(i.cur*i.price))+'원':'-'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">없어요.</p>';
+  body.innerHTML=`<p class="muted">조제한 적 있는 약(전문·일반 구분 없이) 중 재고가 남아 있고 마지막 조제일에서 오래 지난 약이에요. 같은 성분 다른 제품으로 바뀐 약을 먼저, 그다음 금액이 큰 순. 필수약은 빼요.</p>
   <div class="card"><h3>반품·교품 권장 — ${M.SZ.act}일 이상 <span class="c">${M.deadAct.length}품목 · ${fmt(Math.round(sum(M.deadAct)))}원</span></h3>${tbl(M.deadAct)}</div>
   <div class="card"><h3>관찰 — ${WATCH_DAYS}~${M.SZ.act-1}일 <span class="c">${M.deadWatch.length}품목 · ${fmt(Math.round(sum(M.deadWatch)))}원</span></h3>${tbl(M.deadWatch)}</div>
   <p class="sub">마지막 조제일은 조제약품현황의 "최근조제일"이에요. 6개월보다 오래 안 나간 약까지 잡으려면 처음 한 번 조제약품현황을 1~2년 기간으로 뽑아 올려 두세요(앱이 조제 기록을 기억해요).</p>`;
  }else if(t==='over'){
   body.innerHTML=`<p class="muted">적정재고의 4배가 넘고 60일치 넘게 쌓인 약이에요 (단가 × 재고 순). 박스 할인 등으로 일부러 쌓아둔 약이면 설정 › 품목 예외에 넣어 두세요.</p>
   <div class="card"><div class="tablewrap"><table><thead><tr><th>약품</th><th>현재고</th><th>적정</th><th>이팜 적정</th><th>남은 일수</th><th>금액</th></tr></thead><tbody>${M.over.map(i=>`<tr><td>${esc(i.base)}</td><td>${fmt(i.cur)}</td><td>${fmt(i.opt)}</td><td>${i.eo?fmt(i.eo):'-'}</td><td>${fmt(Math.round(i.days))}일</td><td>${i.price?fmt(Math.round(i.cur*i.price))+'원':'-'}</td></tr>`).join('')||'<tr><td>없어요</td></tr>'}</tbody></table></div></div>`;
+ }else if(t==='kpi'){
+  const d=(S.kpi&&S.kpi.days)||{},keys=Object.keys(d).sort().reverse(),a=kpiAdvice(),k=M.kpi;
+  body.innerHTML=`<div class="stats"><div class="stat"><div class="k">오늘 품절(F·S)</div><div class="v">${S.prev?k.goneFS:'-'}</div></div><div class="stat"><div class="k">조제약 재고</div><div class="v" style="font-size:15px">${fmt(Math.round(k.val/10000))}만원</div></div><div class="stat"><div class="k">재고 일수</div><div class="v">${k.dval?fmt(Math.round(k.val/k.dval)):'-'}<span class="sub">일치</span></div></div></div>
+  <div class="card"><h3>기준 점검</h3><p${a.lvl==='up'?' class="warnbox"':''}>${esc(a.msg)}</p><p class="sub">최근 ${Math.min(a.n,60)}일 기록으로 판단해요. 품절은 재고를 두기로 한 약(자주·가끔 쓰는 약)만 세요 — 거의 안 나가는 약은 원래 들어올 때만 주문하는 약이라 빼요.</p></div>
+  <div class="card"><h3>날짜별 기록 <span class="c">${keys.length}일</span></h3>${keys.length?`<div class="tablewrap"><table><thead><tr><th>날짜</th><th>품절</th><th>부족</th><th>재고금액</th><th>재고일수</th><th>z/간격</th></tr></thead><tbody>${keys.slice(0,60).map(x=>{const r=d[x];return `<tr><td>${dateLabel(x)}</td><td>${r.goneFS}<span class="sub">/${r.gone}</span></td><td>${r.low}</td><td>${fmt(Math.round(r.val/10000))}만</td><td>${r.dval?fmt(Math.round(r.val/r.dval)):'-'}</td><td>${r.z}/${r.D}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">매일 파일이 들어오면 날짜별로 쌓여요 (어제와 비교할 자료가 생긴 날부터).</p>'}
+  <p class="sub">품절 칸의 / 뒤 숫자는 거의 안 나가는 약까지 포함한 전체 품절. 재고일수 = 조제약 재고금액 ÷ 하루 평균 조제 금액.</p></div>`;
  }else if(t==='basis'){
   const Z=M.SZ,c=M.cnt;
   body.innerHTML=`<div class="stats"><div class="stat"><div class="k">규모</div><div class="v" style="font-size:15px">${Z.name}${Z.manual?'':' (자동)'}</div></div><div class="stat"><div class="k">처방전 추정</div><div class="v">${Z.rx?fmt(Math.round(Z.rx)):'-'}<span class="sub">/일</span></div></div><div class="stat"><div class="k">서비스수준</div><div class="v" style="font-size:15px">z ${Z.z}</div></div></div>
-  <style>.basis>div{display:flex;flex-direction:column;padding:7px 0;border-top:1px solid var(--line);font-size:14px}.basis>div:first-child{border-top:0}.basis span{color:var(--ink-2);font-size:13.5px}</style><div class="card"><h3>계산 방법</h3><p class="muted">조제약품현황 ${M.per}일 자료로 약마다 계산해요. 이 기간 안에 처음 조제한 약은 첫 조제일부터 셉니다.</p>
-  <div class="basis"><div><b>하루 평균 사용량 d̄</b><span>조제수량 ÷ 일수</span></div><div><b>사용량 변동 σ</b><span>1건 평균 투약량 × √(하루 처방건수 × 1.25) — 복합 포아송 근사</span></div><div><b>점검 간격 P</b><span>주문 주기 1일 + 입고 ${M.Pd-1}일 = ${M.Pd}일</span></div><div><b>최소재고 (자주 쓰는 약 F)</b><span>d̄×P + z×σ×√P, 처방 1건 분량보다 작지 않게</span></div><div><b>적정재고 (F)</b><span>최소재고 + d̄ × ${Z.D}일</span></div><div><b>가끔 쓰는 약 S</b><span>처방 1건 분량만</span></div><div><b>거의 안 쓰는 약 N</b><span>들어올 때만 주문 (필수약은 1건 분량)</span></div><div><b>z 조정</b><span>A(고가) −0.3 · C(저가) +0.3 · 필수 +0.3</span></div><div><b>주문량</b><span>적정 − 현재고 − 주문중 → 주문 단위로 올림</span></div></div></div>
-  <div class="card"><h3>분류 현황</h3><p class="muted">조제 빈도 — F(월 4건 이상) ${c.F} · S(월 1~4건) ${c.S} · N(월 1건 미만) ${c.N}<br>금액 — A(상위 80%) ${c.A} · B(다음 15%) ${c.B} · C(나머지 5%) ${c.C}</p></div>
-  <div class="card"><h3>규모별 기본값</h3><div class="tablewrap"><table><thead><tr><th></th><th>처방전/일</th><th>z</th><th>보충일수</th><th>반품 권장</th></tr></thead><tbody>${[['s','60 미만'],['m','60~150'],['l','150 이상']].map(([k,r])=>`<tr${k===Z.key?' style="font-weight:700"':''}><td>${SIZE[k].name}</td><td>${r}</td><td>${SIZE[k].z}</td><td>${SIZE[k].D}일</td><td>${SIZE[k].act}일</td></tr>`).join('')}</tbody></table></div>
+  <style>.otbl td:first-child{white-space:normal;max-width:38vw;min-width:110px}.otbl td,.otbl th{padding-left:4px;padding-right:4px}.basis>div{display:flex;flex-direction:column;padding:7px 0;border-top:1px solid var(--line);font-size:14px}.basis>div:first-child{border-top:0}.basis span{color:var(--ink-2);font-size:13.5px}</style><div class="card"><h3>계산 방법</h3><p class="muted">조제약품현황 ${M.per}일 자료로 약마다 계산해요. 이 기간 안에 처음 조제한 약은 첫 조제일부터 셉니다.</p>
+  <div class="basis"><div><b>하루 평균 사용량 d̄</b><span>조제수량 ÷ 일수</span></div><div><b>사용량 변동 σ</b><span>1건 평균 투약량 × √(하루 처방건수 × 1.25) — 복합 포아송 근사. 큰 처방 약(1건이 평균 ${LUMPY_DAYS}일치 이상)은 × 2.0</span></div><div><b>안전재고 SS</b><span>z × √(P×σ² + d̄²×입고지연²) — 입고 지연 기본 ${LEAD_SD}일(품목 예외에서 바꿈)</span></div><div><b>점검 간격 P</b><span>주문 주기 1일 + 입고 ${M.Pd-1}일 = ${M.Pd}일</span></div><div><b>최소재고 (자주 쓰는 약 F) = 주문 시점</b><span>${M.rop?`적정재고의 ${M.rop}%와 `:''}d̄×P + SS 중 큰 값, 처방 1건의 1.5배(큰 처방 약은 2배)보다 작지 않게</span></div><div><b>적정재고 (F)</b><span>최소재고 + d̄ × 주문 간격 ${Z.D}일</span></div><div><b>가끔 쓰는 약 S</b><span>처방 1건 분량 아래로 떨어지면 주문 (큰 처방 약은 2건분까지 채움)</span></div><div><b>거의 안 쓰는 약 N</b><span>기간 안에 2번 이상 나간 약(반복)은 1건분 보유, 1번만 나간 약은 들어올 때만 주문 (필수약은 1건분)</span></div><div><b>향정약</b><span>1건분 넘게 쌓지 않음 (자주 쓰면 주문 간격 최대 7일)</span></div><div><b>연휴</b><span>3일 안에 2일 이상 쉬는 날이 시작되면 자주 쓰는 약의 최소·적정재고에 그 일수만큼 더함${M.hol?` — 지금 ${dateLabel(M.hol.start)}부터 ${M.hol.len}일`:''}</span></div><div><b>매일 재고 기록 (${M.dailyDays}일 쌓임)</b><span>재고 0이던 날은 평균 계산에서 뺌(품절 보정) · 최근 4주 사용 속도가 평균의 1.5배 넘으면 바로, 절반 밑이면 절반만 반영(추세) · 입고량으로 통 단위 추정. 14일 넘게 쌓이면 작동</span></div><div><b>계절</b><span>${M.season?`작년 ${dateLabel(M.season.from)}~${dateLabel(M.season.to)} 자료 적용 중 — 작년 이맘때 더 많이 나간 약은 그만큼 준비`:'작년 같은 시기 조제약품현황을 올리면(설정 › 파일 올리기) 겨울 감기약처럼 철마다 느는 약을 미리 준비해요'}</span></div><div><b>z 조정</b><span>규모 기본 ${SIZE[Z.key].z}${Z.zAdj?` ${Z.zAdj>0?'+':''}${Z.zAdj}(설정)`:''} · A(고가) −0.3 · C(저가) +0.3 · 필수 +0.3</span></div><div><b>주문량</b><span>적정 − 현재고 − 주문중 → 주문 단위(품목 예외 > 재고현황 기본수량 > 입고 기록 추정)로 올림</span></div></div></div>
+  <div class="card"><h3>분류 현황</h3><p class="muted">조제 빈도 — F(월 4건 이상) ${c.F} · S(월 1~4건) ${c.S} · N(월 1건 미만) ${c.N}<br>금액 — A(상위 80%) ${c.A} · B(다음 15%) ${c.B} · C(나머지 5%) ${c.C}<br>큰 처방 약(F·S 중) ${c.L} · 반복 저빈도 약 ${c.R} · 향정 ${c.PSY}</p></div>
+  <div class="card"><h3>규모별 기본값</h3><div class="tablewrap"><table><thead><tr><th></th><th>처방전/일</th><th>z</th><th>주문 간격</th><th>반품 권장</th></tr></thead><tbody>${[['s','60 미만'],['m','60~150'],['l','150 이상']].map(([k,r])=>`<tr${k===Z.key?' style="font-weight:700"':''}><td>${SIZE[k].name}</td><td>${r}</td><td>${SIZE[k].z}</td><td>${SIZE[k].D}일</td><td>${SIZE[k].act}일</td></tr>`).join('')}</tbody></table></div>
   <p class="sub">처방전 수는 조제 줄 수 ÷ ${RX_LINES}로 추정해요. 규모·입고 일수·알림 시각은 설정 › 기준에서 바꿀 수 있어요.</p></div>`;
  }
 }
@@ -877,16 +960,19 @@ function drawSettings(body){
  if(t==='basic'){
   const Z=sizeInfo();
   body.innerHTML=`<div class="card"><h3>약국 정보</h3><div class="grid2"><div class="field">약국 이름<input id="sName" value="${esc(s.name)}"></div><div class="field">전화번호<input id="sTel" value="${esc(s.tel)}"></div></div></div>
-  <div class="card"><h3>적정재고 기준</h3><p class="muted">약국 규모에 따라 서비스수준(z)·보충일수·반품 권장 기준이 정해져요. 자동이면 조제약품현황으로 추정한 처방전 수로 골라요${Z.rx?` (지금 추정 하루 약 ${fmt(Math.round(Z.rx))}장 → ${SIZE[Z.auto].name})`:''}. 계산 방법은 재고 › 기준 탭에 있어요.</p>
+  <div class="card"><h3>적정재고 기준</h3><p class="muted">약국 규모에 따라 서비스수준(z)·주문 간격·반품 권장 기준이 정해져요. 자동이면 조제약품현황으로 추정한 처방전 수로 골라요${Z.rx?` (지금 추정 하루 약 ${fmt(Math.round(Z.rx))}장 → ${SIZE[Z.auto].name})`:''}. 계산 방법은 재고 › 기준 탭에 있어요.</p>
   <div class="grid2"><div class="field">약국 규모<select id="sSize">${[['auto','자동'],['s','소형'],['m','중형'],['l','대형·문전']].map(([v,l])=>`<option value="${v}" ${(s.size||'auto')===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <div class="field">주문하면 들어오기까지<select id="sLead">${[[0,'당일'],[1,'다음 날'],[2,'2일'],[3,'3일']].map(([v,l])=>`<option value="${v}" ${+s.leadDays===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+  <div class="field">주문 간격(적정재고 일수)<select id="sCyc">${[[0,`규모 기본 (${SIZE[Z.key].D}일)`],[7,'7일'],[10,'10일'],[12,'12일'],[14,'14일'],[21,'21일']].map(([v,l])=>`<option value="${v}" ${(+s.cycleDays||0)===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field">주문 시점(자주 쓰는 약)<select id="sRop">${[[50,'적정재고의 절반'],[30,'적정재고의 30%'],[0,'공식 값만']].map(([v,l])=>`<option value="${v}" ${(s.rop==null?50:+s.rop)===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field">서비스수준<select id="sZ">${[[-0.3,'낮게 (재고 줄이기)'],[0,'기본'],[0.3,'높게 (품절 줄이기)'],[0.6,'아주 높게']].map(([v,l])=>`<option value="${v}" ${(+s.zAdj||0)===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+  <div class="grid2"><div class="field">주문하면 들어오기까지<select id="sLead">${[[0,'당일'],[1,'다음 날'],[2,'2일'],[3,'3일']].map(([v,l])=>`<option value="${v}" ${+s.leadDays===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <p class="muted">조제약품현황 기간은 파일의 검색기간에서 읽어요. 찾지 못할 때만 아래 값을 써요.</p>
   <div class="field">조제약품현황 기간(일)<input id="sPer" type="number" min="30" max="800" value="${esc(s.periodDays)}"></div></div>
   <div class="card"><h3>매일 재고 알림</h3><label class="chk"><input type="checkbox" id="sBriefOn" ${s.briefOn!==false?'checked':''}> 정해진 시각에 품절·부족·장기미조제 개수를 알려 주기</label>
   <div class="field">알림 시각<input id="sBrief" type="time" value="${esc(s.briefTime||'13:30')}"></div>
   <p class="muted">PC 프로그램은 포스트잇으로, 휴대폰은 앱 알림(설정 › 기본에서 휴대폰 알림을 켠 기기)으로 와요. 근무 시작 30분쯤 전이 좋아요.</p>
   ${M?`<p class="muted">지금: ${esc(stockBrief())}</p>`:''}<div class="row"><button class="btn primary" type="button" id="sSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
-  $('sSave').onclick=async()=>{const n={...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim(),size:$('sSize').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184),briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'};
+  $('sSave').onclick=async()=>{const n={...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim(),size:$('sSize').value,cycleDays:+$('sCyc').value,rop:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184),briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'};
    if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast('기준을 저장했어요');redrawPanel&&redrawPanel()}};
  }else if(t==='files'){
   body.innerHTML=`<div class="card"><h3>재고현황 (한 달에 한 번)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
@@ -894,22 +980,23 @@ function drawSettings(body){
    <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
   <div class="card"><h3>조제약품현황 (매일)</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}.</p><p class="muted">최근 6개월로 매일 뽑아 올리면 사용량·적정재고와 조제약 재고(재고총량)가 함께 갱신돼서 품절·부족·장기미조제가 다 계산돼요. 재고현황은 한 번도 조제 안 한 약까지 포함한 전체 재고라 한 달에 한 번이면 돼요. 처음 한 번은 1~2년 기간으로 올려 두면 오래 안 나간 약까지 잡혀요.</p>
    <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">사용량·조제약품현황 올리기</label></div></div>
+  <div class="card"><h3>작년 같은 시기 (선택 · 한 달에 한 번)</h3><p class="muted">${S.season&&S.season.from?`지금 자료: ${S.season.from.slice(0,4)}년 ${dateLabel(S.season.from)}~${dateLabel(S.season.to)}${seasonOn()?' · 적용 중':' · 기간이 지나 적용 안 됨'}`:'아직 없음'}</p><p class="muted">조제약품현황을 <b>작년 오늘부터 한 달 뒤까지</b>로 뽑아 올리면, 작년 이맘때 더 많이 나간 약(겨울 감기약·항생제 등)을 미리 준비해요. 조제약품현황 올리기 단추로 올리면 날짜를 보고 알아서 구분해요.</p></div>
   ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
   $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
   body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
  }else if(t==='exc'){
   const rows=Object.entries(S.exc);
-  body.innerHTML=`<div class="card"><h3>품목 예외</h3><p class="muted">약마다 따로 정해요. <b>적정</b>: 계산값 대신 쓸 적정재고(비우면 계산값). <b>주문 단위</b>: 박스 수량처럼 주문량을 이 단위로 올림. <b>필수</b>: 떨어지면 안 되는 약 — 서비스수준을 올리고, 거의 안 나가도 1건분은 두고, 부족 목록 맨 위에 둬요.</p>
+  body.innerHTML=`<div class="card"><h3>품목 예외</h3><p class="muted">약마다 따로 정해요. <b>적정</b>: 계산값 대신 쓸 적정재고(비우면 계산값). <b>주문 단위</b>: 박스 수량처럼 주문량을 이 단위로 올림. <b>입고 지연</b>: 품귀로 늦게 들어오는 약은 2~3일 (안전재고가 커짐). <b>필수</b>: 떨어지면 안 되는 약 — 서비스수준을 올리고, 거의 안 나가도 1건분은 두고, 부족 목록 맨 위에 둬요.</p>
    <div id="excList">${rows.length?rows.map(([c,e])=>{const i=M&&M.byCode[c];return `<div class="exc" style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(i?i.base:e.name||c)}<br><span class="sub">${esc(e.note||'')}${i?` · 계산 최소 ${fmt(i.mn)} / 적정 ${fmt(i.opt)}`:''}</span>
-    <span class="row" style="gap:6px;margin-top:6px;align-items:center"><label class="sub">적정 <input type="number" min="0" value="${esc(e.opt??'')}" data-exc="${esc(c)}" placeholder="계산값" style="width:84px"></label><label class="sub">주문 단위 <input type="number" min="0" value="${esc(e.pack||'')}" data-pack="${esc(c)}" placeholder="없음" style="width:70px"></label><label class="chk sub" style="margin:0"><input type="checkbox" data-ess="${esc(c)}" ${e.ess?'checked':''} style="width:auto"> 필수</label></span></span><button class="btn sm danger" type="button" data-excdel="${esc(c)}">빼기</button></div>`}).join(''):'<p class="muted">아직 없어요.</p>'}</div>
+    <span class="row" style="gap:6px;margin-top:6px;align-items:center"><label class="sub">적정 <input type="number" min="0" value="${esc(e.opt??'')}" data-exc="${esc(c)}" placeholder="계산값" style="width:84px"></label><label class="sub">주문 단위 <input type="number" min="0" value="${esc(e.pack||'')}" data-pack="${esc(c)}" placeholder="없음" style="width:70px"></label><label class="sub">입고 지연 <input type="number" min="0" max="14" step="0.5" value="${esc(e.lv??'')}" data-lv="${esc(c)}" placeholder="${LEAD_SD}일" style="width:64px"></label><label class="chk sub" style="margin:0"><input type="checkbox" data-ess="${esc(c)}" ${e.ess?'checked':''} style="width:auto"> 필수</label></span></span><button class="btn sm danger" type="button" data-excdel="${esc(c)}">빼기</button></div>`}).join(''):'<p class="muted">아직 없어요.</p>'}</div>
    <input class="search" id="excQ" type="search" placeholder="예외로 둘 약 찾기"><div id="excRes"></div>
    <div class="row"><button class="btn primary" type="button" id="excSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
   $('excQ').oninput=()=>{const q=norm($('excQ').value);const out=$('excRes');if(!q||!M){out.innerHTML='';return}
    out.innerHTML=M.items.filter(i=>i.hay.includes(q)&&!S.exc[i.code]).slice(0,8).map(i=>`<div class="exc"><span>${esc(i.base)} <span class="sub">최소 ${fmt(i.mn)} · 적정 ${fmt(i.opt)}</span></span><span></span><button class="btn sm" type="button" data-excadd="${esc(i.code)}">추가</button></div>`).join('');
    out.querySelectorAll('[data-excadd]').forEach(b=>b.onclick=()=>{const i=M.byCode[b.dataset.excadd];S.exc={...S.exc,[i.code]:{opt:null,name:i.base,note:'직접 정함'}};redrawPanel()})};
   body.querySelectorAll('[data-excdel]').forEach(b=>b.onclick=()=>{const n={...S.exc};delete n[b.dataset.excdel];S.exc=n;redrawPanel()});
-  $('excSave').onclick=async()=>{const n={};body.querySelectorAll('[data-exc]').forEach(inp=>{const c=inp.dataset.exc;const pk=body.querySelector(`[data-pack="${c}"]`),es=body.querySelector(`[data-ess="${c}"]`);
-    n[c]={...S.exc[c],opt:inp.value===''?null:Math.max(0,+inp.value||0),pack:Math.max(0,+(pk&&pk.value)||0),ess:!!(es&&es.checked)}});
+  $('excSave').onclick=async()=>{const n={};body.querySelectorAll('[data-exc]').forEach(inp=>{const c=inp.dataset.exc;const pk=body.querySelector(`[data-pack="${c}"]`),es=body.querySelector(`[data-ess="${c}"]`),lv=body.querySelector(`[data-lv="${c}"]`);
+    n[c]={...S.exc[c],opt:inp.value===''?null:Math.max(0,+inp.value||0),pack:Math.max(0,+(pk&&pk.value)||0),lv:lv&&lv.value!==''?Math.max(0,+lv.value||0):null,ess:!!(es&&es.checked)}});
    if(await saveDoc('exceptions/main',{items:n})){S.exc=n;renderToday();toast('품목 예외를 저장했어요');redrawPanel()}};
  }else if(t==='favs'){drawFavEdit(body)}
  else{
@@ -951,7 +1038,7 @@ async function importStock(buf,source){
   const d=new Date();const date=dm?dm[1]:`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   const doc={meta,date,rows,source:source||'upload',savedAt:new Date().toISOString()};
   if(S.stock&&S.stock.date&&S.stock.date!==date){if(!await saveDoc('stock/previous',S.stock))return;S.prev=S.stock}
-  if(await saveDoc('stock/current',doc)){S.stock=doc;renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})${skipped?` · 재고 0 ${fmt(skipped)}품목 제외`:''}`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,skipped,date}}
+  if(await saveDoc('stock/current',doc)){S.stock=doc;await recordDaily();recordKpi();renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})${skipped?` · 재고 0 ${fmt(skipped)}품목 제외`:''}`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,skipped,date}}
   return{ok:false}
  }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
 async function onDispFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -967,6 +1054,7 @@ async function importDisp(buf){
   if(c.qty<0||c.cnt<0)throw new Error('조제수량·조제건수(또는 사용량) 열이 없어요.');
   const rng=searchRange(aoa,h),per=rng?rng.days:(+S.settings.periodDays||184),to=rng?rng.to:ymd8(new Date()),from=rng?rng.from:'';
   const d8s=v=>{const s=String(v||'').replace(/\D/g,'');return s.length===8?s:''};
+  const isSeason=rng&&dayDiff(rng.to,ymd8(new Date()))>300; // 작년 같은 시기 파일
   const items={};let cur=null;
   for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[nc]).trim();
    if(nm&&isNaN(+nm)){const code=String(r[c.code]).trim();
@@ -975,6 +1063,9 @@ async function importDisp(buf){
     cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(!nm&&cur&&r[c.qty]!==''){cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(nm&&!isNaN(+nm))break}
+  if(isSeason){const si={};Object.entries(items).forEach(([code,x])=>{if(code&&x.n>0)si[code]={n:x.n,q:Math.round(x.q*100)/100,T:per,p:x.n?Math.round(x.q/x.n*100)/100:0}});
+   const sd={from,to,items:si,savedAt:new Date().toISOString()};if(!await saveDoc('profile/season',sd))return{ok:false};S.season=sd;renderToday();
+   toast(`작년 ${dateLabel(from)}~${dateLabel(to)} 자료(${Object.keys(si).length}품목)를 계절 준비에 쓸게요${seasonOn()?'':' · 지금 날짜와 맞지 않아 적용은 안 돼요'}`);redrawPanel&&redrawPanel();return{ok:true,kind:'season',n:Object.keys(si).length}}
   const out={},oldH=(S.profile&&S.profile.hist)||{},hist={...oldH};
   Object.entries(items).forEach(([code,x])=>{if(!code)return;
    // 조회기간 안에 처음 조제한 약은 첫 조제일부터 셈 (최소 14일)
@@ -993,7 +1084,7 @@ async function importDisp(buf){
    const sd={meta:`조제약품현황 재고총량 · 검색기간 ${from}~${to}`,date:to,rows:keep,source:'disp',savedAt:new Date().toISOString()};
    if(S.stock&&S.stock.date&&S.stock.date!==to){if(await saveDoc('stock/previous',S.stock))S.prev=S.stock}
    if(await saveDoc('stock/current',sd))S.stock=sd}
-  renderToday();toast(`조제 ${Object.keys(items).length}품목(${per}일)으로 적정재고를 다시 계산했어요${stockN?` · 재고 ${dateLabel(to)} 기준`:''}`);redrawPanel&&redrawPanel();
+  if(stockN)await recordDaily();recordKpi();renderToday();toast(`조제 ${Object.keys(items).length}품목(${per}일)으로 적정재고를 다시 계산했어요${stockN?` · 재고 ${dateLabel(to)} 기준`:''}`);redrawPanel&&redrawPanel();
   return{ok:true,kind:stockN?'disp+stock':'disp',n:Object.keys(items).length}
  }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
 
@@ -1104,7 +1195,7 @@ function searchStock(q){if(!M)return{안내:'재고 자료가 없음. 설정에�
  res.sort((a,b)=>(norm(a.base).startsWith(nq)?0:1)-(norm(b.base).startsWith(nq)?0:1)||b.cur-a.cur);
  return{기준일:dateLabel(M.date),찾은개수:res.length,결과:res.slice(0,8).map((i,k)=>stockView(i,k<3)),안내:res.length?undefined:'재고 파일에 없음. 재고가 0이면 파일에 없을 수 있음'}}
 function orderList(ws){if(!M)return{안내:'재고 자료가 없음'};let low=M.low;if(ws){const n=norm(ws);low=low.filter(i=>norm(i.ws).includes(n)||norm(i.co).includes(n))}
- return{기준일:dateLabel(M.date),기준:`${M.SZ.name} 약국 기준 · 최소재고 = 하루 평균×${M.Pd}일 + 안전재고(z ${M.SZ.z}), 적정 = 최소 + ${M.SZ.D}일치 · (현재고+주문중)이 최소보다 적은 약`,품목수:low.length,
+ return{기준일:dateLabel(M.date),기준:`${M.SZ.name} 약국 기준 · 최소재고 = 하루 평균×${M.Pd}일 + 안전재고(z ${M.SZ.z}, 입고 지연 포함), 적정 = 최소 + 주문 간격 ${M.SZ.D}일치 · (현재고+주문중)이 최소보다 적은 약`,품목수:low.length,
   사입처별:Object.fromEntries(groupBy(low,i=>i.ws||'사입처 정보 없음').map(([k,a])=>[k,a.map(i=>`${i.base}${i.str?' '+i.str:''}: 현재 ${fmt(i.cur)} / 최소 ${fmt(i.mn)} / 적정 ${fmt(i.opt)} (주문 ${fmt(i.need)}${i.unit}${i.days!=null?', 약 '+Math.round(i.days)+'일치 남음':''})`)]))}}
 function stockChanges(){if(!M)return{안내:'재고 자료가 없음'};if(!S.prev)return{안내:'비교할 이전 재고가 없음'};
  return{비교:`${dateLabel(M.prevDate)} → ${dateLabel(M.date)}`,새로재고0:M.gone.map(g=>parseName(g.name).base),빨리나간약:M.drop.slice(0,15).map(i=>`${i.base}: ${fmt(i.prev)} → ${fmt(i.cur)} (평소 하루 ${fmt(r1(i.daily))})`),
@@ -1398,7 +1489,7 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 /* ===== 약국 계정 · 여러 기기 실시간 연동 · 공지 ===== */
 // 약국 비서 전용 Firebase 프로젝트 (무매데스크와 분리)
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
-const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered'];
+const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
 // 권한 이름: 국장·관리자는 모두 '관리자' 권한. 직함(국장/관리자/직원)은 가입할 때 고름
 const PERM={owner:'관리자',admin:'관리자',staff:'직원'};const TITLE_OPTS=['국장','관리자','직원'];
@@ -2472,9 +2563,12 @@ async function onDeskFile(name,buf){
  if(r.kind==='stock'||r.kind==='disp+stock')showStockBrief()}
 // 재고 요약 포스트잇: 품절 → 부족 → 장기미조제
 function showStockBrief(){M=buildModel();if(!M)return;const lines=[];
+ if(M.stale>=2)lines.push(`⚠ 재고 자료가 ${M.stale}영업일 지났어요 — 오늘 조제약품현황을 올려 주세요`);
+ if(M.hol)lines.push(`${dateLabel(M.hol.start)}부터 ${M.hol.len}일 연휴 — 자주 쓰는 약을 더 채워 두세요`);
  if(S.prev){lines.push(`품절(어제 있다가 0) <b>${M.gone.length}</b>`);M.gone.slice(0,3).forEach(g=>lines.push(`· ${esc(parseName(g.name).base)}`))}
  lines.push(`부족 <b>${M.low.length}</b>${M.urgent.length?` (급함 ${M.urgent.length})`:''}`);M.low.slice(0,3).forEach(i=>lines.push(`· ${esc(i.base)} ${esc(fmt(i.cur))}${esc(i.unit)} → 주문 ${esc(fmt(i.need))}`));
  lines.push(`장기미조제 <b>${M.deadAct.length}</b> · 관찰 ${M.deadWatch.length}`);
+ if(M.check.length)lines.push(`재고 확인 필요 <b>${M.check.length}</b>`);
  window.desk.showBrief({title:'오늘 재고',sub:dateLabel(M.date),lines})}
 // 매일 정해진 시각에 한 번 (PC가 켜져 있을 때, 그 시각이 지나서 켜면 켤 때)
 function briefTick(){const s=S.settings||{};if(s.briefOn===false||!S.stock)return;const n=new Date(),hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
@@ -2569,6 +2663,9 @@ renderFavs();
  watch('settings/main',d=>{S.settings={...DEFAULT_SETTINGS,...(d||{})};applySettings()});
  watch('exceptions/main',d=>S.exc=(d&&d.items)||{});
  watch('stock/ordered',d=>S.ord=(d&&d.items)||{});
+ watch('stock/kpi',d=>S.kpi=d||{days:{}});
+ watch('stock/daily',d=>S.daily=d||null);
+ watch('profile/season',d=>S.season=d||null);
  watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
  watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
  deskBoot();
