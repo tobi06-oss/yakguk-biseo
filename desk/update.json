@@ -1,11 +1,11 @@
 {
- "version": "0.6.12",
- "notes": "재고 부족 목록: 체크칸 대신 확인·보류·예외 단추",
+ "version": "0.6.14",
+ "notes": "반품 목록 올리기(재고 0인 반품 약은 주문 목록에서 뺌), PC 알림 포스트잇 단추 크게·잘 눌리게",
  "files": [
   {
    "p": "index.html",
-   "sha256": "570105e9806a46b8a4774b7fe4a9dae1747849f73e057aa3acd63a7d90440b73",
-   "size": 372942
+   "sha256": "1f732ba5dc13f29eb579eda734da0a991912eb04e8d14402658ab58024ef55a8",
+   "size": 376847
   },
   {
    "p": "main.js",
@@ -24,8 +24,8 @@
   },
   {
    "p": "popup.html",
-   "sha256": "af3e9daaccb25f70aa721cc11433cd44be7de852a585cbdb8625bfdbea9d82d4",
-   "size": 4544
+   "sha256": "5b35ab5592695f8bde4df242b15f5beaf08be94de125c0d6385d6820e60f4c35",
+   "size": 5281
   },
   {
    "p": "sticky.html",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "446342bf40b8eab1803bba85df4ee8b097fa751340bd845d72af5d2037323d51",
+   "sha256": "c7eef77f5d7d9f95893e608b39af881184c905733eb336e600ecb31328c256e0",
    "size": 212
   },
   {

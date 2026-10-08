@@ -590,7 +590,7 @@ function dateLabel(d){return d?`${+d.slice(4,6)}/${+d.slice(6)}`:''}
 
 /* ===== 저장소 상태 ===== */
 const DEFAULT_SETTINGS={name:'우리 약국',tel:'',leadDays:0,bufferDays:7,periodDays:184,size:'auto',briefTime:'13:30',briefOn:true,rop:50};
-const S={stock:null,prev:null,profile:{items:{}},settings:{...DEFAULT_SETTINGS},exc:{},ord:{},kpi:{days:{}},daily:null,season:null,amode:null,manual:[],ready:{}};
+const S={stock:null,prev:null,profile:{items:{}},settings:{...DEFAULT_SETTINGS},exc:{},ord:{},kpi:{days:{}},daily:null,season:null,amode:null,ret:null,manual:[],ready:{}};
 let db=null,canWrite=true,M=null; // M = 계산된 재고 모델
 
 function parseName(raw){let base=raw,ing='',str='';const m=raw.match(/^(.*)_\((.*)\)$/);
@@ -636,6 +636,13 @@ function dailyStats(code){const D=S.daily;if(!D||!D.dates||!D.c||!D.c[code])retu
  return{zero,days,recent,pack,incN:incs.length}}
 function seasonOn(){const s=S.season;if(!s||!s.from||!s.to)return null;const ly=ymd8(new Date(Date.now()-365*864e5));
  return ly>=addDays(s.from,-7)&&ly<=addDays(s.to,-7)?s:null}
+/* 반품 목록: 이름으로 맞춤 (반품한 약 중 지금 재고가 0이면 사입 안 하는 약으로 보고 주문 목록에서 뺌) */
+const RU=[[/밀리그램|밀리그람|㎎/g,'mg'],[/마이크로그램|마이크로그람|㎍/g,'mcg'],[/밀리리터|㎖/g,'ml'],[/그램|그람/g,'g'],[/캅셀|켑슐|캅슐/g,'캡슐']];
+function rnz(s){s=String(s||'').toLowerCase();RU.forEach(([a,b])=>s=s.replace(a,b));return s.replace(/\(수출명[^)]*\)/g,'').replace(/[\s()\[\]_\-.,/·:%]+/g,'')}
+function retKeys(){const r=S.ret;if(!r||!r.names||!r.names.length)return null;if(r._k&&r._n===r.names.length)return r._k;
+ const k=r.names.map(n=>{const z=rnz(n);return{z,stem:z.replace(/[\d.]+(mg|mcg|g|ml|정|캡슐)?$/,''),num:(z.match(/\d+(?:\.\d+)?/g)||[])}}).filter(x=>x.z.length>=2);
+ Object.defineProperty(r,'_k',{value:k,configurable:true,enumerable:false});Object.defineProperty(r,'_n',{value:r.names.length,configurable:true,enumerable:false});return k}
+function retMatch(keys,base,raw){const b=rnz(base),full=rnz(raw);return keys.some(k=>k.z===b||(k.z.length>=3&&b.length>=3&&(b.startsWith(k.z)||k.z.startsWith(b)))||(k.stem.length>=3&&b.startsWith(k.stem)&&k.num.every(x=>full.includes(x))))}
 function buildModel(){
  const st=S.stock;if(!st||!st.rows)return null;
  const set=S.settings,P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{},per=+S.profile.periodDays||+set.periodDays||184;
@@ -650,6 +657,7 @@ function buildModel(){
  const abc={};{const arr=Object.entries(P).filter(([,x])=>x.n>0).map(([c,x])=>[c,(+x.u||0)*(+x.q||(+x.d||0)*per)]).sort((a,b)=>b[1]-a[1]);
   const tot=arr.reduce((s,a)=>s+a[1],0)||1;let cum=0;arr.forEach(([c,v])=>{cum+=v;abc[c]=cum-v<tot*.8?'A':cum-v<tot*.95?'B':'C'})}
  const ordOn={},holdOn={};const now=Date.now();Object.entries(S.ord||{}).forEach(([c,o])=>{if(!o||now-o.at>3*864e5)return;if(o.kind==='hold')holdOn[c]=o;else ordOn[c]=o});
+ const RK=retKeys();
  const items=st.rows.map(r=>{const raw=String(r[0]),code=String(r[1]||''),p=parseName(raw),pf=P[code],ex=S.exc[code]||null,hi=HI[code];
   const cur=+r[5]||0,fileOpt=+r[6]||0,base=+r[4]||1,ess=!!(ex&&ex.ess),psy=PSY.test(raw);
   const n=pf&&+pf.n||0,daily0=pf&&+pf.d||0,perrx=pf&&+pf.p||0,T0=pf&&+pf.T||per,ds=n>0?dailyStats(code):null,tags=[];
@@ -679,13 +687,14 @@ function buildModel(){
   mn=cl(mn);opt=cl(opt);
   if(ex&&ex.opt!=null&&ex.opt!==''){opt=+ex.opt;mn=Math.min(mn||Math.ceil(opt/2),opt);src='예외'}
   if(ex&&ex.skip){mn=0;src='알림 제외'}
+  const ret=!!(RK&&cur<=0&&retMatch(RK,p.base,raw));if(ret){mn=0;src='반품·사입 안 함';tags.push('반품')}
   const last=(pf&&pf.last)||(hi&&hi.l)||'',idle=last?dayDiff(last,date):null;
   const o=ordOn[code];const onOrd=o&&!(cur>o.cur0&&st.savedAt&&new Date(st.savedAt).getTime()>o.at)?+o.q||0:0;
   // 주문 단위: 품목 예외 > 재고현황 기본수량(병·포 등) > 입고 기록으로 추정한 통 단위
   const pack=ex&&+ex.pack||(base>1?base:0)||(ds&&ds.pack)||0,packSrc=ex&&+ex.pack?'예외':base>1?'기본수량':ds&&ds.pack?'추정':'';
   let need=Math.max(0,opt-cur-onOrd);if(need>0&&pack>0)need=Math.ceil(need/pack)*pack;
   const price=pf&&+pf.u||hi&&+hi.u||0,days=daily>0?cur/daily:null;
-  return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
+  return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,ret,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
    dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,...p,
    prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
  const byKey={},byIng={},byCode={};
@@ -698,7 +707,7 @@ function buildModel(){
  const low=items.filter(i=>!i.hold&&i.mn>0&&i.cur+i.onOrd<i.mn).sort((a,b)=>(b.ess-a.ess)||((a.days??a.cur/a.mn*Pd)-(b.days??b.cur/b.mn*Pd)));
  const urgent=low.filter(i=>i.cur<=0||(i.days!=null?i.days<Pd+1:i.cur<i.mn*.5));
  const isDisp=c=>!!(P[c]&&(P[c].n>0||P[c].d>0)||HI[c]);
- const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)&&isDisp(c)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]||{},i:byCode[c]||(P[c]&&P[c].n?{cls:P[c].n/(+P[c].T||per)*30>=4?'F':P[c].n/(+P[c].T||per)*30>=1?'S':'N',opt:0,alt:[]}:null)})):[];
+ const gone=S.prev?Object.entries(prevMap).filter(([c,v])=>v.cur>0&&(!byCode[c]||byCode[c].cur<=0)&&isDisp(c)&&!(byCode[c]&&byCode[c].ret)).map(([c,v])=>({code:c,name:v.name,prev:v.cur,pf:P[c]||{},i:byCode[c]||(P[c]&&P[c].n?{cls:P[c].n/(+P[c].T||per)*30>=4?'F':P[c].n/(+P[c].T||per)*30>=1?'S':'N',opt:0,alt:[]}:null)})):[];
  const drop=S.prev?items.filter(i=>i.prev!=null&&i.daily>0&&(i.prev-i.cur)>i.daily*3).sort((a,b)=>(b.prev-b.cur)/b.daily-(a.prev-a.cur)/a.daily):[];
  // 장기미조제: 조제한 적 있는 약 중 재고가 있고 최근 조제일에서 60일 넘게 지난 약 (다른 제품으로 바뀐 약 먼저, 금액 큰 순)
  const val=i=>i.cur*i.price;
@@ -998,9 +1007,14 @@ function drawSettings(body){
    <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
   <div class="card"><h3>조제약품현황 (매일)</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}.</p><p class="muted">최근 6개월로 매일 뽑아 올리면 사용량·적정재고와 조제약 재고(재고총량)가 함께 갱신돼서 품절·부족·장기미조제가 다 계산돼요. 재고현황은 한 번도 조제 안 한 약까지 포함한 전체 재고라 한 달에 한 번이면 돼요. 처음 한 번은 1~2년 기간으로 올려 두면 오래 안 나간 약까지 잡혀요.</p>
    <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">사용량·조제약품현황 올리기</label></div></div>
+  <div class="card"><h3>반품 목록 (선택)</h3><p class="muted">${S.ret&&S.ret.names?`지금 목록: ${fmt(S.ret.names.length)}개 약 이름 · ${M?`재고 0이라 주문 목록에서 뺀 약 ${M.items.filter(i=>i.ret).length}개`:''}`:'아직 없음'}</p>
+   <p class="muted">반품한 약 목록 엑셀을 올리면, 그중 지금 재고가 0인 약은 사입 안 하는 약으로 보고 주문 목록·품절 알림에서 빼요. 나중에 다시 사서 재고가 생기면 저절로 다시 계산해요. "약품명" 칸만 읽어요(여러 도매 칸이 옆으로 있어도 돼요).</p>
+   ${M&&M.items.some(i=>i.ret)?`<p class="sub">뺀 약: ${M.items.filter(i=>i.ret).map(i=>esc(i.base)).join(', ')}</p>`:''}
+   <div class="upload"><input type="file" id="fRet" accept=".xls,.xlsx"><label class="btn" for="fRet" role="button" tabindex="0">반품 목록 올리기</label>${S.ret&&S.ret.names?'<button class="btn sm" type="button" id="fRetClr">목록 지우기</button>':''}</div></div>
   <div class="card"><h3>작년 같은 시기 (선택 · 한 달에 한 번)</h3><p class="muted">${S.season&&S.season.from?`지금 자료: ${S.season.from.slice(0,4)}년 ${dateLabel(S.season.from)}~${dateLabel(S.season.to)}${seasonOn()?' · 적용 중':' · 기간이 지나 적용 안 됨'}`:'아직 없음'}</p><p class="muted">조제약품현황을 <b>작년 오늘부터 한 달 뒤까지</b>로 뽑아 올리면, 작년 이맘때 더 많이 나간 약(겨울 감기약·항생제 등)을 미리 준비해요. 조제약품현황 올리기 단추로 올리면 날짜를 보고 알아서 구분해요.</p></div>
   ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
-  $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
+  $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);$('fRet').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importReturns(new Uint8Array(await f.arrayBuffer()))};
+  $('fRetClr')&&($('fRetClr').onclick=async()=>{if(await saveDoc('exceptions/returned',{names:[],at:Date.now()})){S.ret=null;renderToday();toast('반품 목록을 지웠어요');redrawPanel()}});window.bindDeskFolder&&bindDeskFolder(body);
   body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
  }else if(t==='exc'){
   const rows=Object.entries(S.exc);
@@ -1062,6 +1076,16 @@ async function importStock(buf,source){
 async function onDispFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
  if(!window.XLSX){toast('엑셀 읽기 도구를 불러오지 못했어요');return}
  await importDisp(new Uint8Array(await f.arrayBuffer()))}
+async function importReturns(buf){
+ try{const aoa=readAoa(buf);const cols=new Set();let h=-1;
+  for(let i=0;i<Math.min(aoa.length,40);i++){(aoa[i]||[]).forEach((x,j)=>{if(H(x)==='약품명'){cols.add(j);if(h<0)h=i}})}
+  if(h<0)throw new Error('"약품명" 칸을 찾지 못했어요. 반품 목록 파일인지 확인해 주세요.');
+  const names=[];for(let i=h+1;i<aoa.length;i++)cols.forEach(j=>{const v=String((aoa[i]||[])[j]??'').trim();if(v&&v!=='약품명'&&!/^</.test(v)&&isNaN(+v))names.push(v)});
+  if(!names.length)throw new Error('약 이름을 읽지 못했어요.');
+  const all=[...new Set([...((S.ret&&S.ret.names)||[]),...names])].slice(0,3000);
+  const doc={names:all,at:Date.now()};if(!await saveDoc('exceptions/returned',doc))return{ok:false};S.ret=doc;renderToday();
+  const n=M?M.items.filter(i=>i.ret).length:0;toast(`반품 목록 ${fmt(names.length)}개를 읽었어요 · 재고 0이라 주문 목록에서 뺀 약 ${n}개`);redrawPanel&&redrawPanel();return{ok:true,kind:'ret',n:names.length}
+ }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
 async function importDisp(buf){
  try{const aoa=readAoa(buf);const {h,nc}=findHdr(aoa);
   if(h<0)throw new Error('약품명 열을 찾지 못했어요. 조제약품현황이나 사용량(재고현황및재고수정) 파일인지 확인해 주세요.');
@@ -1507,7 +1531,7 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 /* ===== 약국 계정 · 여러 기기 실시간 연동 · 공지 ===== */
 // 약국 비서 전용 Firebase 프로젝트 (무매데스크와 분리)
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
-const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode'];
+const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode','exceptions/returned'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
 // 권한 이름: 국장·관리자는 모두 '관리자' 권한. 직함(국장/관리자/직원)은 가입할 때 고름
 const PERM={owner:'관리자',admin:'관리자',staff:'직원'};const TITLE_OPTS=['국장','관리자','직원'];
@@ -2661,7 +2685,7 @@ html.sidemode .bellbtn{width:42px}`;document.head.appendChild(st);
  renderBell()}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791372277';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791452990';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
@@ -2697,6 +2721,7 @@ renderFavs();
  watch('stock/kpi',d=>S.kpi=d||{days:{}});
  watch('stock/daily',d=>S.daily=d||null);
  watch('profile/season',d=>S.season=d||null);
+ watch('exceptions/returned',d=>S.ret=d||null);
  watch('settings/amode',d=>{S.amode=d||null;window.alertSync&&alertSync()});
  watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
  watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();renderStickies();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
