@@ -1333,13 +1333,18 @@ function whenLabel(o){if(!o)return '';const n=new Date(),t=new Date(n.getFullYea
  const day=dd===0?'오늘':dd===1?'내일':dd===-1?'어제':`${o.getMonth()+1}/${o.getDate()} (${WD[o.getDay()]})`;return `${day} ${pad2(o.getHours())}:${pad2(o.getMinutes())}`}
 function repLabel(a){if(a.rep==='nthWeekday')return '매월 '+(NTH[+a.nth||1]||'')+' '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·')+'요일';if(a.rep==='weekly')return '매주 '+(a.days||[]).slice().sort().map(x=>WD[x]).join('·');if(a.rep==='monthly')return `매월 ${a.dom}일${a.dom>28?'(없으면 말일)':''}`;if(a.rep==='once')return '한 번';return REP[a.rep]||''}
 function dueAlarms(now=new Date()){if(typeof alertMode==='function'&&alertMode()==='off')return [];return S.memo.alarms.filter(a=>{if(!a.on||!isFor(a))return false;const o=latestOcc(a,now);return o&&o.getTime()>ackAt(a)&&!(snzAt(a)>now.getTime())})}
+// "알림 후 목록에서 자동 삭제"(한 번 알림): 받는 사람이 모두 확인했거나 울린 지 12시간이 지나면 목록에서 지움
+function autoDelSweep(now=new Date()){const gone=S.memo.alarms.filter(a=>{if(a.rep!=='once'||!a.autoDel||!a.date)return false;const st=aStart(a).getTime();if(st>now.getTime())return false;
+ if(now.getTime()-st>12*36e5)return true;const who=a.to&&a.to.length?a.to:S.members.length?S.members.map(m=>m.uid):[ME()];const ak=a.acks||{};return who.every(u=>(ak[u]||0)>=st)});
+ if(!gone.length)return false;S.memo.alarms=S.memo.alarms.filter(a=>!gone.includes(a));return true}
 async function saveMemo(){const ok=await saveDoc('memo/main',{memos:S.memo.memos,alarms:S.memo.alarms,savedAt:new Date().toISOString()});renderMemoHome();renderStickies();return ok}
-function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),nth:Math.min(5,Math.max(1,+o.nth||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};
+function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),nth:Math.min(5,Math.max(1,+o.nth||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};if(a.rep==='once'&&o.autoDel)a.autoDel=true;
  if((a.rep==='weekly'||a.rep==='nthWeekday')&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
 function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,priv:o.priv!==false,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
 
 /* 첫 화면: 타일 문구, 고정 메모 */
 function renderMemoHome(){
+ if(autoDelSweep()){saveMemo();return}
  const now=new Date();const nx=S.memo.alarms.filter(a=>a.on&&isFor(a)).map(a=>[nextOcc(a,now),a]).filter(x=>x[0]).sort((x,y)=>x[0]-y[0])[0];
  const due=dueAlarms(now).length,team=!!(window.drawTeam&&S.pharm),un=0;
  $('memoSub').textContent=un?`안 읽은 공지 ${un}개`:due?`지금 알림 ${due}개`:nx?`다음 ${whenLabel(nx[0])} ${nx[1].text}`:S.memo.memos.length?`메모 ${S.memo.memos.length}개`:'포스트잇 메모와 알림';
@@ -1416,6 +1421,7 @@ function alarmForm(a){
   <label class="field">알림 내용<textarea id="aText" rows="2" placeholder="">${esc(v.text)}</textarea></label>
   <div class="grid2"><label class="field"><span id="aDateL">${v.rep==='once'?'날짜':'시작 날짜'}</span><input type="date" id="aDate" value="${v.date}"></label><label class="field">시각<input type="time" id="aTime" value="${v.time}"></label></div>
   <label class="field">반복<select id="aRep">${Object.entries(REP).map(([k,l])=>`<option value="${k}" ${k===v.rep?'selected':''}>${l}</option>`).join('')}</select></label>
+  <label class="chk" id="aAutoW" ${v.rep==='once'?'':'hidden'}><input type="checkbox" id="aAuto" ${v.autoDel?'checked':''}> 알림 후 목록에서 자동 삭제</label>
   <label class="field" id="aNthW" ${v.rep==='nthWeekday'?'':'hidden'}>매월 몇째 주<select id="aNth">${[1,2,3,4,5].map(n=>`<option value="${n}" ${(+v.nth||1)===n?'selected':''}>${NTH[n]}</option>`).join('')}</select></label>
   <div class="wdays" id="aDays" ${v.rep==='weekly'||v.rep==='nthWeekday'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
   <label class="field" id="aDomW" ${v.rep==='monthly'?'':'hidden'}>매월 며칠<input type="number" id="aDom" min="1" max="31" value="${v.dom}"></label>
@@ -1429,7 +1435,7 @@ function drawAlarms(body){
  const arr=S.memo.alarms.filter(seeAlarm).map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
  body.innerHTML=(ed?alarmForm(ed):`<button class="btn primary big" type="button" id="aNew">＋ 새 알림 만들기</button>`)+
   `<p class="muted">시간이 되면 다른 프로그램 위, 화면 한가운데에 포스트잇이 떠요. 창을 닫아도 트레이에서 계속 알려요. 컴퓨터가 꺼져 있던 동안 지난 알림은 켜면 '놓친 알림'으로 떠요.</p>
-  <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
+  <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${a.autoDel&&a.rep==='once'?' · 알림 후 자동 삭제':''}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
    <div class="aa"><label class="sw" title="켜기/끄기"><input type="checkbox" data-on="${a.id}" ${a.on?'checked':''} aria-label="알림 켜기"><span></span></label><button class="btn sm" type="button" data-aed="${a.id}">고치기</button><button class="btn sm danger" type="button" data-adel="${a.id}">삭제</button></div></div>`).join(''):'<p class="muted">등록된 알림이 없어요.</p>'}</div>
   ${false?`<div class="card"><h3>화면을 내려 둔 동안에도</h3><p class="muted">다른 창을 보고 있을 때 윈도우 알림으로도 띄우려면 아래를 눌러 허용하세요. 이 화면에서 허용이 막혀 있으면 포스트잇과 소리, 탭 제목 깜빡임으로만 알려요.</p><div class="row"><button class="btn sm" type="button" id="aPerm">윈도우 알림 허용 (${Notification.permission==='granted'?'허용됨':Notification.permission==='denied'?'막힘':'미설정'})</button><button class="btn sm" type="button" id="aTest">알림음 들어 보기</button></div></div>`:''}`;
  const q=s=>body.querySelector(s);
@@ -1438,8 +1444,8 @@ function drawAlarms(body){
  if(q('#aTest'))q('#aTest').onclick=()=>{try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}chime()};
  const f=q('#aForm');
  if(f){
-  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,nth:+q('#aNth').value||1,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
-  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly'&&v.rep!=='nthWeekday';q('#aNthW').hidden=v.rep!=='nthWeekday';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
+  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,nth:+q('#aNth').value||1,autoDel:q('#aRep').value==='once'&&q('#aAuto').checked,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
+  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly'&&v.rep!=='nthWeekday';q('#aNthW').hidden=v.rep!=='nthWeekday';q('#aAutoW').hidden=v.rep!=='once';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
    if(!v.date){q('#aPrev').textContent='';return}if((v.rep==='weekly'||v.rep==='nthWeekday')&&!v.days.length){q('#aPrev').textContent='요일을 골라 주세요';return}const o=nextOcc(v,new Date());
    q('#aPrev').textContent=o?`첫 알림: ${whenLabel(o)} · ${repLabel(v)}`:'이 날짜·시각은 이미 지났어요';};
   f.addEventListener('input',prev);f.addEventListener('change',prev);prev();
@@ -1592,29 +1598,44 @@ const errMsg=e=>e&&(e.code==='permission-denied'?'권한이 없어요 (보안 �
 /* --- 자료 올리기·받기 --- */
 async function syPushWhole(p,d){if(!SY.pid||!WHOLE.includes(p)||!d)return;const j=JSON.stringify(d);if(j.length>900000){toast('자료가 너무 커서 연동하지 못했어요: '+p);return}
  const at=Date.now();SY.pushedAt[p]=at;SY.seenAt[enc(p)]=at;try{await SY.cloud.set(P()+'/data/'+enc(p),{j,by:SY.dev,at});syStatus('on')}catch(e){syStatus('err',errMsg(e))}}
+// 지운 메모·알림: 클라우드 문서를 지우지 않고 {deleted} 표시(묘비)로 남김 → 예전 자료를 가진 다른 기기나 다음 로그인 때 되살아나지 않음.
+// 로그아웃 중에 지운 것도 이 기기에 기억(cb-memo-gone)했다가 로그인하면 묘비로 올림.
+const lsJ=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
+const lsS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const isTomb=x=>!!(x&&x.deleted);
+const tombStr=s=>{try{return isTomb(JSON.parse(s))}catch(e){return false}};
+function syTrackGone(m){if(!m)return;const prev=lsJ('cb-memo-ids',null),gone=lsJ('cb-memo-gone',{}),now={};let ch=false;
+ for(const kind of ['memos','alarms']){now[kind]=(m[kind]||[]).map(x=>x.id);const nw=new Set(now[kind]);
+  if(prev&&prev[kind])prev[kind].forEach(id=>{if(!nw.has(id)){gone[kind+':'+id]=Date.now();ch=true}})}
+ lsS('cb-memo-ids',now);if(ch)lsS('cb-memo-gone',gone)}
+const isGone=(kind,id)=>!!lsJ('cb-memo-gone',{})[kind+':'+id];
+function syForget(kind,id){const g=lsJ('cb-memo-gone',{});if(g[kind+':'+id]){delete g[kind+':'+id];lsS('cb-memo-gone',g)}}
 let memoPushT=null;
 function syPushMemo(){if(!SY.pid)return;clearTimeout(memoPushT);memoPushT=setTimeout(async()=>{const ops=[];
  for(const kind of ['memos','alarms']){const cur={};(S.memo[kind]||[]).filter(x=>!x.priv).forEach(x=>cur[x.id]=stripMemo(x));const base=SY.base[kind];
   for(const id in cur){const s=canon(cur[id]);if(base[id]!==s){const prev=base[id]?JSON.parse(base[id]):null;base[id]=s;
     // 확인·다시 알림은 사람마다 따로 → 다른 사람 것과 합쳐지도록 merge
     ops.push(SY.cloud.set(P()+'/'+kind+'/'+id,{...cur[id],_by:SY.dev},kind==='alarms'&&!!prev))}}
-  for(const id in base)if(!cur[id]){delete base[id];ops.push(SY.cloud.del(P()+'/'+kind+'/'+id))}}
+  for(const id in base)if(!cur[id]&&!tombStr(base[id])){const t={deleted:Date.now(),on:false,text:''};base[id]=canon(t);ops.push(SY.cloud.set(P()+'/'+kind+'/'+id,{...t,_by:SY.dev}))}}
  try{await Promise.all(ops);if(ops.length)syStatus('on')}catch(e){syStatus('err',errMsg(e))}wpDigest()},250)}
-function syPush(p,d){if(!SY.pid)return;if(p==='memo/main')syPushMemo();else syPushWhole(p,d)}
+function syPush(p,d){if(p==='memo/main')syTrackGone(d);if(!SY.pid)return;if(p==='memo/main')syPushMemo();else syPushWhole(p,d)}
 function syApplyWhole(o){for(const id in o){const p=dec(id),x=o[id];if(!WHOLE.includes(p)||!x||!x.j)continue;if((SY.seenAt[id]||0)>=x.at)continue;SY.seenAt[id]=x.at;
   if(x.by===SY.dev&&SY.pushedAt[p]===x.at)continue;try{DESKDB.applyRemote(p,JSON.parse(x.j))}catch(e){}}syStatus('on')}
 function syApplyMemo(kind,o){const remote={};for(const id in o){const {_by,...r}=o[id];remote[id]=r}
  const base=SY.base[kind],loc={};(S.memo[kind]||[]).forEach(x=>loc[x.id]=x);const out={};let pending=false;
  for(const id in remote){const l=loc[id];
+  if(isTomb(remote[id])){syForget(kind,id);continue} // 다른 곳에서 지운 것: 이 기기에서도 지움
+  if(isGone(kind,id)){pending=true;continue} // 이 기기에서 지운 것: 묘비로 올림
   if(l&&base[id]!==undefined&&base[id]!==canon(stripMemo(l))){out[id]=l;pending=true}
   else if(!l&&base[id]!==undefined&&base[id]!==canon(remote[id])){out[id]=remote[id]}
   else if(!l&&base[id]!==undefined){pending=true}
   else out[id]=l&&l.desk?{...remote[id],desk:l.desk}:remote[id]}
- for(const id in loc)if(!(id in remote)){if(base[id]===undefined){out[id]=loc[id];pending=true}}
+ for(const id in loc)if(!(id in remote)){if(base[id]===undefined&&!isGone(kind,id)){out[id]=loc[id];pending=true}}
  SY.base[kind]=Object.fromEntries(Object.entries(remote).map(([id,x])=>[id,canon(x)]));
  const arr=Object.values(out).sort(kind==='memos'?(a,b)=>String(b.at).localeCompare(String(a.at)):(a,b)=>String(a.at).localeCompare(String(b.at)));
  const next={memos:S.memo.memos||[],alarms:S.memo.alarms||[],[kind]:arr};
  if(canon(stripAll(next))!==canon(stripAll(S.memo)))DESKDB.applyRemote('memo/main',{...next,savedAt:new Date().toISOString()});
+ lsS('cb-memo-ids',{memos:(next.memos||[]).map(x=>x.id),alarms:(next.alarms||[]).map(x=>x.id)});
  if(pending)syPushMemo();syStatus('on')}
 
 /* --- 공지 --- */
@@ -1658,6 +1679,12 @@ function syLoginBtn(){const mb=$('menuBtn');if(!mb)return;let b=$('loginBtn');
   const st=document.createElement('style');st.textContent='.loginbtn{display:inline-flex;align-items:center;height:42px;padding:0 15px;border-radius:21px;border:1px solid var(--accent,#2F5597);background:var(--accent,#2F5597);color:var(--on-accent,#fff);font-weight:700;font-size:13.5px;cursor:pointer;flex:none;white-space:nowrap}.loginbtn[hidden]{display:none}html.sidemode .loginbtn{height:34px;padding:0 11px;font-size:12.5px}@media (max-width:520px){.loginbtn{height:36px;padding:0 12px;font-size:12.5px}}';document.head.appendChild(st)}
  if(b.nextElementSibling!==mb)mb.before(b);
  b.hidden=!(SY.cloud&&SY.phase==='out')}
+// 로그아웃 상태: 첫 화면에서 무엇을 누르든 로그인 창부터 띄우고, 메모 알림은 울리지 않음 (설정 창 안·로그인·설정 단추는 그대로)
+const syOut=()=>!!(SY.cloud&&SY.phase==='out');
+document.addEventListener('click',e=>{if(!syOut())return;const t=e.target&&e.target.closest&&e.target.closest('button,a,input,select,textarea,label,[role=button],.tile');
+ if(!t||t.closest('.scrim,#loginBtn,#menuBtn'))return;e.preventDefault();e.stopPropagation();
+ openPanel('settings','account');toast('먼저 로그인해 주세요');setTimeout(()=>{const i=$('syE');if(i)i.focus()},250)},true);
+if(typeof dueAlarms==='function'){const _due=dueAlarms;dueAlarms=function(now){return syOut()?[]:_due(now)}}
 // 로그인·이메일 변경 뒤 화면에 결과를 확실히 보여 주기
 function syForceRedraw(){try{document.activeElement&&document.activeElement.blur&&document.activeElement.blur()}catch(e){}if(redrawPanel&&panelState.kind==='settings'&&panelState.tab==='account')redrawPanel()}
 function syClosePanel(){const sc=document.querySelector('.scrim');if(sc)sc.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))}
@@ -1990,7 +2017,7 @@ const orderForMe=o=>o.by!==ME()&&(!o.to||!o.to.length||o.to.includes(ME()));
 const orderSt=(o,u)=>(o.st||{})[u||ME()]||{};
 const orderDone=o=>{const r=orderTo(o);return r.length>0&&r.every(m=>orderSt(o,m.uid).done)};
 const myTodo=()=>S.orders.filter(o=>orderForMe(o)&&!orderSt(o).done);
-function teamPopupItems(){return S.handover.filter(h=>h.popup===true&&!handRead(h)&&!handDone(h)).map(h=>({id:'h:'+h.id,text:'[인수인계] '+h.text,byName:h.byName||memName(h.by),when:whenLabel(new Date(h.at)),important:!!h.pin})).concat(S.orders.filter(o=>o.popup!==false&&orderForMe(o)&&!orderSt(o).seen&&!orderSt(o).done).map(o=>({id:'o:'+o.id,text:'[전달사항] '+o.text+(o.due?` (기한 ${dLabel(o.due)})`:''),byName:o.byName||memName(o.by),when:whenLabel(new Date(o.at)),important:!!o.imp})))}
+function teamPopupItems(){return [].concat(S.orders.filter(o=>o.popup!==false&&orderForMe(o)&&!orderSt(o).seen&&!orderSt(o).done).map(o=>({id:'o:'+o.id,text:'[전달사항] '+o.text+(o.due?` (기한 ${dLabel(o.due)})`:''),byName:o.byName||memName(o.by),when:whenLabel(new Date(o.at)),important:!!o.imp})))}
 async function orderMark(id,what,on){const now=Date.now();const v=on===false?{[what]:0}:{[what]:now,...(what==='done'?{seen:now}:{})};
  const o=S.orders.find(x=>x.id===id);if(o){o.st={...(o.st||{}),[ME()]:{...orderSt(o),...v}};teamChanged()}
  return tSet(P()+'/orders/'+id,{st:{[ME()]:v}},true)}
@@ -2198,7 +2225,7 @@ function calBind(body){
   if(await tSet(P()+'/swaps/'+w.id,{status:'approved',decBy:ME(),decAt:Date.now()},true))toast('승인하고 근무표에 반영했어요')});
 }
 
-/* --- 인수인계 (포스트잇 게시판) ---
+/* --- 인수인계 (메모 남기기 — 안 읽은 메모는 빨간 숫자, PC 포스트잇·위에 고정 없음) ---
    읽음·처리 표시는 규칙 변경 없이 댓글 칸(cm)에 넣음: cm['r_'+uid]={kind:'read',by,at}, cm.done={kind:'done',by,byName,at} */
 let handEdit=null,handShowDone=false,handFresh=new Set();
 const handKey=()=>'cb-hand-seen-'+(SY.pid||'');
@@ -2206,10 +2233,13 @@ const handSeen=()=>{try{return +localStorage.getItem(handKey())||0}catch(e){retu
 const handCm=h=>Object.entries(h.cm||{}).filter(([,c])=>c);
 const handDone=h=>{const d=(h.cm||{}).done;return d&&d.kind==='done'?d:null};
 const handHold=h=>{const d=(h.cm||{}).hold;return d&&d.kind==='hold'&&!handDone(h)?d:null};
-const handOpen=()=>S.handover.filter(h=>!handDone(h)&&!handHold(h)); // 메인 숫자 = 처리 안 된 것(보류 빼고)
+// "다음 근무자에게만" 메모(to:[uid])는 쓴 사람·받는 사람에게만 보임 (화면에서 거름, 규칙 변경 없음)
+const handVis=h=>!h.to||!h.to.length||h.by===ME()||h.to.includes(ME());
+const handList=()=>S.handover.filter(handVis);
+const handOpen=()=>handList().filter(h=>!handDone(h)&&!handHold(h)); // 메인 숫자 = 처리 안 된 것(보류 빼고)
 const handReaders=h=>handCm(h).filter(([k,c])=>k.startsWith('r_')&&c.kind==='read').map(([,c])=>c.by);
 const handRead=h=>h.by===ME()||handReaders(h).includes(ME())||h.at<=handSeen();
-const handUnread=()=>S.handover.filter(h=>!handRead(h)&&!handDone(h)&&!handHold(h));
+const handUnread=()=>handList().filter(h=>!handRead(h)&&!handDone(h)&&!handHold(h));
 const handNew=()=>handUnread().length;
 async function handMarkRead(id){const h=S.handover.find(x=>x.id===id);if(!h||handRead(h))return;
  h.cm={...(h.cm||{}),['r_'+ME()]:{kind:'read',by:ME(),at:Date.now()}};teamChanged();
@@ -2221,21 +2251,31 @@ async function handSetDone(id,on){const h=S.handover.find(x=>x.id===id);const v=
  if(h){const cm={...(h.cm||{})};if(on)cm.done=v;else delete cm.done;cm['r_'+ME()]=cm['r_'+ME()]||{kind:'read',by:ME(),at:Date.now()};h.cm=cm;teamChanged();redrawPanel&&redrawPanel()}
  return tSet(P()+'/handover/'+id,{cm:{done:v,['r_'+ME()]:{kind:'read',by:ME(),at:Date.now()}}},true)}
 const HAND_COL=['c-yellow','c-blue','c-pink','c-purple','c-green'];
-function handColor(h){let s=0;for(const ch of String(h.by||''))s=(s*31+ch.charCodeAt(0))|0;return HAND_COL[Math.abs(s)%HAND_COL.length]}
+// 다음 근무자: 지금 이후 가장 먼저 시작하는 근무(같은 날 같은 오전/오후)의 사람들, 나는 빼고. 14일 안에서 찾음
+function shiftStartMin(x){const m=String(x||'').match(/(\d{1,2})(?::(\d{2}))?/);return m?(+m[1])*60+(+(m[2]||0)):null}
+function handNextWorkers(){const now=new Date();let best=null,out=[];
+ for(let i=0;i<14&&!best;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),s=ymd(d);
+  dayShift(s).forEach(x=>{if(x.leave||x.u===ME())return;const p=shiftParts(x.t);[['a',p.a],['p',p.p]].forEach(([half,t])=>{const mn=shiftStartMin(t);if(mn==null||!t)return;const at=d.getTime()+mn*60000;if(at<=now.getTime())return;
+   const k=s+half;if(!best||at<best.at){best={at,k,s};out=[x.u]}else if(k===best.k&&!out.includes(x.u))out.push(x.u)})})}
+ return best?{uids:out,day:best.s,at:best.at}:null}
+const handHueOf=h=>h.col&&MCOLORS[h.col]?h.col:null;
+function handColor(h){if(handHueOf(h))return 'c-'+h.col;let s=0;for(const ch of String(h.by||''))s=(s*31+ch.charCodeAt(0))|0;return HAND_COL[Math.abs(s)%HAND_COL.length]}
 function drawHand(body){
  const mgr=isMgr();
  // 이 화면을 열 때 안 읽은 글은 "새 글"로 보여 주고 읽음 처리
  const un=handUnread();un.forEach(h=>handFresh.add(h.id));setTimeout(()=>un.forEach(h=>handMarkRead(h.id)),600);
- const rank=h=>handDone(h)?2:handHold(h)?1:0;const all=S.handover.slice().sort((a,b)=>rank(a)-rank(b)||(b.pin?1:0)-(a.pin?1:0)||b.at-a.at);
+ const rank=h=>handDone(h)?2:handHold(h)?1:0;const all=handList().sort((a,b)=>rank(a)-rank(b)||(b.pin?1:0)-(a.pin?1:0)||b.at-a.at);
  const doneN=all.filter(handDone).length,list=handShowDone?all:all.filter(h=>!handDone(h));
  const ed=handEdit&&S.handover.find(h=>h.id===handEdit);
- body.innerHTML=`<div class="card memo-new c-green" id="hForm"><h3>${ed?'인수인계 고치기':'인수인계 남기기'}</h3><textarea id="hText" rows="3" placeholder="다음 근무자에게 남길 내용">${ed?esc(ed.text):''}</textarea>
-  <div class="row" style="justify-content:space-between;flex-wrap:wrap"><span class="row"><label class="chk"><input type="checkbox" id="hPin" ${ed&&ed.pin?'checked':''}> 위에 고정</label>${ed?'':'<label class="chk"><input type="checkbox" id="hPop" checked> 약국 PC에 포스트잇으로</label>'}</span><span class="row">${ed?'<button class="btn" type="button" id="hCancel">취소</button>':''}<button class="btn primary" type="button" id="hSave">${ed?'고치기':'남기기'}</button></span></div></div>
-  <div class="row" style="justify-content:space-between;margin:2px 2px 8px"><span class="sub">${un.length?`<b style="color:var(--bad)">새 글 ${un.length}개</b> · `:''}처리할 것 ${all.filter(h=>!handDone(h)&&!handHold(h)).length}개${all.some(handHold)?` · 보류 ${all.filter(handHold).length}개`:''}</span>${doneN?`<button class="linkbtn" type="button" id="hDoneT">${handShowDone?'처리한 것 숨기기':`처리한 것 ${doneN}개 보기`}</button>`:''}</div>
+ const myCol=ed?(handColor(ed).slice(2)):(()=>{try{return localStorage.getItem('cb-hand-col')}catch(e){return null}})()||handColor({by:ME()}).slice(2);
+ const nx=ed?null:handNextWorkers();
+ body.innerHTML=`<div class="card memo-new c-${myCol}" id="hForm"><h3>${ed?'메모 고치기':'메모 남기기'}</h3><textarea id="hText" rows="3" placeholder="다음 근무자에게 남길 메모">${ed?esc(ed.text):''}</textarea>
+  <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><span class="row" style="flex-wrap:wrap;gap:10px">${colorPick('hCol',myCol)}${ed?'':`<label class="chk"${nx?'':' title="근무표에 다음 근무가 없어요"'}><input type="checkbox" id="hNext" ${nx?'':'disabled'}> 다음 근무자에게만 보이기${nx?` <span class="sub">(${esc(nx.uids.map(memName).join(', '))} · ${esc(dLabel(nx.day))})</span>`:' <span class="sub">(근무표에 없음)</span>'}</label>`}</span><span class="row">${ed?'<button class="btn" type="button" id="hCancel">취소</button>':''}<button class="btn primary" type="button" id="hSave">${ed?'고치기':'남기기'}</button></span></div></div>
+  <div class="row" style="justify-content:space-between;margin:2px 2px 8px"><span class="sub">${un.length?`<b style="color:var(--bad)">새 메모 ${un.length}개</b> · `:''}처리할 것 ${all.filter(h=>!handDone(h)&&!handHold(h)).length}개${all.some(handHold)?` · 보류 ${all.filter(handHold).length}개`:''}</span>${doneN?`<button class="linkbtn" type="button" id="hDoneT">${handShowDone?'처리한 것 숨기기':`처리한 것 ${doneN}개 보기`}</button>`:''}</div>
   <div class="hgrid">${list.length?list.map(h=>{const cm=handCm(h).filter(([,c])=>c.text).map(([id,c])=>({id,...c})).sort((a,b)=>a.at-b.at);
    const dn=handDone(h),hd=handHold(h),fresh=handFresh.has(h.id),rd=handReaders(h).filter(u=>u!==h.by).map(memName);
    return `<div class="hpost memo-new ${handColor(h)} ${dn?'done':''} ${hd?'hold':''} ${fresh?'fresh':''}">
-    <div class="hh">${fresh?'<span class="hdot">새 글</span>':''}${h.pin?'📌 ':''}<b>${esc(h.byName||memName(h.by))}</b><span class="sub">${esc(whenLabel(new Date(h.at)))}${h.edAt?' · 고침':''}</span></div>
+    <div class="hh">${fresh?'<span class="hdot">새 메모</span>':''}${h.pin?'📌 ':''}${h.to&&h.to.length?`<span class="hto">🔒 ${esc(h.to.map(memName).join(', '))}에게만</span>`:''}<b>${esc(h.byName||memName(h.by))}</b><span class="sub">${esc(whenLabel(new Date(h.at)))}${h.edAt?' · 고침':''}</span></div>
     <div class="hb">${nlbr(h.text)}</div>
     ${dn?`<div class="hdone">✓ ${esc(dn.byName||memName(dn.by))} 처리 · ${esc(whenLabel(new Date(dn.at)))}</div>`:''}${hd?`<div class="hdone">보류 중 · ${esc(hd.byName||memName(hd.by))} · ${esc(whenLabel(new Date(hd.at)))}</div>`:''}
     ${cm.length?`<div class="cms">${cm.map(c=>`<div class="cmt"><b>${esc(c.byName||memName(c.by))}</b> ${esc(c.text)} <span class="sub">${esc(whenLabel(new Date(c.at)))}</span>${c.by===ME()||mgr?` <button class="linkbtn" type="button" data-cx="${h.id}|${c.id}">지우기</button>`:''}</div>`).join('')}</div>`:''}
@@ -2243,10 +2283,12 @@ function drawHand(body){
     <div class="hf"><input class="cin" data-ci="${h.id}" placeholder="댓글"><button class="btn sm" type="button" data-cs="${h.id}">달기</button></div>
     <div class="hf"><span class="row"><button class="btn sm ${dn?'':'primary'}" type="button" data-hd="${h.id}">${dn?'처리 취소':'✓ 처리함'}</button>${dn?'':`<button class="btn sm" type="button" data-hh="${h.id}">${hd?'보류 해제':'보류'}</button>`}</span>${h.by===ME()||mgr?`<span class="row"><button class="btn sm" type="button" data-he="${h.id}">고치기</button><button class="btn sm danger" type="button" data-hx="${h.id}">삭제</button></span>`:''}</div></div>`}).join(''):`<p class="muted">${doneN?'처리 안 한 인수인계가 없어요.':'아직 인수인계가 없어요.'}</p>`}</div>`;
  const q=s=>body.querySelector(s);
- q('#hSave').onclick=async()=>{const text=q('#hText').value.trim();if(!text){toast('내용을 적어 주세요');return}const pin=q('#hPin').checked;q('#hSave').disabled=true;
-  const ok=ed?await tSet(P()+'/handover/'+ed.id,{text:text.slice(0,4000),pin,edAt:Date.now()},true):await tSet(P()+'/handover/'+uid(),{text:text.slice(0,4000),pin,popup:!!(q('#hPop')&&q('#hPop').checked),by:ME(),byName:myName(),at:Date.now(),cm:{}});
-  if(ok){toast(ed?'고쳤어요':'인수인계를 남겼어요 — 다른 사람 화면에 새 글로 떠요');handEdit=null;redrawPanel()}else q('#hSave').disabled=false};
+ q('#hSave').onclick=async()=>{const text=q('#hText').value.trim();if(!text){toast('내용을 적어 주세요');return}const col=(q('input[name=hCol]:checked')||{}).value||myCol;try{localStorage.setItem('cb-hand-col',col)}catch(e){}
+  const only=!ed&&q('#hNext')&&q('#hNext').checked&&nx?nx.uids:null;q('#hSave').disabled=true;
+  const ok=ed?await tSet(P()+'/handover/'+ed.id,{text:text.slice(0,4000),col,edAt:Date.now()},true):await tSet(P()+'/handover/'+uid(),{text:text.slice(0,4000),col,...(only?{to:only}:{}),by:ME(),byName:myName(),at:Date.now(),cm:{}});
+  if(ok){toast(ed?'고쳤어요':(only?`메모를 남겼어요 — ${only.map(memName).join(', ')} 님에게만 보여요`:'메모를 남겼어요 — 다른 사람 화면에 빨간 숫자로 떠요'));handEdit=null;redrawPanel()}else q('#hSave').disabled=false};
  if(q('#hCancel'))q('#hCancel').onclick=()=>{handEdit=null;redrawPanel()};
+ body.querySelectorAll('input[name=hCol]').forEach(r=>r.onchange=()=>{const fm=q('#hForm');fm.className=fm.className.replace(/\bc-\w+/,'c-'+r.value)});
  if(q('#hDoneT'))q('#hDoneT').onclick=()=>{handShowDone=!handShowDone;redrawPanel()};
  const send=async id=>{const i=body.querySelector(`[data-ci="${id}"]`);const t=i.value.trim();if(!t)return;i.value='';await tSet(P()+'/handover/'+id,{cm:{[uid()]:{by:ME(),byName:myName(),text:t.slice(0,500),at:Date.now()}}},true)};
  body.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>send(b.dataset.cs));
@@ -2261,7 +2303,7 @@ function drawHand(body){
 function deleteMark(){return window.FB&&window.FB.deleteField&&!window.__fakeCloud?window.FB.deleteField():null}
 
 /* --- 패널·첫 화면 --- */
-function teamTabs(){return [['notice','공지사항',unreadNotices().length||null],['order','전달사항',myTodo().length||null],['cal','캘린더',calPending()||null],['hand','인수인계',handOpen().length||null]]}
+function teamTabs(){return [['notice','공지사항',unreadNotices().length||null],['order','전달사항',myTodo().length||null],['cal','캘린더',calPending()||null],['hand','인수인계',handNew()||null]]}
 function drawTeam(body){const t=panelState.tab;if(t==='order')return drawOrders(body);if(t==='cal')return drawCal(body);if(t==='hand')return drawHand(body);return drawNotices(body)}
 const TEAM_TILES=[['notice','공지사항','t-notice','<path d="M3 11l14-6v14L3 13z"/><path d="M7 13v5a2 2 0 0 0 4 0v-4"/><path d="M20 9v6"/>'],
  ['order','국장님 전달사항','t-order','<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M8.5 13l2.2 2.2L15.5 10.5"/>'],
@@ -2284,8 +2326,8 @@ function renderTeamTiles(){teamTilesInit();const top=$('teamTop');if(!top)return
  set('order',todo.length?`할 일 ${todo.length}개 · ${todo[0].text}`:mgr?(open?`진행 중 ${open}개`:'업무 지시 보내기'):'받은 지시 없음',todo.filter(o=>!orderSt(o).seen).length);
  const s=todayS(),sh=dayShift(s).filter(x=>!x.leave),pend=calPending();
  set('cal',pend?`확인할 요청 ${pend}개`:HOLI[s]?`오늘 ${HOLI[s]}`:sh.length?`오늘 근무 ${sh.map(x=>memName(x.u)).join(', ')}`:'근무표 · 휴가 · 일정',pend);
- const hu=handUnread().sort((a,b)=>b.at-a.at),hn=hu.length,op=handOpen().sort((a,b)=>b.at-a.at),hold=S.handover.filter(handHold).length;
- set('hand',hn?`새 글 ${hn} · ${hu[0].byName||memName(hu[0].by)}: ${hu[0].text}`:op.length?op[0].text:hold?`보류 ${hold}개`:'다음 근무자에게 남기기',op.length)}
+ const hu=handUnread().sort((a,b)=>b.at-a.at),hn=hu.length,op=handOpen().sort((a,b)=>b.at-a.at),hold=handList().filter(handHold).length;
+ set('hand',hn?`새 메모 ${hn} ·${hu[0].byName||memName(hu[0].by)}: ${hu[0].text}`:op.length?op[0].text:hold?`보류 ${hold}개`:'다음 근무자에게 메모 남기기',hn)}
 setInterval(()=>{if(S.pharm)renderTeamTiles()},60000);
 
 const TEAM_CSS=`
@@ -2301,6 +2343,7 @@ const TEAM_CSS=`
 .hpost{padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px;position:relative}
 .hpost .hh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.hpost .hh .sub{margin-left:auto}
 .hpost .hb{white-space:pre-wrap;font-size:15px;line-height:1.5}
+.hpost .hto{font-size:12px;font-weight:700;opacity:.85}
 .hpost.fresh{box-shadow:0 0 0 2px #E5484D}
 .hdot{background:#E5484D;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px}
 .hpost.hold{opacity:.8;border-top-style:dashed}.hpost.done{opacity:.55}.hpost.done .hb{text-decoration:line-through}

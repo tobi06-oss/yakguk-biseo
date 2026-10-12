@@ -77,7 +77,7 @@ function buildTray(){
 let shownKeys=new Set();
 let workInit=false;
 function checkAlarms(){if(!workInit){workInit=true;core.setWork(data.desk&&data.desk.work)}
- const now=new Date();const me=data.desk.me||'local';const due=core.dueAlarms(memo().alarms,now,me);
+ const now=new Date();const me=data.desk.me||'local';const due=me==='local'?[]:core.dueAlarms(memo().alarms,now,me); // 로그아웃(local)이면 메모 알림 안 띄움
  const items=due.map(a=>{const o=core.latestOcc(a,now);return{kind:'alarm',id:a.id,text:a.text,color:a.color||'yellow',when:core.whenLabel(o),rep:core.repLabel(a),late:now-o>15*60e3,key:a.id+':'+o.getTime()}});
  if(brief)items.unshift(brief);
  (data.desk.notices||[]).forEach(n=>items.unshift({kind:'notice',key:'n:'+n.id,...n}));
