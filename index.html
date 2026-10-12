@@ -2267,14 +2267,20 @@ function drawHand(body){
  const un=handUnread();un.forEach(h=>handFresh.add(h.id));setTimeout(()=>un.forEach(h=>handMarkRead(h.id)),600);
  const rank=h=>handDone(h)?2:handHold(h)?1:0;const all=handList().sort((a,b)=>rank(a)-rank(b)||(b.pin?1:0)-(a.pin?1:0)||b.at-a.at);
  const doneN=all.filter(handDone).length,list=handShowDone?all:all.filter(h=>!handDone(h));
- const ed=handEdit&&S.handover.find(h=>h.id===handEdit);
- const myCol=ed?(handColor(ed).slice(2)):(()=>{try{return localStorage.getItem('cb-hand-col')}catch(e){return null}})()||handColor({by:ME()}).slice(2);
- const nx=ed?null:handNextWorkers();
+ // 고치기는 그 메모 카드 안에서 바로 (위 칸은 늘 새 메모)
+ const ed=null,edH=handEdit&&S.handover.find(h=>h.id===handEdit);if(!edH)handEdit=null;
+ const myCol=(()=>{try{return localStorage.getItem('cb-hand-col')}catch(e){return null}})()||handColor({by:ME()}).slice(2);
+ const nx=handNextWorkers();
  body.innerHTML=`<div class="card memo-new c-${myCol}" id="hForm"><h3>${ed?'메모 고치기':'메모 남기기'}</h3><textarea id="hText" rows="3" placeholder="다음 근무자에게 남길 메모">${ed?esc(ed.text):''}</textarea>
   <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><span class="row" style="flex-wrap:wrap;gap:10px">${colorPick('hCol',myCol)}${ed?'':`<label class="chk"${nx?'':' title="근무표에 다음 근무가 없어요"'}><input type="checkbox" id="hNext" ${nx?'':'disabled'}> 다음 근무자에게만 보이기${nx?` <span class="sub">(${esc(nx.uids.map(memName).join(', '))} · ${esc(dLabel(nx.day))})</span>`:' <span class="sub">(근무표에 없음)</span>'}</label>`}</span><span class="row">${ed?'<button class="btn" type="button" id="hCancel">취소</button>':''}<button class="btn primary" type="button" id="hSave">${ed?'고치기':'남기기'}</button></span></div></div>
   <div class="row" style="justify-content:space-between;margin:2px 2px 8px"><span class="sub">${un.length?`<b style="color:var(--bad)">새 메모 ${un.length}개</b> · `:''}처리할 것 ${all.filter(h=>!handDone(h)&&!handHold(h)).length}개${all.some(handHold)?` · 보류 ${all.filter(handHold).length}개`:''}</span>${doneN?`<button class="linkbtn" type="button" id="hDoneT">${handShowDone?'처리한 것 숨기기':`처리한 것 ${doneN}개 보기`}</button>`:''}</div>
   <div class="hgrid">${list.length?list.map(h=>{const cm=handCm(h).filter(([,c])=>c.text).map(([id,c])=>({id,...c})).sort((a,b)=>a.at-b.at);
    const dn=handDone(h),hd=handHold(h),fresh=handFresh.has(h.id),rd=handReaders(h).filter(u=>u!==h.by).map(memName);
+   if(edH&&edH.id===h.id)return `<div class="hpost memo-new ${handColor(h)} editing" id="hEdit">
+    <div class="hh">${h.to&&h.to.length?`<span class="hto">🔒 ${esc(h.to.map(memName).join(', '))}에게만</span>`:''}<b>${esc(h.byName||memName(h.by))}</b><span class="sub">고치는 중</span></div>
+    <textarea id="heText" rows="4">${esc(h.text)}</textarea>
+    ${colorPick('heCol',handColor(h).slice(2))}
+    <div class="hf" style="justify-content:flex-end"><span class="row"><button class="btn sm" type="button" id="heCancel">취소</button><button class="btn sm primary" type="button" id="heSave">저장</button></span></div></div>`;
    return `<div class="hpost memo-new ${handColor(h)} ${dn?'done':''} ${hd?'hold':''} ${fresh?'fresh':''}">
     <div class="hh">${fresh?'<span class="hdot">새 메모</span>':''}${h.pin?'📌 ':''}${h.to&&h.to.length?`<span class="hto">🔒 ${esc(h.to.map(memName).join(', '))}에게만</span>`:''}<b>${esc(h.byName||memName(h.by))}</b><span class="sub">${esc(whenLabel(new Date(h.at)))}${h.edAt?' · 고침':''}</span></div>
     <div class="hb">${nlbr(h.text)}</div>
@@ -2289,6 +2295,11 @@ function drawHand(body){
   const ok=ed?await tSet(P()+'/handover/'+ed.id,{text:text.slice(0,4000),col,edAt:Date.now()},true):await tSet(P()+'/handover/'+uid(),{text:text.slice(0,4000),col,...(only?{to:only}:{}),by:ME(),byName:myName(),at:Date.now(),cm:{}});
   if(ok){toast(ed?'고쳤어요':(only?`메모를 남겼어요 — ${only.map(memName).join(', ')} 님에게만 보여요`:'메모를 남겼어요 — 다른 사람 화면에 빨간 숫자로 떠요'));handEdit=null;redrawPanel()}else q('#hSave').disabled=false};
  if(q('#hCancel'))q('#hCancel').onclick=()=>{handEdit=null;redrawPanel()};
+ if(q('#hEdit')){const te=q('#heText');te.focus();te.setSelectionRange(te.value.length,te.value.length);
+  q('#heCancel').onclick=()=>{handEdit=null;redrawPanel()};
+  body.querySelectorAll('input[name=heCol]').forEach(r=>r.onchange=()=>{const c=q('#hEdit');c.className=c.className.replace(/\bc-\w+/,'c-'+r.value)});
+  q('#heSave').onclick=async()=>{const text=te.value.trim();if(!text){toast('내용을 적어 주세요');return}const col=(q('input[name=heCol]:checked')||{}).value;q('#heSave').disabled=true;
+   if(await tSet(P()+'/handover/'+edH.id,{text:text.slice(0,4000),...(col?{col}:{}),edAt:Date.now()},true)){toast('고쳤어요');handEdit=null;redrawPanel()}else q('#heSave').disabled=false}}
  body.querySelectorAll('input[name=hCol]').forEach(r=>r.onchange=()=>{const fm=q('#hForm');fm.className=fm.className.replace(/\bc-\w+/,'c-'+r.value)});
  if(q('#hDoneT'))q('#hDoneT').onclick=()=>{handShowDone=!handShowDone;redrawPanel()};
  const send=async id=>{const i=body.querySelector(`[data-ci="${id}"]`);const t=i.value.trim();if(!t)return;i.value='';await tSet(P()+'/handover/'+id,{cm:{[uid()]:{by:ME(),byName:myName(),text:t.slice(0,500),at:Date.now()}}},true)};
@@ -2297,7 +2308,7 @@ function drawHand(body){
  body.querySelectorAll('[data-cx]').forEach(b=>armBtn(b,()=>{const [h,c]=b.dataset.cx.split('|');tSet(P()+'/handover/'+h,{cm:{[c]:deleteMark()}},true)},'정말?'));
  body.querySelectorAll('[data-hh]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hh);handSetHold(b.dataset.hh,!handHold(h))});
  body.querySelectorAll('[data-hd]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hd);handSetDone(b.dataset.hd,!handDone(h))});
- body.querySelectorAll('[data-he]').forEach(b=>b.onclick=()=>{handEdit=b.dataset.he;redrawPanel();body.scrollTop=0});
+ body.querySelectorAll('[data-he]').forEach(b=>b.onclick=()=>{handEdit=b.dataset.he;redrawPanel()});
  body.querySelectorAll('[data-hx]').forEach(b=>armBtn(b,()=>tDel(P()+'/handover/'+b.dataset.hx)));
 }
 // 댓글 지우기: Firestore에서는 필드 삭제 표시, 가짜 서버에서는 null
@@ -2345,6 +2356,7 @@ const TEAM_CSS=`
 .hpost .hh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.hpost .hh .sub{margin-left:auto}
 .hpost .hb{white-space:pre-wrap;font-size:15px;line-height:1.5}
 .hpost .hto{font-size:12px;font-weight:700;opacity:.85}
+.hpost textarea{width:100%;box-sizing:border-box;font:inherit;font-size:15px;line-height:1.5}.hpost.editing{box-shadow:0 0 0 2px var(--accent,#2F5597)}
 .hpost.fresh{box-shadow:0 0 0 2px #E5484D}
 .hdot{background:#E5484D;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px}
 .hpost.hold{opacity:.8;border-top-style:dashed}.hpost.done{opacity:.55}.hpost.done .hb{text-decoration:line-through}
@@ -2743,7 +2755,7 @@ html.sidemode .bellbtn{width:42px}`;document.head.appendChild(st);
  renderBell()}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791792820';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791797670';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
