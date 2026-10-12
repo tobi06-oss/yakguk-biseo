@@ -1,11 +1,11 @@
 {
- "version": "0.7.2",
- "notes": "인수인계 메모 고치기를 그 메모 카드 안에서 바로",
+ "version": "0.7.3",
+ "notes": "이날 근무 편집에서 체크를 끄면 시간이 남아 있어도 근무에서 빠지게 고침",
  "files": [
   {
    "p": "index.html",
-   "sha256": "f116af3a95644aa86cf0142881e68858f7a95dcef6f6265677c105bbe0d4eea7",
-   "size": 387104
+   "sha256": "32bfe381bed9e9169de70f50d520dc57083fb8cbadaf00082cc43fe221ff43b5",
+   "size": 387138
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "90fbbdb296b28554f9c4925165b0cad059f2ec212ccc670debfa6164a19d2f36",
+   "sha256": "c9a456d223fff77d70dc3f0f50d03834940d65521a1754f68bdae6e553d39530",
    "size": 211
   },
   {

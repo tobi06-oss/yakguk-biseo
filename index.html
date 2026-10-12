@@ -2192,8 +2192,8 @@ function calBind(body){
    if(back&&to&&!dayShift(back).some(x=>x.u===to)){toast(`${tm.name} 님은 ${dLabel(back)}에 근무가 없어요`);return}
    if(await tSet(P()+'/swaps/'+uid(),{from:ME(),fromName:myName(),date:s,to:to||'',toName:tm?tm.name:'',back:to?back||'':'',note:q('#fNote').value.trim().slice(0,200),status:'asked',at:Date.now()}))done('근무 교환을 요청했어요')}
   else if(k==='shift'){const v=(a,u)=>body.querySelector(`[data-${a}="${u}"]`);
-   // 시간을 적었으면 체크를 안 해도 근무로 넣음
-   const list=S.members.filter(m=>v('su',m.uid).checked||v('sa',m.uid).value.trim()||v('sp',m.uid).value.trim()).map(m=>({u:m.uid,t:shiftJoin(v('sa',m.uid).value,v('sp',m.uid).value)}));
+   // 체크된 사람만 근무 (시간을 적으면 체크가 저절로 켜지고, 체크를 끄면 시간이 남아 있어도 이날 근무에서 빠짐)
+   const list=S.members.filter(m=>v('su',m.uid).checked).map(m=>({u:m.uid,t:shiftJoin(v('sa',m.uid).value,v('sp',m.uid).value)}));
    if(await saveDayShift(s,list)){let back=null;try{back=await SY.cloud.get(P()+'/shifts/'+s.slice(0,7))}catch(e){}
     const got=back&&back.d&&back.d[s.slice(8)];if(back){S.shiftDocs={...S.shiftDocs,[s.slice(0,7)]:back}}
     if(Array.isArray(got)&&got.length===list.length)done(list.length?`${dLabel(s)} 근무를 저장했어요 (${list.map(x=>memName(x.u)).join(', ')})`:`${dLabel(s)}은 근무 없음으로 저장했어요`);
@@ -2755,7 +2755,7 @@ html.sidemode .bellbtn{width:42px}`;document.head.appendChild(st);
  renderBell()}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1791797670';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1791798556';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
