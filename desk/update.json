@@ -1,11 +1,11 @@
 {
- "version": "0.7.3",
- "notes": "이날 근무 편집에서 체크를 끄면 시간이 남아 있어도 근무에서 빠지게 고침",
+ "version": "0.7.4",
+ "notes": "지운 알림이 다시 살아나던 문제 한 번 더 막음(예전 버전 기기가 지운 것도 되살리지 않음)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "32bfe381bed9e9169de70f50d520dc57083fb8cbadaf00082cc43fe221ff43b5",
-   "size": 387138
+   "sha256": "605dd8f24f46e7534460f644d35e785fe528aa664cca8b3d94cdcdaca4518d29",
+   "size": 387733
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "c9a456d223fff77d70dc3f0f50d03834940d65521a1754f68bdae6e553d39530",
+   "sha256": "5bf96565672eee1db0b3406f8d8172ca672f48f743fdea74487c2192497b0d60",
    "size": 211
   },
   {

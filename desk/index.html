@@ -1609,6 +1609,9 @@ function syTrackGone(m){if(!m)return;const prev=lsJ('cb-memo-ids',null),gone=lsJ
   if(prev&&prev[kind])prev[kind].forEach(id=>{if(!nw.has(id)){gone[kind+':'+id]=Date.now();ch=true}})}
  lsS('cb-memo-ids',now);if(ch)lsS('cb-memo-gone',gone)}
 const isGone=(kind,id)=>!!lsJ('cb-memo-gone',{})[kind+':'+id];
+// 클라우드에서 한 번이라도 본 id (cb-memo-seen): 로컬에만 남아 있는데 본 적이 있으면 = 예전 버전 기기가 클라우드에서 지운 것 → 다시 올리지 않고 이 기기에서도 지움
+function sySeenAdd(kind,ids){if(!ids.length)return;const sn=lsJ('cb-memo-seen',{}),set=new Set(sn[kind]||[]);let ch=false;ids.forEach(id=>{if(!set.has(id)){set.add(id);ch=true}});if(ch){sn[kind]=[...set].slice(-3000);lsS('cb-memo-seen',sn)}}
+const sySeen=(kind,id)=>(lsJ('cb-memo-seen',{})[kind]||[]).includes(id);
 function syForget(kind,id){const g=lsJ('cb-memo-gone',{});if(g[kind+':'+id]){delete g[kind+':'+id];lsS('cb-memo-gone',g)}}
 let memoPushT=null;
 function syPushMemo(){if(!SY.pid)return;clearTimeout(memoPushT);memoPushT=setTimeout(async()=>{const ops=[];
@@ -1630,7 +1633,8 @@ function syApplyMemo(kind,o){const remote={};for(const id in o){const {_by,...r}
   else if(!l&&base[id]!==undefined&&base[id]!==canon(remote[id])){out[id]=remote[id]}
   else if(!l&&base[id]!==undefined){pending=true}
   else out[id]=l&&l.desk?{...remote[id],desk:l.desk}:remote[id]}
- for(const id in loc)if(!(id in remote)){if(base[id]===undefined&&!isGone(kind,id)){out[id]=loc[id];pending=true}}
+ for(const id in loc)if(!(id in remote)){if(base[id]===undefined&&!isGone(kind,id)&&!sySeen(kind,id)){out[id]=loc[id];pending=true}}
+ sySeenAdd(kind,Object.keys(remote));
  SY.base[kind]=Object.fromEntries(Object.entries(remote).map(([id,x])=>[id,canon(x)]));
  const arr=Object.values(out).sort(kind==='memos'?(a,b)=>String(b.at).localeCompare(String(a.at)):(a,b)=>String(a.at).localeCompare(String(b.at)));
  const next={memos:S.memo.memos||[],alarms:S.memo.alarms||[],[kind]:arr};
