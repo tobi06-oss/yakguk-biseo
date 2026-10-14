@@ -1,11 +1,11 @@
 {
- "version": "0.7.4",
- "notes": "지운 알림이 다시 살아나던 문제 한 번 더 막음(예전 버전 기기가 지운 것도 되살리지 않음)",
+ "version": "0.7.5",
+ "notes": "약국 매뉴얼: 분류 칸 2열·칸 안에 고치기/지우기, 분류 없이 제목만으로 항목 넣기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "605dd8f24f46e7534460f644d35e785fe528aa664cca8b3d94cdcdaca4518d29",
-   "size": 387733
+   "sha256": "8970c2929fe182c2eac0da266b120634904bb24f59c796e84169a6f5af3ffc61",
+   "size": 389045
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "5bf96565672eee1db0b3406f8d8172ca672f48f743fdea74487c2192497b0d60",
+   "sha256": "38210ece3b3f59d996e0d706a2dc9f084b69deae6d11debb687ed03a4b4dc43b",
    "size": 211
   },
   {

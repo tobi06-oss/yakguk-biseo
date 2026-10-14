@@ -952,12 +952,11 @@ function drawManual(body){
  body.innerHTML='<input class="search" id="mq" type="search" placeholder="매뉴얼 검색"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
  const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
   if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
-  const cats=groupBy(S.manual,m=>m.sec||'기타');
-  if(!q&&!manualCat){list.innerHTML=catListHtml(cats,'cat',canWrite);bindCatManage(list,{can:canWrite,rename:manualCatRename,del:manualCatDel,run});
-   list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;manualOpen.clear();run()});return}
-  const items=q?S.manual.filter(m=>norm(m.sec+' '+m.h+' '+m.body).includes(nq)):S.manual.filter(m=>(m.sec||'기타')===manualCat);
-  const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
-  list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${mOpenHas(m.id)||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${mOpenHas(m.id)||!!q}">${esc(m.h)}${q?` <span class="sub">${esc(m.sec)}</span>`:''}</button>${mOpenHas(m.id)||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+  const cats=groupBy(S.manual.filter(m=>mSecOf(m)),mSecOf),loose=S.manual.filter(m=>!mSecOf(m)),top=!q&&!manualCat;
+  const items=q?S.manual.filter(m=>norm(mSecOf(m)+' '+m.h+' '+m.body).includes(nq)):top?loose:S.manual.filter(m=>mSecOf(m)===manualCat);
+  const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'cat',canWrite)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
+  list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${mOpenHas(m.id)||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${mOpenHas(m.id)||!!q}">${esc(m.h)}${q&&mSecOf(m)?` <span class="sub">${esc(mSecOf(m))}</span>`:''}</button>${mOpenHas(m.id)||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||(top?'':'<p class="muted">맞는 항목이 없어요.</p>'));
+  if(top){bindCatManage(list,{can:canWrite,rename:manualCatRename,del:manualCatDel,run});list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;manualOpen.clear();run()})}
   $('mBack')&&($('mBack').onclick=()=>{manualCat=null;openItem=null;manualOpen.clear();run()});
   list.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{const i=b.dataset.item;if(mOpenHas(i)){manualOpen.delete(i);if(openItem===i)openItem=null}else manualOpen.add(i);run()});
   list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editId=b.dataset.edit;run()});
@@ -972,12 +971,12 @@ function drawManual(body){
 function manualForm(m,after){
  const secs=[...new Set(S.manual.map(x=>x.sec).filter(Boolean))];
  const f=document.createElement('div');f.className='card';
- f.innerHTML=`<div class="field">분류<input id="mfSec" list="mfSecs" value="${esc(m?m.sec:'')}" placeholder=""><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+ f.innerHTML=`<div class="field">분류 (선택 · 비워 두면 분류 없이 제목만)<input id="mfSec" list="mfSecs" value="${esc(m?mSecOf(m):'')}" placeholder="없음"><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
  <div class="field">제목<input id="mfH" value="${esc(m?m.h:'')}" placeholder=""></div>
  <div class="field">내용<textarea id="mfB" placeholder="한 줄에 하나씩 적으면 읽기 쉬워요">${esc(m?m.body:'')}</textarea></div>
  <div class="row"><button class="btn primary" type="button" id="mfSave">저장</button>${m?'<button class="btn" type="button" id="mfCancel">취소</button><button class="btn danger" type="button" id="mfDel">지우기</button>':''}</div>`;
  const q=s=>f.querySelector(s);
-  q('#mfSave').onclick=async()=>{const h=q('#mfH').value.trim(),b=q('#mfB').value.trim(),sec=q('#mfSec').value.trim()||'기타';if(!h){toast('제목을 적어 주세요');return}
+  q('#mfSave').onclick=async()=>{const h=q('#mfH').value.trim(),b=q('#mfB').value.trim(),sec=q('#mfSec').value.trim();if(!h){toast('제목을 적어 주세요');return}
    const items=S.manual.map(x=>({...x}));if(m){const t=items.find(x=>x.id===m.id);Object.assign(t,{h,body:b,sec})}else items.push({id:'m'+Date.now().toString(36),sec,h,body:b});
    if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('매뉴얼에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
   m&&(q('#mfCancel').onclick=()=>{editId=null;after&&after()});
@@ -1683,10 +1682,10 @@ function syLoginBtn(){const mb=$('menuBtn');if(!mb)return;let b=$('loginBtn');
   const st=document.createElement('style');st.textContent='.loginbtn{display:inline-flex;align-items:center;height:42px;padding:0 15px;border-radius:21px;border:1px solid var(--accent,#2F5597);background:var(--accent,#2F5597);color:var(--on-accent,#fff);font-weight:700;font-size:13.5px;cursor:pointer;flex:none;white-space:nowrap}.loginbtn[hidden]{display:none}html.sidemode .loginbtn{height:34px;padding:0 11px;font-size:12.5px}@media (max-width:520px){.loginbtn{height:36px;padding:0 12px;font-size:12.5px}}';document.head.appendChild(st)}
  if(b.nextElementSibling!==mb)mb.before(b);
  b.hidden=!(SY.cloud&&SY.phase==='out')}
-// 로그아웃 상태: 첫 화면에서 무엇을 누르든 로그인 창부터 띄우고, 메모 알림은 울리지 않음 (설정 창 안·로그인·설정 단추는 그대로)
+// 로그아웃 상태: 첫 화면에서 무엇을 누르든 로그인 창부터 띄우고, 메모 알림은 울리지 않음 (설정 창 안·로그인·설정·업데이트 단추는 그대로)
 const syOut=()=>!!(SY.cloud&&SY.phase==='out');
 document.addEventListener('click',e=>{if(!syOut())return;const t=e.target&&e.target.closest&&e.target.closest('button,a,input,select,textarea,label,[role=button],.tile');
- if(!t||t.closest('.scrim,#loginBtn,#menuBtn'))return;e.preventDefault();e.stopPropagation();
+ if(!t||t.closest('.scrim,#loginBtn,#menuBtn,#upBtn'))return;e.preventDefault();e.stopPropagation();
  openPanel('settings','account');toast('먼저 로그인해 주세요');setTimeout(()=>{const i=$('syE');if(i)i.focus()},250)},true);
 if(typeof dueAlarms==='function'){const _due=dueAlarms;dueAlarms=function(now){return syOut()?[]:_due(now)}}
 // 로그인·이메일 변경 뒤 화면에 결과를 확실히 보여 주기
@@ -2408,7 +2407,15 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .mn-lock svg{flex:none;color:var(--accent);margin-top:2px}.mn-lock b{display:block;margin-bottom:2px}.mn-lock p{margin:0}
 .mn-meta{font-size:12px;color:var(--ink-3);font-weight:400;white-space:nowrap}
 .mn-pin{color:var(--brand);margin-right:4px}
-.catrow{display:flex;gap:6px;align-items:stretch}.catrow .cat{flex:1;min-width:0;width:auto}.catrow .btn.sm{flex:none;min-width:36px;padding-inline:8px}.catrow input.search{margin:0}
+.catgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.catrow{display:flex;gap:4px;align-items:stretch;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:4px;min-width:0;box-shadow:var(--shadow-1,none)}
+.catrow .cat{flex:1;min-width:0;width:auto;border:0;box-shadow:none;background:transparent;padding:10px 10px;min-height:56px;gap:6px}
+.catrow .cat>span:first-child{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:keep-all;line-height:1.3}
+.catrow .catact{display:flex;flex-direction:column;gap:3px;flex:none}
+.catrow .catact .btn.sm{min-height:0;height:26px;min-width:30px;padding:0 6px;font-size:12px;line-height:1}
+.catrow .catact [data-crx]{color:var(--bad,#E5484D);border-color:color-mix(in srgb,var(--bad,#E5484D) 35%,transparent)}
+.catrow.edit{grid-column:1/-1}.catrow input.search{margin:0}
+@media (max-width:360px){.catgrid{grid-template-columns:1fr}}
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -2430,9 +2437,9 @@ async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id);
 async function mnDel(id){S.mynotes=S.mynotes.filter(x=>x.id!==id);myNoteChanged();return tDel(mnPath()+'/'+id)}
 
 // 전체 분류 화면에서 분류 이름 바꾸기·지우기 (내 수첩 · 약국 매뉴얼 공통)
-function catListHtml(cats,attr,can){return cats.map(([sec,arr])=>`<div class="catrow"><button class="cat" type="button" data-${attr}="${esc(sec)}">${esc(sec)}<span class="c">${arr.length}</span></button>${can?`<button class="btn sm" type="button" data-crn="${esc(sec)}" title="분류 이름 바꾸기" aria-label="${esc(sec)} 이름 바꾸기">✎</button><button class="btn sm" type="button" data-crx="${esc(sec)}" data-n="${arr.length}" title="분류 지우기 (안의 항목도 함께)" aria-label="${esc(sec)} 지우기">✕</button>`:''}</div>`).join('')}
+function catListHtml(cats,attr,can){if(!cats.length)return '';return '<div class="catgrid">'+cats.map(([sec,arr])=>`<div class="catrow"><button class="cat" type="button" data-${attr}="${esc(sec)}"><span>${esc(sec)}</span><span class="c">${arr.length}</span></button>${can?`<span class="catact"><button class="btn sm" type="button" data-crn="${esc(sec)}" title="분류 이름 바꾸기" aria-label="${esc(sec)} 이름 바꾸기">✎</button><button class="btn sm" type="button" data-crx="${esc(sec)}" data-n="${arr.length}" title="분류 지우기 (안의 항목도 함께)" aria-label="${esc(sec)} 지우기">✕</button></span>`:''}</div>`).join('')+'</div>'}
 function bindCatManage(list,o){if(!o.can)return;
- list.querySelectorAll('[data-crn]').forEach(b=>b.onclick=()=>{const old=b.dataset.crn,row=b.closest('.catrow');
+ list.querySelectorAll('[data-crn]').forEach(b=>b.onclick=()=>{const old=b.dataset.crn,row=b.closest('.catrow');row.classList.add('edit');
   row.innerHTML=`<input class="search" maxlength="40" value="${esc(old)}" aria-label="새 분류 이름" style="flex:1;min-width:0"><button class="btn sm primary" type="button">저장</button><button class="btn sm" type="button">취소</button>`;
   const [inp,ok,no]=row.querySelectorAll('input,button');inp.focus();inp.select();
   no.onclick=()=>o.run();
@@ -2442,8 +2449,10 @@ function bindCatManage(list,o){if(!o.can)return;
 async function mnCatRename(old,nw){for(const m of S.mynotes.filter(x=>mnSec(x)===old)){if(!await mnPut(m.id,{sec:nw}))return false}return true}
 async function mnCatDel(sec){for(const m of S.mynotes.filter(x=>mnSec(x)===sec)){if(!await mnDel(m.id))return false}return true}
 async function manualCatSave(fn){const out=fn(S.manual.map(x=>({...x})));if(await saveDoc('manual/main',{items:out,updatedAt:new Date().toISOString()})){S.manual=out;renderBook&&renderBook();return true}return false}
-const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>(x.sec||'기타')===old?{...x,sec:nw}:x));
-const manualCatDel=sec=>manualCatSave(a=>a.filter(x=>(x.sec||'기타')!==sec));
+// 매뉴얼 분류: 비어 있으면 분류 없음 (v0.7.5부터 기본값. 예전에 저장된 '기타'는 그대로 분류로 보임)
+const mSecOf=m=>String((m&&m.sec)||'').trim();
+const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>mSecOf(x)===old?{...x,sec:nw}:x));
+const manualCatDel=sec=>manualCatSave(a=>a.filter(x=>mSecOf(x)!==sec));
 
 function drawMyNote(body){
  const lock=`<div class="card mn-lock">${LOCK_SVG}<div><b>나만 보는 비공개 수첩</b><p class="muted">여기 적은 내용은 내 계정에만 저장돼요. 국장님·관리자·다른 직원 누구도 볼 수 없고, 약국 공용 자료(약국 매뉴얼·메모·공지)와도 따로 보관돼요. 같은 계정으로 로그인한 PC·휴대폰에서만 열려요.</p></div></div>`;
@@ -2558,10 +2567,10 @@ function mnImportForm(){
  const f=document.createElement('div');f.className='card';
  if(!S.manual||!S.manual.length){f.innerHTML='<p class="muted">약국 매뉴얼이 비어 있어요.</p>';return f}
  const has=m=>S.mynotes.some(n=>n.title===m.h&&(n.body||'')===(m.body||''));
- const secs=[...new Set(S.manual.map(m=>m.sec||'기타'))];
+ const secs=[...new Set(S.manual.map(m=>mSecOf(m)||'분류 없음'))];
  f.innerHTML=`<h3>약국 매뉴얼에서 가져오기</h3><p class="muted">담고 싶은 항목만 골라요. 복사본이라 내 수첩에서 고쳐도 매뉴얼은 그대로예요.</p>
  <input class="search" id="miQ" type="search" placeholder="매뉴얼 항목 찾기">
- <div id="miList" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto">${secs.map(s=>{const its=S.manual.filter(m=>(m.sec||'기타')===s);
+ <div id="miList" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow:auto">${secs.map(s=>{const its=S.manual.filter(m=>(mSecOf(m)||'분류 없음')===s);
   return `<div data-sec><label class="chk"><input type="checkbox" data-secall="${esc(s)}"> <b>${esc(s)}</b> <span class="muted">${its.length}</span></label>
   <div style="display:flex;flex-direction:column;gap:2px;padding-left:22px">${its.map(m=>`<label class="chk" data-t="${esc(norm(s+' '+m.h+' '+(m.body||'')))}"><input type="checkbox" value="${esc(m.id)}" data-s="${esc(s)}" ${has(m)?'disabled':''}> ${esc(m.h)}${has(m)?' <span class="muted">· 이미 있음</span>':''}</label>`).join('')}</div></div>`}).join('')}</div>
  <div class="row"><button class="btn primary" type="button" id="miGo" disabled>골라 주세요</button></div>`;
