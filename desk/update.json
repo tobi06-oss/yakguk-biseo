@@ -1,11 +1,11 @@
 {
- "version": "0.7.5",
- "notes": "약국 매뉴얼: 분류 칸 2열·칸 안에 고치기/지우기, 분류 없이 제목만으로 항목 넣기",
+ "version": "0.7.6",
+ "notes": "방금 남긴 인수인계·공지·전달사항·일정이 내 화면에 안 보이던 문제 고침",
  "files": [
   {
    "p": "index.html",
-   "sha256": "8970c2929fe182c2eac0da266b120634904bb24f59c796e84169a6f5af3ffc61",
-   "size": 389045
+   "sha256": "59f223caa33d9dc9e0f4fac0e68a26c655fdb5dbd087bd29da7689305b377e40",
+   "size": 389303
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "38210ece3b3f59d996e0d706a2dc9f084b69deae6d11debb687ed03a4b4dc43b",
+   "sha256": "1528455ed4d22d2d311df4f5da7e49c4250d5b6414a70f982c2df8d511e559bc",
    "size": 211
   },
   {

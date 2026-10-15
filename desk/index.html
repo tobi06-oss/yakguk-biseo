@@ -1578,7 +1578,8 @@ function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');c
   get:async p=>{const s=await F.getDoc(F.doc(db,p));return s.exists()?s.data():null},
   getAll:async c=>{const s=await F.getDocs(F.collection(db,c));const o={};s.forEach(d=>o[d.id]=d.data());return o},
   set:(p,d,merge)=>F.setDoc(F.doc(db,p),d,merge?{merge:true}:{}),del:p=>F.deleteDoc(F.doc(db,p)),
-  watchCol:(c,cb,err)=>F.onSnapshot(F.collection(db,c),s=>{if(s.metadata.hasPendingWrites)return;const o={};s.forEach(d=>o[d.id]=d.data());cb(o)},err),
+  // mine=true: 내가 방금 쓴 것(아직 서버 확인 전)도 바로 반영. Firestore는 서버 확인 때 데이터가 같으면 다시 알려 주지 않아서, 건너뛰면 내가 쓴 글이 안 보였음(v0.7.6)
+  watchCol:(c,cb,err,mine)=>F.onSnapshot(F.collection(db,c),s=>{if(s.metadata.hasPendingWrites&&!mine)return;const o={};s.forEach(d=>o[d.id]=d.data());cb(o)},err),
   watchDoc:(p,cb,err)=>F.onSnapshot(F.doc(db,p),s=>{if(s.metadata.hasPendingWrites)return;cb(s.exists()?s.data():null)},err)}}
 
 const clean=o=>JSON.parse(JSON.stringify(o));
@@ -1664,8 +1665,8 @@ async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');setTi
   const W=(f)=>SY.unsub.push(f);const err=e=>syStatus('err',errMsg(e));
   W(SY.cloud.watchDoc(P(),d=>{S.pharm=d;renderMemoHome();syRedraw()},err));
   W(SY.cloud.watchCol(P()+'/members',o=>{S.members=Object.entries(o).map(([u,m])=>({uid:u,...m})).sort((a,b)=>(a.role==='owner'?0:a.role==='admin'?1:2)-(b.role==='owner'?0:b.role==='admin'?1:2)||String(a.name).localeCompare(String(b.name)));
-   if(SY.user&&!o[SY.user.uid]){toast('약국에서 나가졌어요');syLeaveLocal();return}renderMemoHome();syRedraw()},e=>{if(e&&e.code==='permission-denied'){toast('약국에서 나가졌어요');syLeaveLocal()}else err(e)}));
-  W(SY.cloud.watchCol(P()+'/notices',o=>{S.notices=Object.entries(o).map(([id,n])=>({id,...n}));syNoticesChanged()},err));
+   if(SY.user&&!o[SY.user.uid]){toast('약국에서 나가졌어요');syLeaveLocal();return}renderMemoHome();syRedraw()},e=>{if(e&&e.code==='permission-denied'){toast('약국에서 나가졌어요');syLeaveLocal()}else err(e)},true));
+  W(SY.cloud.watchCol(P()+'/notices',o=>{S.notices=Object.entries(o).map(([id,n])=>({id,...n}));syNoticesChanged()},err,true));
   W(SY.cloud.watchCol(P()+'/data',syApplyWhole,err));
   W(SY.cloud.watchCol(P()+'/memos',o=>syApplyMemo('memos',o),err));
   if(typeof teamWatch==='function')teamWatch(W,err);
@@ -2007,8 +2008,8 @@ const HOLI={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설
 
 /* --- 클라우드 연결 (desk_sync가 부름) --- */
 function teamWatch(W,err){
- TEAM_COLS.forEach(c=>W(SY.cloud.watchCol(P()+'/'+c,o=>{S[c]=Object.entries(o||{}).map(([id,x])=>({id,...x}));teamChanged()},err)));
- W(SY.cloud.watchCol(P()+'/shifts',o=>{S.shiftDocs=o||{};teamChanged()},err))}
+ TEAM_COLS.forEach(c=>W(SY.cloud.watchCol(P()+'/'+c,o=>{S[c]=Object.entries(o||{}).map(([id,x])=>({id,...x}));teamChanged()},err,true)));
+ W(SY.cloud.watchCol(P()+'/shifts',o=>{S.shiftDocs=o||{};teamChanged()},err,true))}
 function teamReset(){TEAM_COLS.forEach(c=>S[c]=[]);S.shiftDocs={};teamChanged()}
 let teamT=null;
 function teamChanged(){clearTimeout(teamT);teamT=setTimeout(()=>{renderTeamTiles();alertSync();if(typeof hasDesk==='function'&&hasDesk()&&typeof deskNoticeItems==='function')window.desk.setNotices(deskNoticeItems());
@@ -2422,7 +2423,7 @@ const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stro
 S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '기타';if(m.sec)return m.sec;if(m.fromName==='약국 매뉴얼'){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return x.sec}return '기타'};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
 const mnPath=()=>'users/'+SY.user.uid+'/notes';
 function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
- try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e))}catch(e){console.warn(e)}}
+ try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e),true)}catch(e){console.warn(e)}}
 function myNoteStop(){if(mnUnsub){try{mnUnsub()}catch(e){}}mnUnsub=null;S.mynotes=[];mnEdit=null;mnOpen=null;mnQ='';myNoteChanged()}
 function myNoteChanged(){renderMyNoteTile();if(redrawPanel&&panelState.kind==='mynote'&&!document.activeElement?.closest('.panel input,.panel textarea'))redrawPanel()}
 function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynotes.length,ib=mnInboxCount();
