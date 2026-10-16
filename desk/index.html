@@ -647,7 +647,7 @@ function buildModel(){
  const set=S.settings,P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{},per=+S.profile.periodDays||+set.periodDays||184;
  const SZ=sizeInfo(),lead=+set.leadDays||0,Pd=1+lead; // 주문 주기 1일 + 들어오기까지 걸리는 날
  const rop=set.rop==null?50:+set.rop; // 적정재고의 몇 %에서 주문
- const COV=+set.cov||21; // 많이 나가는 약 보유 일수 (v0.7: 기본 21일, 예전 cover 값은 안 씀)
+ const COV=+set.cov||35; // 많이 나가는 약 보유 일수 (v0.7.8: 기본 35일 — 이팜에 정해 둔 적정재고가 약 37일분이라 맞춤. 예전 cover 값은 안 씀)
  const dm=String(st.meta||'').match(/~\s*(\d{8})/),date=st.date||(dm?dm[1]:ymd8(new Date()));
  const today=ymd8(new Date()),hol=holidayAhead(today>date?today:date),SEA=seasonOn(),SI=(SEA&&SEA.items)||{};
  const stale=today>date?bizDaysBetween(date,today):0;
@@ -676,7 +676,7 @@ function buildModel(){
   let mn=0,opt=0,src;
   // 넉넉하게: 적정(채우는 양)은 보유 일수로, 주문은 그 절반 아래에서. 공식(안전재고)은 바닥값
   if(cls==='F'){const s0=Math.max(daily*Pd+z*Math.sqrt(Pd*sigma*sigma+daily*daily*sL*sL),perrx*(lumpy?2:1.5));
-   const days=month>=8?COV:Math.round(COV*4/3); // 기본 21일분, 월 4~8건인 약은 28일분
+   const days=COV; // 기본 35일분 (v0.7.8부터 월 4~8건인 약도 같게)
    opt=psy?Math.max(s0,daily*7):Math.max(s0*2,daily*days,max1*2,perrx*(lumpy?3:2));mn=Math.max(s0,opt*rop/100);src=`${psy?7:days}일분`;
    if(hol){mn+=daily*hol.len;opt+=daily*hol.len;tags.push('연휴')}}
   else if(cls==='S'){const one=perrx||daily*30,mx=max1||one;opt=Math.max(mx+one,daily*30);mn=Math.max(mx,opt*rop/100);src='최대1건+1건'}
@@ -693,6 +693,8 @@ function buildModel(){
   if(cls&&!d90&&pack>=1&&mn>0){const m0=mn,o0=opt;mn=Math.max(mn,pack);opt=Math.max(opt,mn+pack);if(cls!=='F')opt=Math.ceil(opt/pack-1e-9)*pack;if(mn>m0+1e-9||opt>o0+1e-9)tags.push('통')}
   const cl=x=>x>=1?Math.ceil(x-1e-9):Math.round(x*100)/100; // 병·통을 소수로 쓰는 약(0.04병 등)은 올림하지 않음
   mn=cl(mn);opt=cl(opt);
+  // 이팜에 적정재고를 정해 둔 약은 그 값을 그대로 씀(사용자 결정 v0.7.8, 계산값보다 우선). 주문선 = 적정의 rop%(최소 1통, 적정 넘지 않게). 90일 넘게 조제 안 한 약은 이팜 값이 있어도 주문 안 함. 품목 예외·알림 제외·반품은 아래에서 그대로
+  const eoSet=fileOpt>0?fileOpt:(pf&&+pf.eo||0),calcOpt=opt;if(eoSet>0&&!d90){opt=eoSet;mn=Math.min(opt,Math.max(cl(opt*rop/100),pack||0));src='이팜 적정'}
   if(ex&&ex.opt!=null&&ex.opt!==''){opt=+ex.opt;mn=Math.min(mn||Math.ceil(opt/2),opt);src='예외'}
   if(ex&&ex.skip){mn=0;src='알림 제외'}
   const ret=!!(RK&&cur<=0&&retMatch(RK,p.base,raw));if(ret){mn=0;src='반품·사입 안 함';tags.push('반품')}
@@ -700,7 +702,7 @@ function buildModel(){
   let need=Math.max(0,opt-cur-onOrd);if(need>0&&pack>0)need=Math.ceil(need/pack)*pack;
   const price=pf&&+pf.u||hi&&+hi.u||0,days=daily>0?cur/daily:null;
   return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,ret,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
-   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,...p,
+   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,calcOpt,eoSet,...p,
    prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
  const byKey={},byIng={},byCode={};
  items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
@@ -993,7 +995,7 @@ function drawSettings(body){
   body.innerHTML=`<div class="card"><h3>약국 정보</h3><div class="grid2"><div class="field">약국 이름<input id="sName" value="${esc(s.name)}"></div><div class="field">전화번호<input id="sTel" value="${esc(s.tel)}"></div></div></div>
   <div class="card"><h3>적정재고 기준</h3><p class="muted">적정재고는 "떨어질 일 없이 넉넉히 채워 두는 양"이고, 그 절반 아래로 내려가면 주문 목록에 떠요. 약국 규모에 따라 안전재고(z)·반품 권장 기준이 정해져요. 자동이면 조제약품현황으로 추정한 처방전 수로 골라요${Z.rx?` (지금 추정 하루 약 ${fmt(Math.round(Z.rx))}장 → ${SIZE[Z.auto].name})`:''}. 계산 방법은 재고 › 기준 탭에 있어요.</p>
   <div class="grid2"><div class="field">약국 규모<select id="sSize">${[['auto','자동'],['s','소형'],['m','중형'],['l','대형·문전']].map(([v,l])=>`<option value="${v}" ${(s.size||'auto')===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <div class="field">많이 나가는 약 보유 일수<select id="sCov">${[[14,'14일분'],[21,'21일분 (기본)'],[28,'28일분'],[30,'30일분']].map(([v,l])=>`<option value="${v}" ${(+s.cov||21)===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field">많이 나가는 약 보유 일수<select id="sCov">${[[14,'14일분'],[21,'21일분'],[28,'28일분'],[30,'30일분'],[35,'35일분 (기본)']].map(([v,l])=>`<option value="${v}" ${(+s.cov||35)===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div class="field">주문 시점<select id="sRop">${[[50,'적정재고의 절반 아래 (기본)'],[60,'적정재고의 60% 아래'],[30,'적정재고의 30% 아래']].map(([v,l])=>`<option value="${v}" ${(s.rop==null?50:+s.rop)===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div class="field">서비스수준<select id="sZ">${[[-0.3,'낮게 (재고 줄이기)'],[0,'기본'],[0.3,'높게 (품절 줄이기)'],[0.6,'아주 높게']].map(([v,l])=>`<option value="${v}" ${(+s.zAdj||0)===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <div class="grid2"><div class="field">주문하면 들어오기까지<select id="sLead">${[[0,'당일'],[1,'다음 날'],[2,'2일'],[3,'3일']].map(([v,l])=>`<option value="${v}" ${+s.leadDays===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
