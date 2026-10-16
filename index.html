@@ -1322,7 +1322,7 @@ const pad2=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 const lastDay=d=>new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
 function aStart(a){const [y,m,d]=a.date.split('-').map(Number);const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(y,m-1,d,h,mi)}
-function aMatch(a,d){if(a.rep!=='once'&&typeof alertWorkSkip==='function'&&alertWorkSkip(ymd(d)))return false;switch(a.rep){case 'daily':return true;case 'weekday':return d.getDay()>0&&d.getDay()<6;case 'weekly':return (a.days||[]).includes(d.getDay());
+function aMatch(a,d){if(a.rep!=='once'&&!a.anyDay&&typeof alertWorkSkip==='function'&&alertWorkSkip(ymd(d)))return false;switch(a.rep){case 'daily':return true;case 'weekday':return d.getDay()>0&&d.getDay()<6;case 'weekly':return (a.days||[]).includes(d.getDay());
  case 'monthly':return d.getDate()===Math.min(+a.dom||1,lastDay(d));case 'monthEnd':return d.getDate()===lastDay(d);case 'nthWeekday':{const n=+a.nth||1;return (a.days||[]).includes(d.getDay())&&(n>=5?d.getDate()+7>lastDay(d):Math.ceil(d.getDate()/7)===n)}default:return ymd(d)===a.date}}
 function occOn(a,d){const [h,mi]=(a.time||'09:00').split(':').map(Number);return new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,mi)}
 function latestOcc(a,now){const st=aStart(a);if(a.rep==='once')return st<=now?st:null;
@@ -1338,7 +1338,7 @@ function autoDelSweep(now=new Date()){const gone=S.memo.alarms.filter(a=>{if(a.r
  if(now.getTime()-st>12*36e5)return true;const who=a.to&&a.to.length?a.to:S.members.length?S.members.map(m=>m.uid):[ME()];const ak=a.acks||{};return who.every(u=>(ak[u]||0)>=st)});
  if(!gone.length)return false;S.memo.alarms=S.memo.alarms.filter(a=>!gone.includes(a));return true}
 async function saveMemo(){const ok=await saveDoc('memo/main',{memos:S.memo.memos,alarms:S.memo.alarms,savedAt:new Date().toISOString()});renderMemoHome();renderStickies();return ok}
-function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),nth:Math.min(5,Math.max(1,+o.nth||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};if(a.rep==='once'&&o.autoDel)a.autoDel=true;
+function addAlarm(o){const now=new Date();const a={id:uid(),text:String(o.text||'').slice(0,300),color:MCOLORS[o.color]?o.color:'yellow',date:o.date||ymd(now),time:o.time||'09:00',rep:REP[o.rep]?o.rep:'once',days:(o.days||[]).map(Number).filter(x=>x>=0&&x<7),dom:Math.min(31,Math.max(1,+o.dom||1)),nth:Math.min(5,Math.max(1,+o.nth||1)),on:true,ack:now.getTime(),snooze:0,at:now.toISOString(),to:Array.isArray(o.to)&&o.to.length?o.to:(S.members.length>1?[ME()]:null),by:ME(),byName:myName()};if(a.rep==='once'&&o.autoDel)a.autoDel=true;if(a.rep!=='once'&&o.anyDay)a.anyDay=true;
  if((a.rep==='weekly'||a.rep==='nthWeekday')&&!a.days.length)a.days=[aStart(a).getDay()];S.memo.alarms.push(a);return a}
 function addMemo(o){const m={id:uid(),text:String(o.text||'').slice(0,2000),color:MCOLORS[o.color]?o.color:'yellow',pin:!!o.pin,priv:o.priv!==false,at:new Date().toISOString(),by:ME(),byName:myName()};S.memo.memos.unshift(m);return m}
 
@@ -1422,6 +1422,7 @@ function alarmForm(a){
   <div class="grid2"><label class="field"><span id="aDateL">${v.rep==='once'?'날짜':'시작 날짜'}</span><input type="date" id="aDate" value="${v.date}"></label><label class="field">시각<input type="time" id="aTime" value="${v.time}"></label></div>
   <label class="field">반복<select id="aRep">${Object.entries(REP).map(([k,l])=>`<option value="${k}" ${k===v.rep?'selected':''}>${l}</option>`).join('')}</select></label>
   <label class="chk" id="aAutoW" ${v.rep==='once'?'':'hidden'}><input type="checkbox" id="aAuto" ${v.autoDel?'checked':''}> 알림 후 목록에서 자동 삭제</label>
+  <label class="chk" id="aAnyW" ${v.rep==='once'?'hidden':''}><input type="checkbox" id="aAny" ${v.anyDay?'checked':''}> 휴일에도 알림 <span class="muted">(종 단추가 "근무일만"이어도 이 알림은 쉬는 날에도 울려요)</span></label>
   <label class="field" id="aNthW" ${v.rep==='nthWeekday'?'':'hidden'}>매월 몇째 주<select id="aNth">${[1,2,3,4,5].map(n=>`<option value="${n}" ${(+v.nth||1)===n?'selected':''}>${NTH[n]}</option>`).join('')}</select></label>
   <div class="wdays" id="aDays" ${v.rep==='weekly'||v.rep==='nthWeekday'?'':'hidden'}>${[1,2,3,4,5,6,0].map(d=>`<label class="wd"><input type="checkbox" value="${d}" ${(v.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
   <label class="field" id="aDomW" ${v.rep==='monthly'?'':'hidden'}>매월 며칠<input type="number" id="aDom" min="1" max="31" value="${v.dom}"></label>
@@ -1435,7 +1436,7 @@ function drawAlarms(body){
  const arr=S.memo.alarms.filter(seeAlarm).map(a=>[a.on?nextOcc(a,now):null,a]).sort((x,y)=>(!!y[1].on-!!x[1].on)||((x[0]||Infinity)-(y[0]||Infinity)));
  body.innerHTML=(ed?alarmForm(ed):`<button class="btn primary big" type="button" id="aNew">＋ 새 알림 만들기</button>`)+
   `<p class="muted">휴대폰에서는 이 앱이 열려 있을 때 포스트잇이 떠요. 닫혀 있던 동안 지난 알림과 새 공지는 다음에 열 때 떠요.</p>
-  <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${a.autoDel&&a.rep==='once'?' · 알림 후 자동 삭제':''}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
+  <div class="alist">${arr.length?arr.map(([o,a])=>`<div class="arow c-${a.color} ${a.on?'':'off'}"><div class="ab"><div class="at">${esc(a.text)}</div><div class="am"><span class="num">${a.on?(o?whenLabel(o):'끝남'):'꺼짐'}</span> · ${esc(repLabel(a))}${a.autoDel&&a.rep==='once'?' · 알림 후 자동 삭제':''}${a.anyDay&&a.rep!=='once'?' · 휴일에도':''}${toLabel(a)?' · 👤 '+esc(toLabel(a)):''}${S.members.length>1&&a.byName?' · '+esc(a.byName)+' 등록':''}</div></div>
    <div class="aa"><label class="sw" title="켜기/끄기"><input type="checkbox" data-on="${a.id}" ${a.on?'checked':''} aria-label="알림 켜기"><span></span></label><button class="btn sm" type="button" data-aed="${a.id}">고치기</button><button class="btn sm danger" type="button" data-adel="${a.id}">삭제</button></div></div>`).join(''):'<p class="muted">등록된 알림이 없어요.</p>'}</div>
   ${'Notification' in window?`<div class="card"><h3>화면을 내려 둔 동안에도</h3><p class="muted">다른 창을 보고 있을 때 윈도우 알림으로도 띄우려면 아래를 눌러 허용하세요. 이 화면에서 허용이 막혀 있으면 포스트잇과 소리, 탭 제목 깜빡임으로만 알려요.</p><div class="row"><button class="btn sm" type="button" id="aPerm">윈도우 알림 허용 (${Notification.permission==='granted'?'허용됨':Notification.permission==='denied'?'막힘':'미설정'})</button><button class="btn sm" type="button" id="aTest">알림음 들어 보기</button></div></div>`:''}`;
  const q=s=>body.querySelector(s);
@@ -1444,8 +1445,8 @@ function drawAlarms(body){
  if(q('#aTest'))q('#aTest').onclick=()=>{try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}chime()};
  const f=q('#aForm');
  if(f){
-  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,nth:+q('#aNth').value||1,autoDel:q('#aRep').value==='once'&&q('#aAuto').checked,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
-  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly'&&v.rep!=='nthWeekday';q('#aNthW').hidden=v.rep!=='nthWeekday';q('#aAutoW').hidden=v.rep!=='once';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
+  const read=()=>({text:q('#aText').value.trim(),date:q('#aDate').value,time:q('#aTime').value||'09:00',rep:q('#aRep').value,days:[...f.querySelectorAll('#aDays input:checked')].map(x=>+x.value),dom:+q('#aDom').value||1,nth:+q('#aNth').value||1,autoDel:q('#aRep').value==='once'&&q('#aAuto').checked,anyDay:q('#aRep').value!=='once'&&q('#aAny').checked,color:(f.querySelector('input[name=ac]:checked')||{}).value||'yellow',to:(()=>{const c=[...f.querySelectorAll('#aTo input:checked')].map(x=>x.value);return !c.length||c.includes('*')?null:c})()});
+  const prev=()=>{const v=read();q('#aDateL').textContent=v.rep==='once'?'날짜':'시작 날짜';q('#aDays').hidden=v.rep!=='weekly'&&v.rep!=='nthWeekday';q('#aNthW').hidden=v.rep!=='nthWeekday';q('#aAutoW').hidden=v.rep!=='once';q('#aAnyW').hidden=v.rep==='once';q('#aDomW').hidden=v.rep!=='monthly';f.className='card memo-new c-'+v.color;
    if(!v.date){q('#aPrev').textContent='';return}if((v.rep==='weekly'||v.rep==='nthWeekday')&&!v.days.length){q('#aPrev').textContent='요일을 골라 주세요';return}const o=nextOcc(v,new Date());
    q('#aPrev').textContent=o?`첫 알림: ${whenLabel(o)} · ${repLabel(v)}`:'이 날짜·시각은 이미 지났어요';};
   f.addEventListener('input',prev);f.addEventListener('change',prev);prev();
@@ -1773,7 +1774,7 @@ async function wpOff(){const sub=await wpSub();if(!sub)return;const id=SY.user.u
 async function wpSync(){try{if(!SY.pid||!SY.user||!wpOK())return;if(Notification.permission==='granted'){const sub=await wpSub();if(sub)await wpSave(sub);else if(!wpOpt())await wpOn(true)}
  else if(Notification.permission==='default'&&!wpOpt()&&!SY.wpArm){SY.wpArm=1;document.addEventListener('pointerup',()=>{if(!wpOpt())wpOn().catch(()=>{})},{once:true})}}catch(e){}}
 // 서버가 읽는 알림 요약 (알림이 바뀔 때마다 갱신)
-async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id','text','on','date','time','rep','days','dom','nth','to','ack','acks','snooze','snz'];
+async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id','text','on','date','time','rep','days','dom','nth','to','ack','acks','snooze','snz','anyDay'];
  const l=(S.memo.alarms||[]).filter(a=>!a.priv).map(a=>{const o={};keep.forEach(k=>{if(a[k]!==undefined&&a[k]!==null)o[k]=a[k]});
   return o});
  // 매일 재고 알림: 푸시 서버가 보통 알림처럼 보냄 (매일 정해진 시각, 약국 사람 모두)
@@ -1782,7 +1783,7 @@ async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id
  const modes=(S.amode&&S.amode.modes)||{};if(Object.values(modes).some(m=>m==='off'||m==='work')){const b=typeof baseW==='function'?baseW():{},all=(S.members||[]).map(m=>m.uid),out=[];
   const hasW=u=>Object.values(b[u]||{}).some(Boolean),wdOf=u=>Object.entries(b[u]||{}).filter(([,x])=>x).map(([k])=>+k);
   l.forEach(o=>{const rec=o.to&&o.to.length?o.to:all;if(!rec.length){out.push(o);return}
-   const work=o.rep==='once'?[]:rec.filter(u=>modes[u]==='work'&&hasW(u)),normal=rec.filter(u=>modes[u]!=='off'&&!work.includes(u));
+   const work=o.rep==='once'||o.anyDay?[]:rec.filter(u=>modes[u]==='work'&&hasW(u)),normal=rec.filter(u=>modes[u]!=='off'&&!work.includes(u));
    if(normal.length===rec.length){out.push(o);return}if(normal.length)out.push({...o,to:normal});
    work.forEach(u=>{if(['daily','weekday','weekly'].includes(o.rep)){const base=o.rep==='weekly'?(o.days||[]):o.rep==='weekday'?[1,2,3,4,5]:[0,1,2,3,4,5,6],days=base.filter(x=>wdOf(u).includes(x));if(days.length)out.push({...o,id:o.id+'~'+u.slice(0,8),to:[u],rep:'weekly',days})}else out.push({...o,to:[u]})})});
   l.length=0;out.forEach(x=>l.push(x))}const j=JSON.stringify(l);if(j===SY.wpJ)return;await SY.cloud.set(P()+'/pushidx/alarms',{json:j,at:Date.now()});SY.wpJ=j}catch(e){}}
@@ -2769,7 +2770,7 @@ html.sidemode .bellbtn{width:42px}`;document.head.appendChild(st);
  renderBell()}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792050994';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792139488';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

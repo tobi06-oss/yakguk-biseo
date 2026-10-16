@@ -1,11 +1,11 @@
 {
- "version": "0.7.6",
- "notes": "방금 남긴 인수인계·공지·전달사항·일정이 내 화면에 안 보이던 문제 고침",
+ "version": "0.7.7",
+ "notes": "알림에 \"휴일에도 알림\" 체크: 종 단추가 근무일만이어도 체크한 알림은 쉬는 날에도 울림",
  "files": [
   {
    "p": "index.html",
-   "sha256": "59f223caa33d9dc9e0f4fac0e68a26c655fdb5dbd087bd29da7689305b377e40",
-   "size": 389303
+   "sha256": "9f2eee710aeaedcf27902868a27747b2466ee92f4631eaf9fa08af76d9b3c04b",
+   "size": 389768
   },
   {
    "p": "main.js",
@@ -19,8 +19,8 @@
   },
   {
    "p": "alarmcore.js",
-   "sha256": "21700fed0c1d51f70534afb7c0c0f823d2df98bc6f2a56e184b1f5711e7f000c",
-   "size": 3154
+   "sha256": "575a13fa31f23c27b16164014daad9def0aa70344d281202338c1c7b7707c2a4",
+   "size": 3172
   },
   {
    "p": "popup.html",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "1528455ed4d22d2d311df4f5da7e49c4250d5b6414a70f982c2df8d511e559bc",
+   "sha256": "6868f30b87b0387fc83744b367b9c05a35b2881e8fbfb0c388424fd40aa6d82d",
    "size": 211
   },
   {
