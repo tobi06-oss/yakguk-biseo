@@ -2665,7 +2665,8 @@ const manualOpen=new Set();const mOpenHas=id=>openItem===id||manualOpen.has(id);
 
 /* ===== 첫 화면 배치: 첫 줄 공지·전달사항·캘린더(3칸) → 오늘의 재고 → 인수인계·매뉴얼·내 수첩(3칸) → 메모·알림 | 대체약 ===== */
 (()=>{const st=document.createElement('style');st.textContent=`
-header{padding-block:14px 10px}
+header{padding-block:calc(14px + env(safe-area-inset-top,0px)) 10px}
+@media (display-mode: standalone){header{padding-top:calc(30px + env(safe-area-inset-top,0px))}.panel-top{padding-top:calc(30px + env(safe-area-inset-top,0px))!important}} /* 휴대폰 홈 화면 앱(풀화면): 위쪽 여유 (v0.8.2) */
 .hsearch{margin-bottom:12px}
 .tiles{gap:10px;margin-bottom:10px}
 #teamTop,#homeTiles.three{grid-template-columns:repeat(3,minmax(0,1fr))}

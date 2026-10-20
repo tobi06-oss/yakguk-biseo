@@ -1,11 +1,11 @@
 {
- "version": "0.8.1",
- "notes": "설정에 알림 탭: 첫 화면 종 단추와 같은 알림 켜기·근무일만·끄기",
+ "version": "0.8.2",
+ "notes": "휴대폰 홈 화면 앱(풀화면)에서 맨 위에 여유 공간",
  "files": [
   {
    "p": "index.html",
-   "sha256": "fe5ac6bf4488407219276a9f93dd2a6e66ef72d6c981cc806016e9e9510a2f58",
-   "size": 396913
+   "sha256": "a2fbb775065ca1846acda9716f84f02f4a0266dc1190e0e299ddbd989ba3aa44",
+   "size": 397188
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "8c306de32b89571d2e18bad6503f24ef79a493017c945df98a1cb1ee0fc425ed",
+   "sha256": "969d17b671d888244c774b5016deaea7c64385e247708171decdf45a8d9e2e62",
    "size": 211
   },
   {
