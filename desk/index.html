@@ -793,7 +793,7 @@ function openPanel(kind,tab){
    :kind==='team'?teamTabs()
    :kind==='memo'?([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
    :kind==='stockset'?[['basic','기준·알림'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length]]
-   :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[['basic','약국 정보']]);
+   :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[['basic','약국 정보']]).concat(window.bellPopDraw?[['bell','알림']]:[]);
   p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
   p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
@@ -2752,11 +2752,12 @@ const BELL_ICON={
 const BELL_TXT={on:['알림 켜기','모든 알림이 울려요'],work:['근무일만','반복 알림은 내 근무일에만 울려요 (쉬는 날·휴가·약국 휴무일엔 안 울림)'],off:['알림 끄기','내 알림이 하나도 안 울려요 (공지·인수인계 팝업은 그대로)']};
 function bellMode(){return typeof alertMode==='function'?alertMode():'on'}
 function renderBell(){const b=$('bellBtn');if(!b)return;const m=bellMode();b.innerHTML=BELL_ICON[m];b.className='bellbtn m-'+m;b.title='알림: '+BELL_TXT[m][0]+' — 눌러서 바꾸기';b.setAttribute('aria-label',b.title);const p=$('bellPop');if(p&&!p.hidden)bellPopDraw()}
-function bellPopDraw(){const p=$('bellPop');const m=bellMode(),inPh=!!(S.pharm&&typeof myWorkSetup==='function'),ok=inPh&&myWorkSetup(),mgr=typeof isMgr==='function'&&isMgr();
+// p: 그릴 곳(기본은 종 단추 팝업), inPanel: 설정 › 알림 탭에서 그릴 때(고르면 닫지 않고 다시 그림)
+function bellPopDraw(p,inPanel){p=p||$('bellPop');const m=bellMode(),inPh=!!(S.pharm&&typeof myWorkSetup==='function'),ok=inPh&&myWorkSetup(),mgr=typeof isMgr==='function'&&isMgr();
  p.innerHTML=`<div class="bh">알림</div>`+['on','work','off'].map(k=>{const dis=k==='work'&&!ok;return `<button type="button" class="bopt m-${k} ${k===m?'sel':''}" data-bm="${k}" ${dis?'disabled':''}><span class="bi">${BELL_ICON[k]}</span><span class="bt"><b>${BELL_TXT[k][0]}</b><span>${BELL_TXT[k][1]}</span></span>${k===m?'<span class="ck">✓</span>':''}</button>`}).join('')+
   (ok?'':`<div class="bwarn">${inPh?`약국 캘린더에 내 근무일이 아직 없어서 '근무일만'을 쓸 수 없어요. ${mgr?'기본 근무표에서 요일별 근무 시간을 정해 주세요.':'국장·관리자가 기본 근무표에 내 근무 요일을 정해 주면 쓸 수 있어요.'}<button class="btn sm primary" type="button" id="bGoWork">${mgr?'근무일 설정하러 가기':'약국 캘린더 열기'}</button>`:'근무일만은 약국 계정에 로그인하고 약국 캘린더에 근무일이 있어야 쓸 수 있어요.'}</div>`)+
   `<div class="bfoot">${SY&&SY.user?'내 계정 기준 · PC와 휴대폰에 같이 적용':'이 기기에만 적용'}</div>`;
- p.querySelectorAll('[data-bm]').forEach(x=>x.onclick=async()=>{if(x.disabled)return;await setAlertMode(x.dataset.bm);bellClose()});
+ p.querySelectorAll('[data-bm]').forEach(x=>x.onclick=async()=>{if(x.disabled)return;await setAlertMode(x.dataset.bm);if(inPanel){renderBell();bellPopDraw(p,true);toast('알림: '+BELL_TXT[x.dataset.bm][0])}else bellClose()});
  const g=p.querySelector('#bGoWork');if(g)g.onclick=()=>{bellClose();openPanel('team','cal');if(mgr){calForm='base';redrawPanel()}}}
 function bellClose(){const p=$('bellPop'),b=$('bellBtn');if(p)p.hidden=true;if(b)b.setAttribute('aria-expanded','false')}
 function bellInit(){const st=document.createElement('style');st.textContent=`
@@ -2796,7 +2797,8 @@ function todaySetAdd(){const t=$('today');if(!t||t.hidden||t.classList.contains(
 {const _rt=renderToday;renderToday=function(){_rt();todaySetAdd()}}
 setTimeout(todaySetAdd,0);
 // 재고 설정 › 기준·알림 맨 위에 오늘의 재고 색 (예전엔 설정 › 기본)
-{const _ds=drawSettings;drawSettings=function(body){_ds(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.prepend(heroCard())}}
+{const _ds=drawSettings;drawSettings=function(body){if(panelState.kind==='settings'&&panelState.tab==='bell'){body.innerHTML='<div class="card bellcard"></div><p class="muted">첫 화면 검색칸 오른쪽 종 단추와 같은 설정이에요.</p>';bellPopDraw(body.querySelector('.bellcard'),true);return}_ds(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.prepend(heroCard())}}
+(()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
