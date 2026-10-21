@@ -1,11 +1,11 @@
 {
- "version": "0.8.3",
- "notes": "보유약·대체약에 사입가 표시(조제약품현황의 재고금액 ÷ 재고총량)",
+ "version": "0.8.4",
+ "notes": "공지사항·전달사항 고치기(국장·관리자, 카드 안에서) · 제목 옆 (날짜, 수정됨) · 고치면 다시 알림",
  "files": [
   {
    "p": "index.html",
-   "sha256": "dab14bccb60021ec79151f613a996cc6127e3e0b5ac163689da3817aca5ca2ae",
-   "size": 397673
+   "sha256": "7a3a732a2c5853b7839b1f541746b49faaf3e89c4d4cb0c476685c61cc09208c",
+   "size": 401093
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "f5257cfbfcab43b61d98d48e79041cf5797b458c4cbc61245a1643a73033a6f4",
+   "sha256": "e4188c2b3da97911c8d5978aa95c7fde195343d0c0dcf464ef42a4d96ba393cb",
    "size": 211
   },
   {

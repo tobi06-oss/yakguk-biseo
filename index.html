@@ -1489,6 +1489,7 @@ function toolAddMemo(i){if(!String(i.text||'').trim())return{오류:'메모 내�
 function toolListAlarms(){const now=new Date();return{지금:whenLabel(now),알림:S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).map(a=>({내용:a.text,반복:repLabel(a),다음:whenLabel(nextOcc(a,now))})),메모:S.memo.memos.slice(0,30).map(m=>({내용:m.text,고정:m.pin}))}}
 
 /* 공지 */
+let noticeEdit=null; // 고치는 중인 공지 (그 카드 안에서 바로, v0.8.4)
 function drawNotices(body){
  const mgr=S.members.find(m=>m.uid===ME()&&(m.role==='owner'||m.role==='admin'));const total=S.members.length;
  const list=S.notices.slice().sort((a,b)=>b.at-a.at);
@@ -1497,12 +1498,18 @@ function drawNotices(body){
   <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="nImp"> 중요 (빨간 포스트잇)</label><button class="btn primary" type="button" id="nSend">공지 보내기</button></div></div>`
   :`<p class="muted">국장님·관리자가 보낸 공지예요. 확인하면 읽음으로 표시돼요.</p>`)+
   `<div class="alist">${list.length?list.map(n=>{const reads=n.reads||{};const readers=S.members.filter(m=>m.uid!==n.by&&reads[m.uid]);const notYet=S.members.filter(m=>m.uid!==n.by&&!reads[m.uid]);const mine=n.by===ME();const read=!!reads[ME()];
-   return `<div class="notice ${n.important?'imp':''} ${!mine&&!read?'unread':''}"><div class="nh"><b>📢 ${esc(n.byName||nameOf(n.by)||'')}</b><span class="sub">${esc(whenLabel(new Date(n.at)))}</span></div><div class="nb">${esc(n.text)}</div>
+   if(mgr&&noticeEdit===n.id)return `<div class="notice editing ${n.important?'imp':''}" id="neBox"><div class="nh"><b>📢 공지 고치기</b></div><textarea id="neText" rows="4" style="width:100%;box-sizing:border-box">${esc(n.text)}</textarea><div class="nf"><label class="chk"><input type="checkbox" id="neImp" ${n.important?'checked':''}> 중요</label><span class="row"><button class="btn sm" type="button" id="neCancel">취소</button><button class="btn sm primary" type="button" id="neSave">저장</button></span></div></div>`;
+   return `<div class="notice ${n.important?'imp':''} ${!mine&&!read?'unread':''}"><div class="nh"><b>📢 ${esc(n.byName||nameOf(n.by)||'')} <span class="sub nmeta">(${esc(whenLabel(new Date(n.edAt||n.at)))}${n.edAt?', 수정됨':''})</span></b></div><div class="nb">${esc(n.text)}</div>
     <div class="nf"><span class="sub">읽음 ${readers.length}/${Math.max(0,total-1)}${notYet.length&&(mine||mgr)?` · 아직: ${notYet.map(m=>esc(m.name)).join(', ')}`:''}</span>
-    <span class="row">${!mine&&!read?`<button class="btn sm primary" type="button" data-nr="${n.id}">확인했어요</button>`:''}${mgr?`<button class="btn sm danger" type="button" data-nd="${n.id}">삭제</button>`:''}</span></div></div>`}).join(''):'<p class="muted">아직 공지가 없어요.</p>'}</div>`;
+    <span class="row">${!mine&&!read?`<button class="btn sm primary" type="button" data-nr="${n.id}">확인했어요</button>`:''}${mgr?`<button class="btn sm" type="button" data-ne="${n.id}">고치기</button><button class="btn sm danger" type="button" data-nd="${n.id}">삭제</button>`:''}</span></div></div>`}).join(''):'<p class="muted">아직 공지가 없어요.</p>'}</div>`;
  const q=s=>body.querySelector(s);
  if(q('#nSend'))q('#nSend').onclick=async()=>{const t=q('#nText').value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#nSend').disabled=true;if(await noticePost(t,q('#nImp').checked,q('#nPop').checked)){toast('공지를 보냈어요');redrawPanel()}else q('#nSend').disabled=false};
  body.querySelectorAll('[data-nr]').forEach(b=>b.onclick=()=>noticeRead(b.dataset.nr));
+ body.querySelectorAll('[data-ne]').forEach(b=>b.onclick=()=>{noticeEdit=b.dataset.ne;redrawPanel()});
+ if(q('#neBox')){const te=q('#neText');te.focus();q('#neCancel').onclick=()=>{noticeEdit=null;redrawPanel()};
+  q('#neSave').onclick=async()=>{const t=te.value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#neSave').disabled=true;
+   try{const n0=S.notices.find(x=>x.id===noticeEdit)||{};const {id:_i,...base}=n0;const doc={...base,text:t.slice(0,2000),important:q('#neImp').checked,edAt:Date.now(),reads:{}};
+    await SY.cloud.set(P()+'/notices/'+noticeEdit,doc,false);Object.assign(n0,doc);noticeEdit=null;toast('공지를 고쳤어요 — 모두에게 새 공지처럼 다시 알려요');redrawPanel()}catch(e){toast('고치지 못했어요: '+(e.code||e.message));q('#neSave').disabled=false}}}
  body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}noticeDel(b.dataset.nd)}});
 }
 
@@ -2042,16 +2049,19 @@ function teamPopupItems(){return [].concat(S.orders.filter(o=>o.popup!==false&&o
 async function orderMark(id,what,on){const now=Date.now();const v=on===false?{[what]:0}:{[what]:now,...(what==='done'?{seen:now}:{})};
  const o=S.orders.find(x=>x.id===id);if(o){o.st={...(o.st||{}),[ME()]:{...orderSt(o),...v}};teamChanged()}
  return tSet(P()+'/orders/'+id,{st:{[ME()]:v}},true)}
-let orderShowDone=false;
+let orderShowDone=false,orderEdit=null; // 고치는 중인 전달사항 (그 카드 안에서 바로, v0.8.4)
 function drawOrders(body){
  const mgr=isMgr();
  const vis=S.orders.filter(o=>mgr||o.by===ME()||orderForMe(o)).sort((a,b)=>(b.imp?1:0)-(a.imp?1:0)||b.at-a.at);
  const active=vis.filter(o=>!orderDone(o)),done=vis.filter(orderDone);
- const card=o=>{const mine=orderForMe(o),st=orderSt(o),rs=orderTo(o);const due=o.due?Math.round((pd(o.due)-pd(todayS()))/864e5):null;
-  return `<div class="notice ord ${o.imp?'imp':''} ${mine&&!st.seen&&!st.done?'unread':''}"><div class="nh"><b>📋 ${esc(o.byName||memName(o.by))} → ${!o.to||!o.to.length?'모두':esc(rs.map(m=>m.name).join(', '))}</b><span class="sub">${esc(whenLabel(new Date(o.at)))}</span></div>
+ const card=o=>{const mine=orderForMe(o),st=orderSt(o),rs=orderTo(o);
+  if(mgr&&orderEdit===o.id)return `<div class="notice ord editing ${o.imp?'imp':''}" id="oeBox"><div class="nh"><b>📋 전달사항 고치기</b><span class="sub">→ ${!o.to||!o.to.length?'모두':esc(rs.map(m=>m.name).join(', '))}</span></div><textarea id="oeText" rows="4" style="width:100%;box-sizing:border-box">${esc(o.text)}</textarea>
+   <div class="grid2"><label class="field">기한 (선택)<input type="date" id="oeDue" value="${esc(o.due||'')}"></label><label class="chk" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="oeImp" ${o.imp?'checked':''}> 중요 (위에 고정)</label></div>
+   <div class="nf"><span></span><span class="row"><button class="btn sm" type="button" id="oeCancel">취소</button><button class="btn sm primary" type="button" id="oeSave">저장</button></span></div></div>`;const due=o.due?Math.round((pd(o.due)-pd(todayS()))/864e5):null;
+  return `<div class="notice ord ${o.imp?'imp':''} ${mine&&!st.seen&&!st.done?'unread':''}"><div class="nh"><b>📋 ${esc(o.byName||memName(o.by))} → ${!o.to||!o.to.length?'모두':esc(rs.map(m=>m.name).join(', '))} <span class="sub nmeta">(${esc(whenLabel(new Date(o.edAt||o.at)))}${o.edAt?', 수정됨':''})</span></b></div>
    <div class="nb">${nlbr(o.text)}</div>${o.due?`<div class="due ${due<0&&!orderDone(o)?'late':''}">기한 ${dLabel(o.due)}${orderDone(o)?'':due<0?` · ${-due}일 지남`:due===0?' · 오늘까지':` · ${due}일 남음`}</div>`:''}
    <div class="chips">${rs.map(m=>{const s=orderSt(o,m.uid);return `<span class="chip ${s.done?'ok':s.seen?'seen':''}">${esc(m.name)} ${s.done?'✔ 완료':s.seen?'확인':'안 읽음'}</span>`}).join('')}</div>
-   <div class="nf"><span></span><span class="row">${mine&&!st.seen&&!st.done?`<button class="btn sm" type="button" data-os="${o.id}">확인했어요</button>`:''}${mine&&!st.done?`<button class="btn sm primary" type="button" data-od="${o.id}">완료</button>`:''}${mine&&st.done?`<button class="btn sm" type="button" data-ou="${o.id}">완료 취소</button>`:''}${mgr?`<button class="btn sm danger" type="button" data-ox="${o.id}">삭제</button>`:''}</span></div></div>`};
+   <div class="nf"><span></span><span class="row">${mine&&!st.seen&&!st.done?`<button class="btn sm" type="button" data-os="${o.id}">확인했어요</button>`:''}${mine&&!st.done?`<button class="btn sm primary" type="button" data-od="${o.id}">완료</button>`:''}${mine&&st.done?`<button class="btn sm" type="button" data-ou="${o.id}">완료 취소</button>`:''}${mgr?`<button class="btn sm" type="button" data-oe="${o.id}">고치기</button><button class="btn sm danger" type="button" data-ox="${o.id}">삭제</button>`:''}</span></div></div>`};
  body.innerHTML=(mgr?`<div class="card memo-new c-pink" id="oForm"><h3>새 전달사항</h3><textarea id="oText" rows="3" placeholder=""></textarea>
   ${S.members.length>1?`<div class="field">받는 사람<div class="wdays" id="oTo">${[{uid:'*',name:'모두'}].concat(S.members.filter(m=>m.uid!==ME())).map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${m.uid==='*'?'checked':''}><span>${esc(m.name)}</span></label>`).join('')}</div></div>`:''}
   <div class="grid2"><label class="field">기한 (선택)<input type="date" id="oDue"></label><label class="chk" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="oImp"> 중요 (위에 고정)</label></div>
@@ -2069,6 +2079,11 @@ function drawOrders(body){
  body.querySelectorAll('[data-od]').forEach(b=>b.onclick=async()=>{if(await orderMark(b.dataset.od,'done'))toast('완료로 표시했어요')});
  body.querySelectorAll('[data-ou]').forEach(b=>b.onclick=()=>orderMark(b.dataset.ou,'done',false));
  body.querySelectorAll('[data-ox]').forEach(b=>armBtn(b,()=>tDel(P()+'/orders/'+b.dataset.ox)));
+ body.querySelectorAll('[data-oe]').forEach(b=>b.onclick=()=>{orderEdit=b.dataset.oe;redrawPanel()});
+ if(q('#oeBox')){const te=q('#oeText');te.focus();q('#oeCancel').onclick=()=>{orderEdit=null;redrawPanel()};
+  q('#oeSave').onclick=async()=>{const text=te.value.trim();if(!text){toast('전달할 내용을 적어 주세요');return}q('#oeSave').disabled=true;
+   const o0=S.orders.find(x=>x.id===orderEdit);const st={};if(o0)orderTo(o0).forEach(m=>{st[m.uid]={seen:0}});
+   if(await tSet(P()+'/orders/'+orderEdit,{text:text.slice(0,2000),due:q('#oeDue').value||'',imp:q('#oeImp').checked,edAt:Date.now(),st},true)){orderEdit=null;toast('전달사항을 고쳤어요 — 받는 사람에게 다시 알려요');redrawPanel()}else q('#oeSave').disabled=false}}
  if(q('#oDoneT'))q('#oDoneT').onclick=()=>{orderShowDone=!orderShowDone;redrawPanel()};
 }
 
@@ -2384,6 +2399,7 @@ const TEAM_CSS=`
 .hread{opacity:.8}
 .hpost .hf{display:flex;gap:6px;align-items:center;justify-content:space-between}.hpost .hf .cin{flex:1;min-width:0}
 .hpost .cms{border-top:1px dashed rgba(0,0,0,.15);padding-top:4px}
+.nh .nmeta{font-weight:400;margin-left:2px;white-space:nowrap}
 .ord .due{font-size:12.5px;color:var(--ink-2);margin:4px 0}.ord .due.late{color:var(--bad);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px}.chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--surface-2,#eef0f4);color:var(--ink-2)}
 .chip.seen{background:var(--accent-soft);color:var(--accent)}.chip.ok{background:var(--ok-soft);color:var(--ok)}
@@ -2806,7 +2822,7 @@ setTimeout(todaySetAdd,0);
 (()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792561903';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792565973';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
