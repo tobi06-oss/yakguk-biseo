@@ -1,11 +1,11 @@
 {
- "version": "0.8.2",
- "notes": "휴대폰 홈 화면 앱(풀화면)에서 맨 위에 여유 공간",
+ "version": "0.8.3",
+ "notes": "보유약·대체약에 사입가 표시(조제약품현황의 재고금액 ÷ 재고총량)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "a2fbb775065ca1846acda9716f84f02f4a0266dc1190e0e299ddbd989ba3aa44",
-   "size": 397188
+   "sha256": "dab14bccb60021ec79151f613a996cc6127e3e0b5ac163689da3817aca5ca2ae",
+   "size": 397673
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "969d17b671d888244c774b5016deaea7c64385e247708171decdf45a8d9e2e62",
+   "sha256": "f5257cfbfcab43b61d98d48e79041cf5797b458c4cbc61245a1643a73033a6f4",
    "size": 211
   },
   {

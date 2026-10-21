@@ -701,9 +701,9 @@ function buildModel(){
   const ret=!!(RK&&cur<=0&&retMatch(RK,p.base,raw));if(ret){mn=0;src='반품·사입 안 함';tags.push('반품')}
   const o=ordOn[code];const onOrd=o&&!(cur>o.cur0&&st.savedAt&&new Date(st.savedAt).getTime()>o.at)?+o.q||0:0;
   let need=Math.max(0,opt-cur-onOrd);if(need>0&&pack>0)need=Math.ceil(need/pack)*pack;
-  const price=pf&&+pf.u||hi&&+hi.u||0,days=daily>0?cur/daily:null;
+  const price=pf&&+pf.u||hi&&+hi.u||0,buy=pf&&+pf.b||hi&&+hi.b||0,days=daily>0?cur/daily:null;
   return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,ret,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
-   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,calcOpt,eoSet,...p,
+   dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,calcOpt,eoSet,buy,...p,
    prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
  const byKey={},byIng={},byCode={};
  items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
@@ -938,14 +938,16 @@ function drawAlt(body){
    const head=hasHit?`<span class="pill p-ok">있어요</span> ${hs.filter(x=>x.cur>0).map(x=>esc(x.i.base)).join(', ')}`:alts.length?`<span class="pill p-warn">대체 가능 ${alts.length}</span> 찾은 약은 없고 같은 약이 있어요`:'<span class="pill p-low">없어요</span> 같은 성분·함량·제형 재고 없음';
    return `<div class="card altg"><h3><span>${esc(altIngRaw(x0.i))} <span class="sub">${esc(x0.strK)} · ${esc(x0.form)}</span></span><button class="btn sm" type="button" data-acp="${gi}">복사</button></h3>
    <p class="althead">${head}</p>
-   <div class="altlist">${g.items.map(y=>`<div class="alt${hs.includes(y)?' me':''}"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}${y.i.ws?' · '+esc(y.i.ws):''}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div>
-   ${g.other.length?`<details class="altother"><summary>같은 성분, 함량·제형 다름 (대체조제 대상 아님) ${g.other.length}</summary>${g.other.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.strK)} · ${esc(y.form||'-')}</span></span><b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b></div>`).join('')}</details>`:''}</div>`}).join('')
-  +(r.loose.length?`<div class="card"><h3>성분·함량 정보가 없는 약 <span class="c">${r.loose.length}</span></h3><p class="muted">파일에 성분이나 함량이 안 적혀 있어 대체약을 묶지 못했어요.</p><div class="altlist">${r.loose.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div></div>`:'')
+   <div class="altlist">${g.items.map(y=>`<div class="alt${hs.includes(y)?' me':''}"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}${y.i.ws?' · '+esc(y.i.ws):''}${altBuy(y.i)}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div>
+   ${g.other.length?`<details class="altother"><summary>같은 성분, 함량·제형 다름 (대체조제 대상 아님) ${g.other.length}</summary>${g.other.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.strK)} · ${esc(y.form||'-')}${altBuy(y.i)}</span></span><b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b></div>`).join('')}</details>`:''}</div>`}).join('')
+  +(r.loose.length?`<div class="card"><h3>성분·함량 정보가 없는 약 <span class="c">${r.loose.length}</span></h3><p class="muted">파일에 성분이나 함량이 안 적혀 있어 대체약을 묶지 못했어요.</p><div class="altlist">${r.loose.map(y=>`<div class="alt"><span>${esc(y.i.base)} <span class="sub">${esc(y.i.co)}${altBuy(y.i)}</span></span>${y.cur>0?`<b>${fmt(y.cur)}<span class="sub"> ${esc(y.i.unit)}</span></b>`:'<span class="pill p-none">재고 없음</span>'}</div>`).join('')}</div></div>`:'')
   +`<p class="sub altnote">재고 파일의 성분·함량·제형이 같은 약을 묶은 목록이에요. 대체조제는 식약처가 생물학적 동등성을 인정한 품목이어야 하고(의약품안전나라에서 확인), 처방전에 대체조제 불가 표시가 없어야 하며, 조제 후 처방의에게 알려야 해요.</p>`;
   out.querySelectorAll('[data-acp]').forEach(b=>b.onclick=()=>copyText(altGroupText(r.groups[+b.dataset.acp])));
  };
  $('aq').oninput=run;run();$('aq').focus();
 }
+// 사입가: 조제약품현황의 재고금액 ÷ 재고총량 (조제약품현황을 올린 약만)
+const altBuy=i=>i&&i.buy>0?` · 사입가 ${fmt(i.buy)}원${i.unit?'/'+esc(i.unit):''}`:'';
 function daysWord(d){if(d==null)return '';return d>=365?'1년치 이상':d<1?'1일치 미만':`약 ${fmt(Math.round(d))}일치`}
 
 /* ----- 수첩 패널 ----- */
@@ -1105,7 +1107,7 @@ async function importDisp(buf){
   if(h<0)throw new Error('약품명 열을 찾지 못했어요. 조제약품현황이나 사용량(재고현황및재고수정) 파일인지 확인해 주세요.');
   const hdr=aoa[h].map(H),col=n=>hdr.indexOf(n);if(hdr.some(x=>/처방전교부번호|수진자|주민/.test(x)))throw new Error('환자 정보가 있는 파일이라 받지 않아요.');
   const c={code:col('약품코드'),ws:col('사입거래처'),price:col('약품단가'),qty:col('조제수량'),cnt:col('조제건수'),use:col('사용량'),
-   co:col('제약회사'),unit:col('조제단위'),first:col('조제개시일'),last:col('최근조제일'),stk:col('재고총량'),eo:col('적정재고')};
+   co:col('제약회사'),unit:col('조제단위'),first:col('조제개시일'),last:col('최근조제일'),stk:col('재고총량'),eo:col('적정재고'),amt:col('재고금액')};
   if((c.qty<0||c.cnt<0)&&c.use>=0)return await importUse(aoa,h,nc,c);
   if(c.qty<0||c.cnt<0)throw new Error('조제수량·조제건수(또는 사용량) 열이 없어요.');
   const rng=searchRange(aoa,h),per=rng?rng.days:(+S.settings.periodDays||184),to=rng?rng.to:ymd8(new Date()),from=rng?rng.from:'';
@@ -1115,7 +1117,8 @@ async function importDisp(buf){
   for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[nc]).trim();
    if(nm&&isNaN(+nm)){const code=String(r[c.code]).trim();
     cur=items[code]=items[code]||{nm,co:c.co>=0?String(r[c.co]).trim():'',unit:c.unit>=0?String(r[c.unit]).trim().replace(/^[\d.]+/,''):'',w:c.ws>=0?String(r[c.ws]).trim():'',u:+r[c.price]||0,q:0,n:0,
-     first:c.first>=0?d8s(r[c.first]):'',last:c.last>=0?d8s(r[c.last]):'',stk:c.stk>=0&&r[c.stk]!==''?+r[c.stk]||0:null,eo:c.eo>=0?+r[c.eo]||0:0};
+     first:c.first>=0?d8s(r[c.first]):'',last:c.last>=0?d8s(r[c.last]):'',stk:c.stk>=0&&r[c.stk]!==''?+r[c.stk]||0:null,eo:c.eo>=0?+r[c.eo]||0:0,
+     b:c.amt>=0&&c.stk>=0&&+r[c.stk]>0&&+r[c.amt]>0?Math.round(+r[c.amt]/+r[c.stk]*10)/10:0}; // 사입가(1단위) = 재고금액 ÷ 재고총량 (v0.8.3)
     cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(!nm&&cur&&r[c.qty]!==''){cur.q+=+r[c.qty]||0;cur.n+=+r[c.cnt]||0}
    else if(nm&&!isNaN(+nm))break}
@@ -1126,8 +1129,8 @@ async function importDisp(buf){
   Object.entries(items).forEach(([code,x])=>{if(!code)return;
    // 조회기간 안에 처음 조제한 약은 첫 조제일부터 셈 (최소 14일)
    const T=x.first&&from&&x.first>from?Math.max(14,Math.min(per,dayDiff(x.first,to)+1)):per;
-   out[code]={w:x.w,u:x.u,n:x.n,q:Math.round(x.q*100)/100,T,d:Math.round(x.q/T*1000)/1000,p:x.n?Math.round(x.q/x.n*100)/100:0,first:x.first,last:x.last,eo:x.eo};
-   if(x.n>0||x.last){const o=oldH[code]||{};hist[code]={l:(o.l||'')>(x.last||'')?o.l:x.last||o.l||'',u:x.u||o.u||0,w:x.w||o.w||''}}});
+   out[code]={w:x.w,u:x.u,n:x.n,q:Math.round(x.q*100)/100,T,d:Math.round(x.q/T*1000)/1000,p:x.n?Math.round(x.q/x.n*100)/100:0,first:x.first,last:x.last,eo:x.eo,b:x.b||0};
+   if(x.n>0||x.last||x.b){const o=oldH[code]||{};hist[code]={l:(o.l||'')>(x.last||'')?o.l:x.last||o.l||'',u:x.u||o.u||0,w:x.w||o.w||'',b:x.b||o.b||0}}});
   const doc={periodDays:per,from,to,items:out,hist,savedAt:new Date().toISOString()};
   if(!await saveDoc('profile/current',doc))return{ok:false};
   S.profile=doc;
@@ -1160,7 +1163,7 @@ async function importUse(aoa,h,nc,c){
  const days=searchDays(aoa,h)||+S.settings.periodDays||184;const old=(S.profile&&S.profile.items)||{};const out={};let used=0;
  for(let i=h+1;i<aoa.length;i++){const r=aoa[i];const nm=String(r[nc]).trim(),code=String(r[c.code]).trim();if(!nm||!code||out[code])continue;
   const q=+r[c.use]||0,o=old[code]||{};
-  if(q>0){used++;out[code]={w:o.w||'',u:o.u||0,n:o.n||0,q,T:days,d:Math.round(q/days*1000)/1000,p:o.dead?0:(o.p||0),last:o.last||'',eo:o.eo||0}}
+  if(q>0){used++;out[code]={w:o.w||'',u:o.u||0,n:o.n||0,q,T:days,d:Math.round(q/days*1000)/1000,p:o.dead?0:(o.p||0),last:o.last||'',eo:o.eo||0,b:o.b||0}}
   else if(nm.includes('_('))out[code]={w:o.w||'',u:o.u||0,n:0,d:0,p:0,dead:1}}
  if(!Object.keys(out).length)throw new Error('품목을 읽지 못했어요.');
  const doc={periodDays:days,source:'use',items:out,hist:(S.profile&&S.profile.hist)||{},savedAt:new Date().toISOString()};
@@ -2803,7 +2806,7 @@ setTimeout(todaySetAdd,0);
 (()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792490376';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792561903';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
