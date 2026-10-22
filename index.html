@@ -1508,7 +1508,9 @@ function drawNotices(body){
  body.querySelectorAll('[data-ne]').forEach(b=>b.onclick=()=>{noticeEdit=b.dataset.ne;redrawPanel()});
  if(q('#neBox')){const te=q('#neText');te.focus();q('#neCancel').onclick=()=>{noticeEdit=null;redrawPanel()};
   q('#neSave').onclick=async()=>{const t=te.value.trim();if(!t){toast('공지 내용을 적어 주세요');return}q('#neSave').disabled=true;
-   try{const n0=S.notices.find(x=>x.id===noticeEdit)||{};const {id:_i,...base}=n0;const doc={...base,text:t.slice(0,2000),important:q('#neImp').checked,edAt:Date.now(),reads:{}};
+   try{const n0=S.notices.find(x=>x.id===noticeEdit)||{};
+    if(n0.text===t.slice(0,2000)&&!!n0.important===q('#neImp').checked){noticeEdit=null;toast('바뀐 내용이 없어요');redrawPanel();return} /* 그대로 저장하면 다시 알리지 않음 */
+    const {id:_i,...base}=n0;const doc={...base,text:t.slice(0,2000),important:q('#neImp').checked,edAt:Date.now(),reads:{}};
     await SY.cloud.set(P()+'/notices/'+noticeEdit,doc,false);Object.assign(n0,doc);noticeEdit=null;toast('공지를 고쳤어요 — 모두에게 새 공지처럼 다시 알려요');redrawPanel()}catch(e){toast('고치지 못했어요: '+(e.code||e.message));q('#neSave').disabled=false}}}
  body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}noticeDel(b.dataset.nd)}});
 }
@@ -2082,7 +2084,10 @@ function drawOrders(body){
  body.querySelectorAll('[data-oe]').forEach(b=>b.onclick=()=>{orderEdit=b.dataset.oe;redrawPanel()});
  if(q('#oeBox')){const te=q('#oeText');te.focus();q('#oeCancel').onclick=()=>{orderEdit=null;redrawPanel()};
   q('#oeSave').onclick=async()=>{const text=te.value.trim();if(!text){toast('전달할 내용을 적어 주세요');return}q('#oeSave').disabled=true;
-   const o0=S.orders.find(x=>x.id===orderEdit);const st={};if(o0)orderTo(o0).forEach(m=>{st[m.uid]={seen:0}});
+   const o0=S.orders.find(x=>x.id===orderEdit);
+   if(o0&&o0.text===text.slice(0,2000)&&(o0.due||'')===(q('#oeDue').value||'')&&!!o0.imp===q('#oeImp').checked){orderEdit=null;toast('바뀐 내용이 없어요');redrawPanel();return} /* 그대로 저장하면 다시 알리지 않음 */
+    
+   const st={};if(o0)orderTo(o0).forEach(m=>{st[m.uid]={seen:0}});
    if(await tSet(P()+'/orders/'+orderEdit,{text:text.slice(0,2000),due:q('#oeDue').value||'',imp:q('#oeImp').checked,edAt:Date.now(),st},true)){orderEdit=null;toast('전달사항을 고쳤어요 — 받는 사람에게 다시 알려요');redrawPanel()}else q('#oeSave').disabled=false}}
  if(q('#oDoneT'))q('#oDoneT').onclick=()=>{orderShowDone=!orderShowDone;redrawPanel()};
 }
@@ -2650,7 +2655,7 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
 .hres .hr .m.low{color:var(--bad,#C0392B);font-weight:600}
 .hres .none{padding:10px;color:var(--ink-2);font-size:13.5px}`;document.head.appendChild(st);
  const w=document.createElement('div');w.className='hsearch';
- w.innerHTML='<svg class="si" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="homeQ" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="약 이름 · 매뉴얼 · 내 수첩 찾기" aria-label="찾기"><button class="sx" id="homeQx" type="button" aria-label="지우기" hidden>✕</button>';
+ w.innerHTML='<svg class="si" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="homeQ" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="전체 찾기 · 약 · 매뉴얼 · 공지 · 인수인계…" aria-label="찾기"><button class="sx" id="homeQx" type="button" aria-label="지우기" hidden>✕</button>';
  const res=document.createElement('div');res.className='hres';res.id='homeRes';res.hidden=true;
  hd.after(w);w.after(res);
  // 검색칸 오른쪽: 알림 종 (켜기 · 근무일만 · 끄기)
@@ -2673,7 +2678,21 @@ label.chk,.chk{min-height:38px;padding:4px 2px;cursor:pointer;user-select:none}
   html+=sec('내 수첩 (나만 보임)',mine.map(n=>row(esc(n.title||'(제목 없음)'),mnDate(n.upd||n.at),()=>{mnEdit=null;mnOpen=n.id;mnCat=mnSec(n);mnQ='';openPanel('mynote')})));
   const memos=((S.memo&&S.memo.memos)||[]).filter(m=>norm(m.text||'').includes(nq)).slice(0,4);
   html+=sec('메모',memos.map(m=>row(esc(m.text),'메모 ›',()=>{memoEdit=m.id;openPanel('memo','memos')})));
-  res.innerHTML=html||`<div class="none">"${esc(raw)}"에 맞는 재고·매뉴얼·수첩·메모가 없어요.${typeof M!=='undefined'&&M?'':' 재고 자료는 아직 없어요.'}</div>`;res.hidden=false;
+  // 전체 범위 (v0.8.5): 알림 · 공지사항 · 전달사항 · 인수인계 · 캘린더 일정
+  const cut=t=>{t=String(t||'').replace(/s+/g,' ');return esc(t.length>60?t.slice(0,60)+'…':t)};
+  const als=((S.memo&&S.memo.alarms)||[]).filter(a=>(typeof seeAlarm!=='function'||seeAlarm(a))&&norm(a.text||'').includes(nq)).slice(0,4);
+  html+=sec('알림',als.map(a=>row(cut(a.text),esc((typeof repLabel==='function'?repLabel(a):'')+' '+(a.time||'')),()=>{alarmEdit={id:a.id};openPanel('memo','alarms')})));
+  if(S.pharm){
+   const nts=(S.notices||[]).filter(n=>norm(n.text||'').includes(nq)).sort((a,b)=>b.at-a.at).slice(0,4);
+   html+=sec('공지사항',nts.map(n=>row(cut(n.text),esc(whenLabel(new Date(n.edAt||n.at))),()=>openPanel('team','notice'))));
+   const ords=(S.orders||[]).filter(o=>(typeof isMgr==='function'&&isMgr())||o.by===ME()||(typeof orderForMe==='function'&&orderForMe(o))).filter(o=>norm(o.text||'').includes(nq)).sort((a,b)=>b.at-a.at).slice(0,4);
+   html+=sec('전달사항',ords.map(o=>row(cut(o.text),esc(whenLabel(new Date(o.edAt||o.at))),()=>openPanel('team','order'))));
+   const hds=(typeof handList==='function'?handList():[]).filter(h=>norm((h.text||'')+' '+Object.values(h.cm||{}).map(c=>c&&c.text||'').join(' ')).includes(nq)).sort((a,b)=>b.at-a.at).slice(0,4);
+   html+=sec('인수인계',hds.map(h=>row(cut(h.text),esc((h.byName||'')+' · '+whenLabel(new Date(h.at))),()=>openPanel('team','hand'))));
+   const evs=(S.events||[]).filter(e=>norm(e.title||'').includes(nq)).sort((a,b)=>String(b.from).localeCompare(String(a.from))).slice(0,4);
+   html+=sec('캘린더 일정',evs.map(e=>row(cut(e.title),esc(e.from?(typeof dLabel==='function'?dLabel(e.from):e.from):''),()=>{openPanel('team','cal');if(typeof calSel!=='undefined'&&e.from){calSel=e.from;calMonth=new Date(+e.from.slice(0,4),+e.from.slice(5,7)-1,1);redrawPanel()}})));
+  }
+  res.innerHTML=html||`<div class="none">"${esc(raw)}"에 맞는 것이 없어요.${typeof M!=='undefined'&&M?'':' 재고 자료는 아직 없어요.'}</div>`;res.hidden=false;
   res.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>acts[+b.dataset.a]())}
  inp.addEventListener('input',run);
  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(acts.length)acts[0]()}else if(e.key==='Escape'){inp.value='';run()}});
@@ -2822,7 +2841,7 @@ setTimeout(todaySetAdd,0);
 (()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792565973';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792651689';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

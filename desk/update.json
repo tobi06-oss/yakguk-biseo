@@ -1,11 +1,11 @@
 {
- "version": "0.8.4",
- "notes": "공지사항·전달사항 고치기(국장·관리자, 카드 안에서) · 제목 옆 (날짜, 수정됨) · 고치면 다시 알림",
+ "version": "0.8.6",
+ "notes": "공지·전달사항 그대로 저장하면 다시 안 알림 · 첫 화면 검색을 전체 범위로(알림·공지·전달사항·인수인계·캘린더 일정 포함)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "7a3a732a2c5853b7839b1f541746b49faaf3e89c4d4cb0c476685c61cc09208c",
-   "size": 401093
+   "sha256": "e6474ffaaeba61a4a45496ca43a03adc7b7a250ad87fd3addc74de8e227f57ae",
+   "size": 403412
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "e4188c2b3da97911c8d5978aa95c7fde195343d0c0dcf464ef42a4d96ba393cb",
+   "sha256": "f463250ea1621ba89a05ec3ccc051d926640139f87b9aadfc306076fef48788f",
    "size": 211
   },
   {
