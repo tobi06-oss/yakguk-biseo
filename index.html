@@ -787,7 +787,7 @@ function openPanel(kind,tab){
  const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:'메모·알림',settings:'설정',team:'약국',stockset:'재고 설정'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
-  const tabs=kind==='stock'?[['order','부족',M?M.low.length:0],['today','품절',M?M.gone.length:0],['dead','장기미조제',M?M.deadAct.length:0],['search','검색'],['over','과다 재고',M?M.over.length:0],['kpi','성과'],['basis','기준']]
+  const tabs=kind==='stock'?[['order','부족',M?M.low.length:0],['today','품절',M?M.gone.length:0],['dead','장기미조제',M?M.deadAct.length:0],['search','검색'],['over','과다 재고',M?M.over.length:0],['kpi','성과'],['basis','기준']].concat(window.otcTab?otcTab():[])
    :kind==='alt'?[]
    :kind==='mynote'?(SY.user?[['list','내 수첩',S.mynotes.length||null],['add','새로 쓰기'],['import','매뉴얼에서 가져오기']].concat(S.pharm?[['send','동료에게 보내기']]:[]):[])
    :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
@@ -1573,7 +1573,7 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 /* ===== 약국 계정 · 여러 기기 실시간 연동 · 공지 ===== */
 // 약국 비서 전용 Firebase 프로젝트 (무매데스크와 분리)
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
-const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode','exceptions/returned','stock/packs'];
+const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode','exceptions/returned','stock/packs','stock/otcuse'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
 // 권한 이름: 국장·관리자는 모두 '관리자' 권한. 직함(국장/관리자/직원)은 가입할 때 고름
 const PERM={owner:'관리자',admin:'관리자',staff:'직원'};const TITLE_OPTS=['국장','관리자','직원'];
@@ -2840,8 +2840,54 @@ setTimeout(todaySetAdd,0);
 {const _ds=drawSettings;drawSettings=function(body){if(panelState.kind==='settings'&&panelState.tab==='bell'){body.innerHTML='<div class="card bellcard"></div><p class="muted">첫 화면 검색칸 오른쪽 종 단추와 같은 설정이에요.</p>';bellPopDraw(body.querySelector('.bellcard'),true);return}_ds(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.prepend(heroCard())}}
 (()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
+/* ===== 일반약 기준 (실험, v0.8.7) =====
+   켜고 끄기: 재고 설정 › 기준·알림 맨 아래 (settings.otcOn, otcRopW 기본 3주, otcFillW 기본 4주). 끄면 아무 데도 영향 없음.
+   하루 판매량: ① 매일 재고 기록(stock/daily)의 최근 4주 감소량(dailyStats.recent, 10일 이상 쌓였을 때) ② 없으면 이팜 "사입현황"(입고일·총수량·재고수량)에서
+     사입 사이에 줄어든 재고 ÷ 날짜 → stock/otcuse {from,to,at,d:{code:하루}}. 이팜 6개월 "사용량"은 일반약 숫자가 실제 재고 변화와 크게 달라서(판콜 26배) 안 씀.
+   대상: 조제 기록이 없고 이름에 "_(" 가 없는 약(일반약). 주문선 = 주 수 × 7일치(최소 1통·1개), 적정 = 주문선 + 채우기 주 수 × 7일치. 한 달 1개 미만은 뺌.
+   이팜 적정재고·품목 예외가 있으면 그 값. 결과는 재고 › "일반약(실험)" 탭에만, 부족 목록·알림에는 안 섞임.
+   빼려면: 이 블록 + app_template의 otcTab 한 곳 + desk_sync WHOLE의 'stock/otcuse' 지우기. */
+const otcUse=()=>{try{return DESKDB.get('stock/otcuse')||null}catch(e){return null}};
+async function importBuy(u){try{const aoa=readAoa(u);let h=-1;for(let k=0;k<Math.min(aoa.length,30);k++){const r=(aoa[k]||[]).map(H);if(r.includes('일자')&&r.includes('약품코드')&&r.includes('재고수량')){h=k;break}}
+  if(h<0)throw new Error('사입현황 파일이 아니에요 (일자·약품코드·재고수량 칸이 없어요)');const hd=aoa[h].map(H),c=n=>hd.indexOf(n);const qc=c('총수량')>=0?c('총수량'):c('수량');
+  const by={};let from='',to='';for(let k=h+1;k<aoa.length;k++){const r=aoa[k];const code=String(r[c('약품코드')]??'').trim(),d=String(r[c('일자')]??'').replace(/\D/g,'');if(!code||d.length!==8)continue;
+   if(!from||d<from)from=d;if(!to||d>to)to=d;if(String(r[c('구분')]??'').trim()!=='사입')continue;const q=+r[qc]||0;if(q<=0)continue;(by[code]=by[code]||[]).push({d,q,after:+r[c('재고수량')]||0})}
+  const out={};Object.entries(by).forEach(([code,a])=>{a.sort((x,y)=>x.d.localeCompare(y.d));let used=0,days=0;for(let k=1;k<a.length;k++){const g=dayDiff(a[k-1].d,a[k].d),u2=a[k-1].after-(a[k].after-a[k].q);if(g>0&&u2>=0){used+=u2;days+=g}}if(days)out[code]=Math.round(used/days*10000)/10000});
+  const doc={src:'사입현황',from,to,at:Date.now(),d:out};if(await saveDoc('stock/otcuse',doc)){toast(`사입현황 ${fmt(Object.keys(out).length)}품목으로 일반약 판매 속도를 계산했어요 (실험)`);redrawPanel&&redrawPanel();return{ok:true,kind:'buy',n:Object.keys(out).length}}return{ok:false}
+ }catch(e){toast(e.message||'파일을 읽지 못했어요');return{ok:false}}}
+if(typeof onDeskFile==='function'){const _odf=onDeskFile;onDeskFile=async function(name,buf){try{const aoa=readAoa(new Uint8Array(buf)),h=findHdr(aoa).h;const hd=h>=0?aoa[h].map(H):[];
+  if(hd.includes('재고수량')&&hd.includes('일자')){const r=await importBuy(new Uint8Array(buf));if(r.ok)window.desk.imported({name,kind:r.kind,n:r.n});return}}catch(e){}return _odf(name,buf)}}
+function otcModel(){const s=S.settings||{};if(!s.otcOn||!M)return null;const U=otcUse();if((!U||!U.d)&&!(S.daily&&S.daily.dates&&S.daily.dates.length>=10))return{none:true,items:[],low:[]};const U0=U||{d:{}};
+ const HI=(S.profile&&S.profile.hist)||{},rw=+s.otcRopW||3,fw=+s.otcFillW||4,cl=x=>Math.ceil(x-1e-9);const items=[];
+ M.items.forEach(i=>{if(i.n>0||HI[i.code]||i.raw.includes('_('))return;const ds=typeof dailyStats==='function'?dailyStats(i.code):null;const d=ds&&ds.recent!=null&&ds.days>=10?ds.recent:(+U0.d[i.code]||0);const fixed=(i.ex&&i.ex.opt!=null&&i.ex.opt!=='')||i.eoSet>0;if(d<1/30&&!fixed)return;
+  let mn,opt,src;if(fixed){mn=i.mn;opt=i.opt;src=i.src}else{const pk=i.pack||1;mn=Math.max(cl(d*rw*7),pk);opt=mn+cl(d*fw*7);src=rw+'주치 남으면 · '+fw+'주치 더'}
+  if(i.ex&&i.ex.skip)mn=0;let need=Math.max(0,opt-i.cur);if(need>0&&i.pack>0)need=Math.ceil(need/i.pack)*i.pack;
+  items.push({i,d,mn,opt,src,need,days:d>0?i.cur/d:null})});
+ const low=items.filter(x=>x.mn>0&&x.i.cur<x.mn).sort((a,b)=>(a.days??0)-(b.days??0));return{items,low,U:U0}}
+function otcTab(){const s=S.settings||{};if(!s.otcOn)return [];const o=otcModel();return [['otc','일반약(실험)',o&&o.low?o.low.length:0]]}
+{const _dst=drawStock;drawStock=function(body){if(panelState.tab!=='otc')return _dst(body);if(needStock(body))return;const o=otcModel();
+ if(!o){body.innerHTML='<p class="muted">일반약 기준(실험)이 꺼져 있어요. 오늘의 재고 톱니 › 기준·알림 맨 아래에서 켤 수 있어요.</p>';return}
+ if(o.none){body.innerHTML='<div class="card"><p class="muted">일반약 판매 속도 자료가 아직 없어요. 오늘의 재고 톱니 › 기준·알림 맨 아래에서 이팜 "사입현황"(6개월)을 올리거나, PC 폴더에 넣어 두면 계산돼요. 매일 재고 기록이 10일 넘게 쌓여도 계산돼요.</p></div>';return}
+ const s=S.settings,row=x=>`<div class="item"><div class="nm"><b>${esc(x.i.base)}</b><div class="sub">${esc(x.i.co||'')} · 하루 ${fmt(Math.round(x.d*100)/100)}개 · ${esc(x.src)}${x.i.buy?' · 사입가 '+fmt(x.i.buy)+'원':''}</div></div><div class="q"><b>${fmt(x.i.cur)}</b> <span class="sub">${esc(x.i.unit||'')}</span><div class="sub">주문선 ${fmt(x.mn)} · 적정 ${fmt(x.opt)}</div>${x.need?`<div class="sub" style="color:var(--bad);font-weight:600">주문 ${fmt(x.need)}</div>`:''}</div></div>`;
+ body.innerHTML=`<p class="warnbox">실험 중인 일반약 기준이에요. 부족 목록·알림에는 섞이지 않아요. 하루 판매량은 매일 재고 기록(최근 4주) → 없으면 사입현황${o.U.from?' ('+dLabel(o.U.from.slice(0,4)+'-'+o.U.from.slice(4,6)+'-'+o.U.from.slice(6))+'~)':''}으로 계산해요.</p>
+  <p class="muted">기준: ${+s.otcRopW||3}주치 남으면 주문, ${+s.otcFillW||4}주치 더 채우기 (한 달에 1개 미만 팔리는 약은 뺌 · 이팜 적정재고·품목 예외 우선). 대상 ${o.items.length}개.</p>
+  <div class="card"><h3>지금 주문할 일반약 <span class="c">${o.low.length}</span></h3>${o.low.length?o.low.map(row).join(''):'<p class="muted">주문할 일반약이 없어요.</p>'}</div>
+  <details class="card"><summary>대상 일반약 전체 ${o.items.length}개 보기</summary>${o.items.slice().sort((a,b)=>b.d-a.d).map(row).join('')}</details>`}}
+function otcCard(){const s=S.settings||{};const c=document.createElement('div');c.className='card';
+ c.innerHTML=`<h3>일반약 기준 <span class="devtag" style="background:var(--warn-soft,#fff3d6);color:#9a6400">실험</span></h3>
+  <label class="chk"><input type="checkbox" id="otcOn" ${s.otcOn?'checked':''}> 일반약 기준 켜기 (재고 › "일반약(실험)" 탭에만 보여요)</label>
+  <div class="grid2"><label class="field">이만큼 남으면 주문<select id="otcR">${[1,2,3,4].map(w=>`<option value="${w}" ${(+s.otcRopW||3)===w?'selected':''}>${w}주치${w===3?' (기본)':''}</option>`).join('')}</select></label>
+  <label class="field">한 번에 더 채우기<select id="otcF">${[2,3,4,6,8].map(w=>`<option value="${w}" ${(+s.otcFillW||4)===w?'selected':''}>${w}주치${w===4?' (기본)':''}</option>`).join('')}</select></label></div>
+  <p class="muted">사입현황으로 본 평소 습관(약 3주치 남으면 1달치 주문)을 바탕으로 한 기준이에요. 판매 속도는 매일 재고 기록, 없으면 사입현황으로 계산해요.</p>
+  <div class="row"><label class="btn sm" for="otcBuyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="otcBuyF" accept=".xls,.xlsx" hidden><span class="sub">${(()=>{const U=otcUse();return U&&U.src==='사입현황'?'지금: '+U.from+'~'+U.to+' · '+Object.keys(U.d||{}).length+'품목':'아직 없음'})()}</span></div>
+  <div class="row"><button class="btn primary" type="button" id="otcSave" ${canWrite?'':'disabled'}>저장</button></div>`;
+ c.querySelector('#otcBuyF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importBuy(new Uint8Array(await f.arrayBuffer()))};
+ c.querySelector('#otcSave').onclick=async()=>{const n={...S.settings,otcOn:c.querySelector('#otcOn').checked,otcRopW:+c.querySelector('#otcR').value,otcFillW:+c.querySelector('#otcF').value};
+  if(await saveDoc('settings/main',n)){S.settings=n;toast(n.otcOn?'일반약 기준(실험)을 켰어요 — 재고 › 일반약(실험)':'일반약 기준(실험)을 껐어요');redrawPanel&&redrawPanel()}};return c}
+{const _ds2=drawSettings;drawSettings=function(body){_ds2(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.appendChild(otcCard())}}
+
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792651689';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792658047';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
