@@ -752,7 +752,7 @@ function kpiAdvice(){const d=(S.kpi&&S.kpi.days)||{},keys=Object.keys(d).sort().
  if(n<14)return{n,msg:`기록 ${n}일째예요. 14일 넘게 쌓이면 기준을 올릴지 내릴지 알려드려요.`};
  const avg=f=>keys.reduce((s,k)=>s+(+f(d[k])||0),0)/n;const g=avg(x=>x.goneFS),inv=avg(x=>x.dval?x.val/x.dval:0),D=M?M.SZ.D:12;
  let msg,lvl='ok';
- if(g>=1){lvl='up';msg=`재고를 두는 약(F·S)이 하루 평균 ${r1(g)}개씩 품절돼요. 재고 설정 › 기준·알림에서 보유 일수를 늘리거나 서비스수준을 올려 보세요.`}
+ if(g>=1){lvl='up';msg=`재고를 두는 약(F·S)이 하루 평균 ${r1(g)}개씩 품절돼요. 재고 설정 › 조제약에서 보유 일수를 늘리거나 서비스수준을 올려 보세요.`}
  else if(g>=.3){lvl='up';msg=`가끔 품절이 나요(하루 평균 ${r1(g)}개). 품절된 약이 자주 겹치면 품목 예외에서 그 약만 넉넉히 잡아 두세요.`}
  else msg=`품절 거의 없음(하루 ${r1(g)}개) — 지금 기준을 그대로 써도 돼요.`;
  return{n,g,inv,lvl,msg}}
@@ -775,7 +775,7 @@ function renderToday(){
 let panelState={kind:null,tab:null},redrawPanel=null;
 function openPanel(kind,tab){
  document.querySelector('.scrim')?.remove();
- panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'etc',team:'notice',stockset:'basic'}[kind]};
+ panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'etc',team:'notice',stockset:(window.stocksetTabs?'rx':'basic')}[kind]};
  const scrim=document.createElement('div');scrim.className='scrim';
  const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
@@ -795,7 +795,7 @@ function openPanel(kind,tab){
    :kind==='manual'?[['list','매뉴얼'],['add','새 항목']]
    :kind==='team'?teamTabs()
    :kind==='memo'?([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
-   :kind==='stockset'?[['basic','기준·알림'],['files','파일 올리기'],['exc','품목 예외',Object.keys(S.exc).length]]
+   :kind==='stockset'?(window.stocksetTabs?stocksetTabs():[['basic','기준·알림'],['files','파일 올리기']]).concat([['exc','품목 예외',Object.keys(S.exc).length]])
    :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[['basic','약국 정보']]).concat(window.bellPopDraw?[['bell','알림']]:[]);
   p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
@@ -886,7 +886,7 @@ function drawStock(body){
 function itemCard(i){
  const same=(M.byKey[i.key]||[]).filter(x=>x!==i).sort((a,b)=>b.cur-a.cur),other=i.ikey?(M.byIng[i.ikey]||[]).filter(x=>x.key!==i.key).sort((a,b)=>b.cur-a.cur).slice(0,5):[];
  const st=i.mn>0?(i.cur+i.onOrd<i.mn?'<span class="pill p-low">주문 필요</span>':'<span class="pill p-ok">여유</span>'):i.disp?`<span class="pill p-none">${i.idle!=null&&i.idle>=WATCH_DAYS?fmt(i.idle)+'일 미조제':'주문형'}</span>`:'<span class="pill p-none">적정 없음</span>';
- return `<div class="item"><div><div class="nm">${esc(i.base)} ${clsTag(i)}</div><div class="sub">${i.ing?esc(i.ing)+' · ':''}${i.str?esc(i.str)+' · ':''}${esc(i.co)}${i.ws?' · 사입 '+esc(i.ws):''}</div>${i.daily?`<div class="sub">하루 평균 ${fmt(r1(i.daily))}${esc(i.unit)} · 1건 ${fmt(r1(i.perrx))} · ${daysWord(i.days)} · 근거: ${i.src}${i.last?' · 최근 조제 '+dateLabel(i.last):''}</div>`:''}</div>
+ return `<div class="item"><div><div class="nm">${esc(i.base)} ${clsTag(i)}</div><div class="sub">${i.ing?esc(i.ing)+' · ':''}${i.str?esc(i.str)+' · ':''}${esc(i.co)}${i.ws?' · 사입 '+esc(i.ws):''}</div>${i.daily?`<div class="sub">하루 평균 ${fmt(r1(i.daily))}${esc(i.unit)} · 1건 ${fmt(r1(i.perrx))} · ${daysWord(i.days)} · 근거: ${i.src}${i.last?' · 최근 조제 '+dateLabel(i.last):''}</div>`:''}${typeof buyHabit==='function'?buyHabit(i):''}</div>
  <div class="q"><b>${fmt(i.cur)}</b> <span class="sub">${esc(i.unit)}</span><div class="sub">주문선 ${i.mn?fmt(i.mn):'-'} · 적정 ${i.opt?fmt(i.opt):'-'}${i.eo?` · 이팜 ${fmt(i.eo)}`:''}</div>${st}</div>
  ${same.length||other.length?`<div class="alts">${same.length?'<span class="sub">같은 성분·같은 함량</span>'+same.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.co)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}${other.length?'<span class="sub">같은 성분·다른 함량</span>'+other.map(x=>`<div class="alt"><span>${esc(x.base)} <span class="sub">${esc(x.str)}</span></span><b>${fmt(x.cur)}${esc(x.unit)}</b></div>`).join(''):''}</div>`:''}</div>`}
 const ALT_MOD=[[/서방|지속|오로스|이알|에스알|씨알|엑스알|엑스엘|지알|(?<![A-Za-z])(SR|CR|XR|ER|XL|ZR|OROS|LA)(?![A-Za-z])/i,'서방'],[/장용|(?<![A-Za-z])EC(?![A-Za-z])/i,'장용'],[/구강붕해|오디티|오디|(?<![A-Za-z])ODT(?![A-Za-z])/i,'구강붕해'],[/츄어블|저작/,'츄어블'],[/발포/,'발포'],[/설하/,'설하'],[/분산/,'분산'],[/연질|소프트/,'연질'],[/건조시럽|건조현탁/,'건조']];
@@ -1017,7 +1017,7 @@ function drawSettings(body){
   ${S.pharm&&S.members&&S.members.length&&typeof isMgr==='function'?`<div class="field">받는 사람 <span class="muted">(체크한 사람에게만 PC 포스트잇·휴대폰 알림이 가요${isMgr()?'':' · 국장·관리자만 바꿀 수 있어요'})</span><div class="wdays" id="sBriefTo">${S.members.map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${(s.briefTo||[]).includes(m.uid)?'checked':''} ${isMgr()?'':'disabled'}><span>${esc(m.uid===ME()?m.name+'(나)':m.name)}</span></label>`).join('')}</div></div>`:''}
   <p class="muted">PC 프로그램은 포스트잇으로, 휴대폰은 앱 알림(설정 › 기본에서 휴대폰 알림을 켠 기기)으로 와요. 근무 시작 30분쯤 전이 좋아요.</p>
   ${M?`<p class="muted">지금: ${esc(stockBrief())}</p>`:''}<div class="row"><button class="btn primary" type="button" id="sSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
-  $('sSave').onclick=async()=>{const n=inS?{...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim()}:{...s,size:$('sSize').value,cov:+$('sCov').value,rop:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184),...(inS?{}:{briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'})};if($('sBriefTo')&&isMgr())n.briefTo=[...document.querySelectorAll('#sBriefTo input:checked')].map(x=>x.value);
+  $('sSave').onclick=async()=>{const n=inS?{...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim()}:{...s,...($('sSize')?{size:$('sSize').value,cov:+$('sCov').value,rop:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184)}:{}),...(!inS&&$('sBriefOn')?{briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'}:{})};if($('sBriefTo')&&isMgr())n.briefTo=[...document.querySelectorAll('#sBriefTo input:checked')].map(x=>x.value);
    if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast(inS?'약국 정보를 저장했어요':'재고 설정을 저장했어요');redrawPanel&&redrawPanel()}};
  }else if(t==='files'){
   body.innerHTML=`<div class="card"><h3>재고현황 (한 달에 한 번)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
@@ -1797,7 +1797,7 @@ async function wpOff(){const sub=await wpSub();if(!sub)return;const id=SY.user.u
 async function wpSync(){try{if(!SY.pid||!SY.user||!wpOK())return;if(Notification.permission==='granted'){const sub=await wpSub();if(sub)await wpSave(sub);else if(!wpOpt())await wpOn(true)}
  else if(Notification.permission==='default'&&!wpOpt()&&!SY.wpArm){SY.wpArm=1;document.addEventListener('pointerup',()=>{if(!wpOpt())wpOn().catch(()=>{})},{once:true})}}catch(e){}}
 // 서버가 읽는 알림 요약 (알림이 바뀔 때마다 갱신)
-// 오늘의 재고 알림(PC 포스트잇·휴대폰 푸시) 받는 사람: 관리자가 재고 설정(오늘의 재고 옆 설정 단추) › 기준·알림에서 고름(settings.briefTo=[uid]). 약국에 들어가 있으면 기본은 아무도 안 받음(개발 중, v0.7.9). 약국 없이 혼자 쓰면 예전처럼 briefOn만 봄
+// 오늘의 재고 알림(PC 포스트잇·휴대폰 푸시) 받는 사람: 관리자가 재고 설정 › 알림·색에서 고름(settings.briefTo=[uid]). 약국에 들어가 있으면 기본은 아무도 안 받음(개발 중, v0.7.9). 약국 없이 혼자 쓰면 예전처럼 briefOn만 봄
 const briefTo=()=>{const s=S.settings||{};if(s.briefOn===false||!S.pharm)return [];const ids=new Set((S.members||[]).map(m=>m.uid));return (Array.isArray(s.briefTo)?s.briefTo:[]).filter(u=>ids.has(u))};
 const briefForMe=()=>{const s=S.settings||{};if(s.briefOn===false)return false;if(!S.pharm)return true;return briefTo().includes(ME())};
 async function wpDigest(){if(!SY.pid||SY.phase!=='in')return;try{const keep=['id','text','on','date','time','rep','days','dom','nth','to','ack','acks','snooze','snz','anyDay'];
@@ -2717,7 +2717,7 @@ header{padding-block:calc(14px + env(safe-area-inset-top,0px)) 10px}
 .tiles.alt-row .tile.wide{grid-column:auto;padding:12px}
 .tiles.alt-row .tile.wide .ti{width:38px;height:38px;border-radius:12px}
 .today{margin-bottom:10px}
-/* 오늘의 재고 색 (재고 설정 › 기준·알림에서 고름): 연한 바탕 + 진한 글씨 */
+/* 오늘의 재고 색 (재고 설정 › 알림·색에서 고름): 연한 바탕 + 진한 글씨 */
 html[data-hero="emerald"]{--hac:#10B981}html[data-hero="sky"]{--hac:#2F8CF0}html[data-hero="coral"]{--hac:#F2626B}
 html[data-hero="lavender"]{--hac:#7C5CF0}html[data-hero="sun"]{--hac:#E59A0C}html[data-hero="navy"]{--hac:#2F5597}
 html[data-hero]{--hbg1:color-mix(in srgb,var(--hac) 10%,#fff);--hbg2:color-mix(in srgb,var(--hac) 22%,#fff);--hink:color-mix(in srgb,var(--hac) 62%,#101820);--hsub:color-mix(in srgb,var(--hac) 45%,#3A4256);--hbox:rgba(255,255,255,.7);--hline:color-mix(in srgb,var(--hac) 28%,#fff);--hglow:rgba(255,255,255,.35)}
@@ -2744,7 +2744,7 @@ function heroGet(){try{return localStorage.getItem('cb-hero')||'emerald'}catch(e
 function heroSet(k){try{localStorage.setItem('cb-hero',k)}catch(e){}heroApply()}
 function heroApply(){document.documentElement.setAttribute('data-hero',heroGet())}
 heroApply();
-// 오늘의 재고 색 고르기 카드 (재고 설정 › 기준·알림 맨 위, v0.8.0)
+// 오늘의 재고 색 고르기 카드 (재고 설정 › 알림·색 맨 위)
 function heroCard(){
  const c=document.createElement('div');c.className='card';c.innerHTML=`<h3>오늘의 재고 색</h3><div class="herochips">${HEROS.map(([k,l,a,b])=>`<button type="button" class="herochip" data-hero="${k}" aria-pressed="${heroGet()===k}"><i style="background:linear-gradient(135deg,${a},${b})"></i>${l}</button>`).join('')}</div><p class="muted">이 기기에만 적용돼요.</p>`;
  c.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{heroSet(b.dataset.hero);c.querySelectorAll('[data-hero]').forEach(x=>x.setAttribute('aria-pressed',x===b))});return c}
@@ -2835,15 +2835,15 @@ const TSET_SVG='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 function todaySetAdd(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty')||t.querySelector('.tset'))return;const go=t.querySelector('.d .go');if(!go)return;
  const w=document.createElement('span');w.className='dr';go.before(w);w.appendChild(go);
  const g=document.createElement('span');g.className='tset';g.id='todaySet';g.setAttribute('role','button');g.tabIndex=0;g.title='재고 설정';g.setAttribute('aria-label','재고 설정');g.innerHTML=TSET_SVG;w.prepend(g);
- const open=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset','basic')};g.addEventListener('click',open);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)})}
+ const open=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset','rx')};g.addEventListener('click',open);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)})}
 {const _rt=renderToday;renderToday=function(){_rt();todaySetAdd()}}
 setTimeout(todaySetAdd,0);
 // 재고 설정 › 기준·알림 맨 위에 오늘의 재고 색 (예전엔 설정 › 기본)
-{const _ds=drawSettings;drawSettings=function(body){if(panelState.kind==='settings'&&panelState.tab==='bell'){body.innerHTML='<div class="card bellcard"></div><p class="muted">첫 화면 검색칸 오른쪽 종 단추와 같은 설정이에요.</p>';bellPopDraw(body.querySelector('.bellcard'),true);return}_ds(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.prepend(heroCard())}}
+{const _ds=drawSettings;drawSettings=function(body){if(panelState.kind==='settings'&&panelState.tab==='bell'){body.innerHTML='<div class="card bellcard"></div><p class="muted">첫 화면 검색칸 오른쪽 종 단추와 같은 설정이에요.</p>';bellPopDraw(body.querySelector('.bellcard'),true);return}_ds(body);if(panelState.kind==='stockset'&&panelState.tab==='basic'&&!window.stocksetTabs)body.prepend(heroCard())}}
 (()=>{const st=document.createElement('style');st.textContent='.bellcard{padding:8px}.bellcard .bh{font-size:14px;margin:4px 8px 8px}';document.head.appendChild(st)})();
 
 /* ===== 일반약 기준 (v0.8.7 실험 → v0.8.9 정식, 늘 켜짐) =====
-   설정: 재고 설정 › 기준·알림 맨 아래 (otcRopW 기본 3주, otcFillW 기본 4주, 사입현황 올리기).
+   설정: 재고 설정 › 일반약 탭(첫 화면 일반약 칸 톱니) (otcRopW 기본 3주, otcFillW 기본 4주, 일반약 사입현황 올리기).
    하루 판매량: ① 매일 재고 기록(stock/daily)의 최근 4주 감소량(dailyStats.recent, 10일 이상 쌓였을 때) ② 없으면 이팜 "사입현황"(입고일·총수량·재고수량)에서
      사입 사이에 줄어든 재고 ÷ 날짜 → stock/otcuse {from,to,at,d:{code:하루}}. 이팜 6개월 "사용량"은 일반약 숫자가 실제 재고 변화와 크게 달라서(판콜 26배) 안 씀.
    대상: 조제 기록이 없고 이름에 "_(" 가 없는 약(일반약). 주문선 = 주 수 × 7일치(최소 1통·1개), 적정 = 주문선 + 채우기 주 수 × 7일치. 한 달 1개 미만은 뺌.
@@ -2854,38 +2854,51 @@ async function importBuy(u){try{const aoa=readAoa(u);let h=-1;for(let k=0;k<Math
   if(h<0)throw new Error('사입현황 파일이 아니에요 (일자·약품코드·재고수량 칸이 없어요)');const hd=aoa[h].map(H),c=n=>hd.indexOf(n);const qc=c('총수량')>=0?c('총수량'):c('수량');
   const by={};let from='',to='';for(let k=h+1;k<aoa.length;k++){const r=aoa[k];const code=String(r[c('약품코드')]??'').trim(),d=String(r[c('일자')]??'').replace(/\D/g,'');if(!code||d.length!==8)continue;
    if(!from||d<from)from=d;if(!to||d>to)to=d;if(String(r[c('구분')]??'').trim()!=='사입')continue;const q=+r[qc]||0;if(q<=0)continue;(by[code]=by[code]||[]).push({d,q,after:+r[c('재고수량')]||0})}
-  const out={};Object.entries(by).forEach(([code,a])=>{a.sort((x,y)=>x.d.localeCompare(y.d));let used=0,days=0;for(let k=1;k<a.length;k++){const g=dayDiff(a[k-1].d,a[k].d),u2=a[k-1].after-(a[k].after-a[k].q);if(g>0&&u2>=0){used+=u2;days+=g}}if(days)out[code]=Math.round(used/days*10000)/10000});
-  const doc={src:'사입현황',from,to,at:Date.now(),d:out};if(await saveDoc('stock/otcuse',doc)){toast(`사입현황 ${fmt(Object.keys(out).length)}품목으로 일반약 판매 속도를 계산했어요`);redrawPanel&&redrawPanel();return{ok:true,kind:'buy',n:Object.keys(out).length}}return{ok:false}
+  const out={},hb={},md=a=>{a=a.slice().sort((x,y)=>x-y);return a.length?a[Math.floor((a.length-1)/2)]:null};Object.entries(by).forEach(([code,a])=>{a.sort((x,y)=>x.d.localeCompare(y.d));let used=0,days=0;const bf=[],gp=[];for(let k=1;k<a.length;k++){const g=dayDiff(a[k-1].d,a[k].d),b0=a[k].after-a[k].q,u2=a[k-1].after-b0;bf.push(b0);if(g>0){gp.push(g);if(u2>=0){used+=u2;days+=g}}}if(days)out[code]=Math.round(used/days*10000)/10000;
+   hb[code]={n:a.length,q:md(a.map(x=>x.q)),gap:md(gp),rop:md(bf),last:a[a.length-1].d}});
+  const old=otcUse()||{};const merged={...(old.d||{}),...out},mhb={...(old.hb||{}),...hb};
+  const doc={src:'사입현황',from:old.from&&old.from<from?old.from:from,to:old.to&&old.to>to?old.to:to,at:Date.now(),d:merged,hb:mhb};if(await saveDoc('stock/otcuse',doc)){toast(`사입현황 ${fmt(Object.keys(hb).length)}품목을 읽었어요 (지금까지 ${fmt(Object.keys(mhb).length)}품목)`);redrawPanel&&redrawPanel();return{ok:true,kind:'buy',n:Object.keys(out).length}}return{ok:false}
  }catch(e){toast(e.message||'파일을 읽지 못했어요');return{ok:false}}}
 if(typeof onDeskFile==='function'){const _odf=onDeskFile;onDeskFile=async function(name,buf){try{const aoa=readAoa(new Uint8Array(buf)),h=findHdr(aoa).h;const hd=h>=0?aoa[h].map(H):[];
   if(hd.includes('재고수량')&&hd.includes('일자')){const r=await importBuy(new Uint8Array(buf));if(r.ok)window.desk.imported({name,kind:r.kind,n:r.n});return}}catch(e){}return _odf(name,buf)}}
 function otcModel(){const s=S.settings||{};if(!M)return null;const U=otcUse();if((!U||!U.d)&&!(S.daily&&S.daily.dates&&S.daily.dates.length>=10))return{none:true,items:[],low:[]};const U0=U||{d:{}};
  const HI=(S.profile&&S.profile.hist)||{},rw=+s.otcRopW||3,fw=+s.otcFillW||4,cl=x=>Math.ceil(x-1e-9);const items=[];
  M.items.forEach(i=>{if(i.n>0||HI[i.code]||i.raw.includes('_('))return;const ds=typeof dailyStats==='function'?dailyStats(i.code):null;const d=ds&&ds.recent!=null&&ds.days>=10?ds.recent:(+U0.d[i.code]||0);const fixed=(i.ex&&i.ex.opt!=null&&i.ex.opt!=='')||i.eoSet>0;if(d<1/30&&!fixed)return;
-  let mn,opt,src;if(fixed){mn=i.mn;opt=i.opt;src=i.src}else{const pk=i.pack||1;mn=Math.max(cl(d*rw*7),pk);opt=mn+cl(d*fw*7);src=rw+'주치 남으면 · '+fw+'주치 더'}
+  let mn,opt,src;if(fixed){mn=i.mn;opt=i.opt;src=i.src}else{const pk=i.pack||1;mn=Math.max(cl(d*rw*7),pk);opt=mn+cl(d*fw*7);src=''}
   if(i.ex&&i.ex.skip)mn=0;let need=Math.max(0,opt-i.cur);if(need>0&&i.pack>0)need=Math.ceil(need/i.pack)*i.pack;
   items.push({i,d,mn,opt,src,need,days:d>0?i.cur/d:null})});
  const low=items.filter(x=>x.mn>0&&x.i.cur<x.mn).sort((a,b)=>(a.days??0)-(b.days??0));return{items,low,U:U0}}
 function otcTab(){const o=otcModel();return [['otc','일반약',o&&o.low?o.low.length:0]]}
 {const _dst=drawStock;drawStock=function(body){if(panelState.tab!=='otc')return _dst(body);if(needStock(body))return;const o=otcModel();
  if(!o)return;
- if(o.none){body.innerHTML='<div class="card"><p class="muted">일반약 판매 속도 자료가 아직 없어요. 오늘의 재고 톱니 › 기준·알림 맨 아래에서 이팜 "사입현황"(6개월)을 올리거나, PC 폴더에 넣어 두면 계산돼요. 매일 재고 기록이 10일 넘게 쌓여도 계산돼요.</p></div>';return}
- const s=S.settings,row=x=>`<div class="item"><div class="nm"><b>${esc(x.i.base)}</b><div class="sub">${esc(x.i.co||'')} · 하루 ${fmt(Math.round(x.d*100)/100)}개 · ${esc(x.src)}${x.i.buy?' · 사입가 '+fmt(x.i.buy)+'원':''}</div></div><div class="q"><b>${fmt(x.i.cur)}</b> <span class="sub">${esc(x.i.unit||'')}</span><div class="sub">주문선 ${fmt(x.mn)} · 적정 ${fmt(x.opt)}</div>${x.need?`<div class="sub" style="color:var(--bad);font-weight:600">주문 ${fmt(x.need)}</div>`:''}</div></div>`;
+ if(o.none){body.innerHTML='<div class="card"><p class="muted">일반약 판매 속도 자료가 아직 없어요. 첫 화면 일반약 칸의 톱니에서 이팜 일반약 "사입현황"(6개월)을 올리거나, PC 폴더에 넣어 두면 계산돼요. 매일 재고 기록이 10일 넘게 쌓여도 계산돼요.</p></div>';return}
+ const s=S.settings,row=x=>`<div class="item"><div class="nm"><b>${esc(x.i.base)}</b><div class="sub">${esc(x.i.co||'')} · 하루 ${fmt(Math.round(x.d*100)/100)}개${x.src?' · '+esc(x.src):''}${x.i.buy?' · 사입가 '+fmt(x.i.buy)+'원':''}</div></div><div class="q"><b>${fmt(x.i.cur)}</b> <span class="sub">${esc(x.i.unit||'')}</span><div class="sub">주문선 ${fmt(x.mn)} · 적정 ${fmt(x.opt)}</div>${x.need?`<div class="sub" style="color:var(--bad);font-weight:600">주문 ${fmt(x.need)}</div>`:''}</div></div>`;
  body.innerHTML=`<p class="muted">조제 기록이 없는 일반약이에요(부족 목록과 겹치지 않아요). 하루 판매량은 매일 재고 기록(최근 4주) → 없으면 사입현황${o.U.from?' ('+dLabel(o.U.from.slice(0,4)+'-'+o.U.from.slice(4,6)+'-'+o.U.from.slice(6))+'~)':''}으로 계산해요.</p>
-  <p class="muted">기준: ${+s.otcRopW||3}주치 남으면 주문, ${+s.otcFillW||4}주치 더 채우기 (한 달에 1개 미만 팔리는 약은 뺌 · 이팜 적정재고·품목 예외 우선). 대상 ${o.items.length}개.</p>
+  <div class="otcrule"><b>기준</b> ${+s.otcRopW||3}주치 남으면 주문 · ${+s.otcFillW||4}주치 더 채우기<span>한 달에 1개 미만 팔리는 약은 뺌 · 이팜 적정재고·품목 예외가 있으면 그 값 · 대상 ${o.items.length}개</span></div>
   <div class="card"><h3>지금 주문할 일반약 <span class="c">${o.low.length}</span></h3>${o.low.length?o.low.map(row).join(''):'<p class="muted">주문할 일반약이 없어요.</p>'}</div>
   <details class="card"><summary>대상 일반약 전체 ${o.items.length}개 보기</summary>${o.items.slice().sort((a,b)=>b.d-a.d).map(row).join('')}</details>`}}
-function otcCard(){const s=S.settings||{};const c=document.createElement('div');c.className='card';
+function otcCard(){const s=S.settings||{};const w=document.createElement('div');w.style.cssText='display:flex;flex-direction:column;gap:12px';const c=document.createElement('div');c.className='card';w.appendChild(c);w.appendChild(buyCard('일반약'));
  c.innerHTML=`<h3>일반약 기준</h3><p class="muted">재고 › "일반약" 탭과 첫 화면 일반약 칸에 쓰여요.</p>
   <div class="grid2"><label class="field">이만큼 남으면 주문<select id="otcR">${[1,2,3,4].map(w=>`<option value="${w}" ${(+s.otcRopW||3)===w?'selected':''}>${w}주치${w===3?' (기본)':''}</option>`).join('')}</select></label>
   <label class="field">한 번에 더 채우기<select id="otcF">${[2,3,4,6,8].map(w=>`<option value="${w}" ${(+s.otcFillW||4)===w?'selected':''}>${w}주치${w===4?' (기본)':''}</option>`).join('')}</select></label></div>
   <p class="muted">사입현황으로 본 평소 습관(약 3주치 남으면 1달치 주문)을 바탕으로 한 기준이에요. 판매 속도는 매일 재고 기록, 없으면 사입현황으로 계산해요.</p>
-  <div class="row"><label class="btn sm" for="otcBuyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="otcBuyF" accept=".xls,.xlsx" hidden><span class="sub">${(()=>{const U=otcUse();return U&&U.src==='사입현황'?'지금: '+U.from+'~'+U.to+' · '+Object.keys(U.d||{}).length+'품목':'아직 없음'})()}</span></div>
+
   <div class="row"><button class="btn primary" type="button" id="otcSave" ${canWrite?'':'disabled'}>저장</button></div>`;
- c.querySelector('#otcBuyF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importBuy(new Uint8Array(await f.arrayBuffer()))};
- c.querySelector('#otcSave').onclick=async()=>{const n={...S.settings,otcRopW:+c.querySelector('#otcR').value,otcFillW:+c.querySelector('#otcF').value};
-  if(await saveDoc('settings/main',n)){S.settings=n;toast('일반약 기준을 저장했어요');renderToday();redrawPanel&&redrawPanel()}};return c}
-{const _ds2=drawSettings;drawSettings=function(body){_ds2(body);if(panelState.kind==='stockset'&&panelState.tab==='basic')body.appendChild(otcCard())}}
+  c.querySelector('#otcSave').onclick=async()=>{const n={...S.settings,otcRopW:+c.querySelector('#otcR').value,otcFillW:+c.querySelector('#otcF').value};
+  if(await saveDoc('settings/main',n)){S.settings=n;toast('일반약 기준을 저장했어요');renderToday();redrawPanel&&redrawPanel()}};return w}
+function buyCard(kind){const U=otcUse();const c=document.createElement('div');c.className='card';const nHb=U&&U.hb?Object.keys(U.hb).length:0;
+ c.innerHTML=`<h3>${kind||''} 사입현황</h3><p class="muted">이팜 사입현황(${kind==='일반약'?'일반약':'전문약'}으로 검색)을 올려 주세요. 조제약·일반약 파일은 약품코드별로 합쳐져서 서로 지워지지 않아요. ${kind==='일반약'?'일반약 판매 속도 계산에 써요':'재고 카드에 평소 주문 습관(몇 개씩, 며칠마다, 재고 얼마일 때)으로 보여 줘요'}. 필요한 칸: 일자 · 약품코드 · 구분 · 총수량 · 재고수량.</p>
+  <div class="row"><label class="btn sm primary" for="buyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="buyF" accept=".xls,.xlsx" multiple hidden><span class="sub">${nHb?`지금 ${fmt(nHb)}품목 · ${esc(U.from||'')}~${esc(U.to||'')}`:'아직 없음'}</span></div>`;
+ c.querySelector('#buyF').onchange=async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs)await importBuy(new Uint8Array(await f.arrayBuffer()))};return c}
+// 재고 설정 탭 (v0.9.0): 조제약(적정재고 기준 + 파일 올리기 + 조제약 사입현황) / 일반약(일반약 기준 + 일반약 사입현황) / 알림·색 / 품목 예외
+function stocksetTabs(){return [['rx','조제약'],['otc','일반약'],['alert','알림·색']]}
+{const _ds2=drawSettings;drawSettings=function(body){if(panelState.kind!=='stockset')return _ds2(body);const t=panelState.tab;
+ const sub=tab=>{const d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column;gap:12px';body.appendChild(d);panelState.tab=tab;try{_ds2(d)}finally{panelState.tab=t}return d};
+ if(t==='rx'){body.innerHTML='';const a=sub('basic');const al=a.querySelector('#sBriefOn');if(al){const card=al.closest('.card'),sv=a.querySelector('#sSave'),st=a.querySelector('#sSize');if(sv&&st)st.closest('.card').appendChild(sv.closest('.row'));card.remove()}
+  sub('files');body.appendChild(buyCard('조제약'));return}
+ if(t==='otc'){body.innerHTML='';body.appendChild(otcCard());return}
+ if(t==='alert'){body.innerHTML='';const a=sub('basic');const st=a.querySelector('#sSize');if(st)st.closest('.card').remove();a.prepend(heroCard());return}
+ return _ds2(body)}}
 
 /* ===== 오늘의 재고: 전문약 · 일반약 두 단추 (v0.8.8) — 품절 칸은 뺌(목록은 재고 › 품절 탭에 그대로) =====
    조제약 = 조제 기록 있는 약의 부족·장기미조제. 일반약 = 일반약 기준의 부족 · 장기미판매(매일 재고 기록 60일 넘게 줄지 않은 약, 기록이 60일 쌓이기 전엔 "기록 중") */
@@ -2894,23 +2907,28 @@ function otcIdle(){const D=S.daily;if(!D||!D.dates||!D.c||!M)return null;const d
 function todaySplit(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty')||!M)return;const ks=t.querySelector('.ks');if(!ks)return;
  const rxLow=M.low.length,o=typeof otcModel==='function'?otcModel():null,on=true,idle=otcIdle();
  const dot=c=>`<i class="${c}"></i>`;const stat=(l,n,c)=>`<span><em>${dot(c)}${l}</em><b${typeof n==='number'?'':' class="sm"'}>${n}</b></span>`;
- ks.className='ks tgs';ks.innerHTML=`<button type="button" class="k tg" data-tg="rx"><em class="tgh">조제약 ›</em><span class="tgn">${stat('부족',rxLow,rxLow?(M.urgent.some(i=>i.disp)?'dot-bad':'dot-warn'):'dot-ok')}${stat('장기미조제',M.deadAct.length,M.deadAct.length?'dot-warn':'dot-ok')}</span></button>
-  <button type="button" class="k tg" data-tg="otc"><em class="tgh">일반약 ›</em>${on?`<span class="tgn">${stat('부족',o&&!o.none?o.low.length:'–',o&&o.low&&o.low.length?'dot-warn':'dot-ok')}${stat('장기미판매',idle?idle.length:'기록 중',idle&&idle.length?'dot-warn':'dot-ok')}</span>`:'<span class="tgoff">꺼져 있어요 · 눌러서 켜기</span>'}</button>`;
- ks.querySelectorAll('[data-tg]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.tg==='rx')openPanel('stock','order');else if(on)openPanel('stock','otc');else openPanel('stockset','basic')})}
+ ks.className='ks tgs';ks.innerHTML=`<button type="button" class="k tg" data-tg="rx"><em class="tgh">조제약 ›<span class="tgset" role="button" tabindex="0" data-ts="rx" aria-label="조제약 설정" title="조제약 설정">${TSET_SVG}</span></em><span class="tgn">${stat('부족',rxLow,rxLow?(M.urgent.some(i=>i.disp)?'dot-bad':'dot-warn'):'dot-ok')}${stat('장기미조제',M.deadAct.length,M.deadAct.length?'dot-warn':'dot-ok')}</span></button>
+  <button type="button" class="k tg" data-tg="otc"><em class="tgh">일반약 ›<span class="tgset" role="button" tabindex="0" data-ts="otc" aria-label="일반약 설정" title="일반약 설정">${TSET_SVG}</span></em>${on?`<span class="tgn">${stat('부족',o&&!o.none?o.low.length:'–',o&&o.low&&o.low.length?'dot-warn':'dot-ok')}${stat('장기미판매',idle?idle.length:'기록 중',idle&&idle.length?'dot-warn':'dot-ok')}</span>`:'<span class="tgoff">꺼져 있어요 · 눌러서 켜기</span>'}</button>`;
+ ks.querySelectorAll('[data-ts]').forEach(g=>{const go=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset',g.dataset.ts)};g.addEventListener('click',go);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go(e)})});
+ ks.querySelectorAll('[data-tg]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.tg==='rx')openPanel('stock','order');else if(on)openPanel('stock','otc');else openPanel('stockset','otc')})}
 {const _rt2=renderToday;renderToday=function(){_rt2();todaySplit()}}
 setTimeout(todaySplit,0);
 (()=>{const st=document.createElement('style');st.textContent=`
 .today .tgs{grid-auto-flow:unset;grid-template-columns:1fr 1fr}
 .today .tg{font:inherit;color:inherit;text-align:left;border:0;cursor:pointer;gap:6px}
-.today .tg .tgh{font-weight:700;font-size:12.5px;letter-spacing:0}
+.today .tg .tgh{font-weight:700;font-size:12.5px;letter-spacing:0;display:flex;align-items:center;gap:4px}
+.today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
+.otcrule{background:var(--accent-soft,#e8eefb);border:1px solid var(--accent,#2F5597);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.otcrule b{color:var(--accent,#2F5597);margin-right:6px}.otcrule span{font-size:12px;color:var(--ink-2)}
 .today .tg .tgx{font-size:10px;font-weight:600;padding:0 5px;border-radius:999px;border:1px solid currentColor;opacity:.7}
 .today .tgn{display:grid;grid-template-columns:1fr 1fr;gap:6px}.today .tgn>span{display:flex;flex-direction:column;gap:2px;min-width:0}
 .today .tg b{font-size:20px!important}.today .tg b.sm{font-size:13px!important;font-family:inherit;padding-top:6px}.today .tg .tgoff{font-size:12px;opacity:.8;padding:6px 0}
 .today .tg:hover,.today .tg:focus-visible{filter:brightness(.97);outline:none}
 div.today{cursor:pointer}`;document.head.appendChild(st)})();
+// 사입현황이 있는 약: 평소 주문 습관 한 줄 (재고 카드에, 조제약·일반약 공통, v0.9.0)
+function buyHabit(i){const U=otcUse(),h=U&&U.hb&&U.hb[i.code];if(!h||h.n<2)return '';return `<div class="sub">평소 주문: 재고 ${fmt(h.rop)}${esc(i.unit||'')}쯤 남았을 때 ${fmt(h.q)}${esc(i.unit||'')}씩${h.gap?` · ${fmt(h.gap)}일마다`:''} (사입 ${h.n}회)</div>`}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792659635';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792661644';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
