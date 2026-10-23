@@ -1,11 +1,11 @@
 {
- "version": "0.9.4",
- "notes": "글씨 꾸미기: 크기를 pt 숫자로(8~32pt) · 맞춤법 빨간 밑줄 끔",
+ "version": "0.9.5",
+ "notes": "금액 맞춤 품목 · 품절 → 재고소진 · 패널 탭 여러 줄로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "54d42c872b51f354f501a599377a1627aed1fe1aa1715ccaa66ce139b518ab4d",
-   "size": 430494
+   "sha256": "6f31567277720c0626a16e96d608ed7bd7de3440f8f618e07136f4ddac8182c1",
+   "size": 433001
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "1724fee63e80dfa16b37ff68c249c6d17463e4f4653985aad0b28d0f2f0398c4",
+   "sha256": "1e46aa2fa4417251ccb05ad6b352e377e29f8963d741e0612edf3417b967e249",
    "size": 211
   },
   {
