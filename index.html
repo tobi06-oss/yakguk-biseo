@@ -2979,7 +2979,7 @@ function rtRender(root){const w=document.createTreeWalker(root||document.body,No
 function rtEnhance(ta){if(ta.dataset.rt)return;ta.dataset.rt='1';
  const box=document.createElement('div');box.className='rtbox';
  box.innerHTML=`<div class="rtbar" role="toolbar" aria-label="글씨 꾸미기"><select class="rtsz" aria-label="글씨 크기"><option value="">크기</option>${RT_SIZES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select><button type="button" class="rtb" data-c="bold" title="굵게" aria-label="굵게"><b>가</b></button><button type="button" class="rtb" data-c="underline" title="밑줄" aria-label="밑줄"><u>가</u></button>${RT_COLORS.map(([c,l])=>`<button type="button" class="rtc" data-col="${c}" title="${l}" aria-label="${l}" style="--c:${c}"></button>`).join('')}<button type="button" class="rtb rtx" data-c="removeFormat" title="꾸밈 지우기" aria-label="꾸밈 지우기">지우기</button></div><div class="rted" contenteditable="true" role="textbox" aria-multiline="true"></div>`;
- const ed=box.querySelector('.rted');ed.dataset.ph=ta.getAttribute('placeholder')||'';ed.style.minHeight=Math.max(3,+ta.getAttribute('rows')||3)*1.6+'em';
+ const ed=box.querySelector('.rted');ed.dataset.ph=ta.getAttribute('placeholder')||'';ed.style.minHeight=Math.max(5,+ta.getAttribute('rows')||3)*1.55+'em';
  ed.innerHTML=rtHtml(ta.value);ta.style.cssText+=';position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;resize:none;padding:0;border:0';ta.tabIndex=-1;ta.setAttribute('aria-hidden','true');ta.after(box);
  let mine=false;ta.addEventListener('input',()=>{if(mine)return;ed.innerHTML=rtHtml(ta.value)});
  let saved=null;const keep=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))saved=s.getRangeAt(0).cloneRange()};
@@ -2997,17 +2997,18 @@ function rtEnhance(ta){if(ta.dataset.rt)return;ta.dataset.rt='1';
 let rtT=null;new MutationObserver(()=>{clearTimeout(rtT);rtT=setTimeout(()=>{RT_IDS.forEach(id=>{const t=document.getElementById(id);if(t&&t.tagName==='TEXTAREA')rtEnhance(t)});rtRender()},30)}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
 (()=>{const st=document.createElement('style');st.textContent=`
 .rtbox{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
-.rtbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border-bottom:1px solid var(--line);background:var(--surface-2,#f3f5f9)}
-.rtbar select{height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:13px;padding:0 6px}
-.rtbar .rtb{min-width:34px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
-.rtbar .rtx{font-size:12px;padding:0 8px;margin-left:auto}
-.rtbar .rtc{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);background:var(--c);cursor:pointer;padding:0}
+.rtbar{display:flex;flex-wrap:nowrap;gap:4px;align-items:center;padding:6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);background:var(--surface-2,#f3f5f9)}
+.rtbar::-webkit-scrollbar{display:none}
+.rtbar select{height:30px;width:58px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:12.5px;padding:0 2px}
+.rtbar .rtb{flex:none;min-width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.rtbar .rtx{font-size:12px;padding:0 7px;margin-left:auto}
+.rtbar .rtc{flex:none;width:21px;height:21px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);background:var(--c);cursor:pointer;padding:0}
 .rted{padding:10px 12px;outline:none;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
 .rted:empty:before{content:attr(data-ph);color:var(--ink-3,#99a)}
 .memo-new .rtbox{background:rgba(255,255,255,.55)}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792736517';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792736824';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
