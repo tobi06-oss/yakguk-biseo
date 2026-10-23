@@ -1,11 +1,11 @@
 {
- "version": "0.9.5",
- "notes": "금액 맞춤 품목 · 품절 → 재고소진 · 패널 탭 여러 줄로",
+ "version": "0.9.6",
+ "notes": "\"재고 소진\" 띄어쓰기 · 부족 판정 정리(30일치 넘으면·6개월 조제 없는 보험약·가끔 나오는 약은 1건 낼 재고 있으면 빼기)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "6f31567277720c0626a16e96d608ed7bd7de3440f8f618e07136f4ddac8182c1",
-   "size": 433001
+   "sha256": "5c699bfb2e81195bba14811c5dc0dcbb9a26192e83beca6b18cd25b2245c88f5",
+   "size": 435221
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "1e46aa2fa4417251ccb05ad6b352e377e29f8963d741e0612edf3417b967e249",
+   "sha256": "2f0b4eb4b4449a07dc15f891f9d131c4cff2fe5cda29e26cd64b0042588b89ce",
    "size": 211
   },
   {
