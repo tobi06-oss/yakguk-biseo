@@ -2948,12 +2948,13 @@ function fontCard(){const c=document.createElement('div');c.className='card';con
 const RT_MARK='⁣';
 const RT_IDS=['mText','hText','heText','nText','neText','oText','oeText','mfB','mnB'];
 const RT_SIZES=[['x-small','아주 작게'],['small','작게'],['medium','보통'],['large','조금 크게'],['x-large','크게'],['xx-large','아주 크게']];
+const RT_PT=[8,9,10,11,12,14,16,18,20,24,28,32]; // 글씨 크기 고르기(pt), 기본 글씨는 약 11pt
 const RT_COLORS=[['#1f2328','검정'],['#d0312d','빨강'],['#1f5fbf','파랑'],['#1e8f4e','초록'],['#e07b00','주황'],['#7a3fc6','보라']];
 const rtIs=t=>typeof t==='string'&&t.charAt(0)===RT_MARK;
 function rtClean(html){
  const doc=new DOMParser().parseFromString('<div>'+String(html||'')+'</div>','text/html');const root=doc.body.firstChild;
  const okColor=v=>/^(#[0-9a-f]{3,6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i.test(String(v||'').trim());
- const okSize=v=>RT_SIZES.some(([k])=>k===String(v||'').trim())||String(v||'').trim()==='xxx-large';
+ const okSize=v=>{v=String(v||'').trim();if(RT_SIZES.some(([k])=>k===v)||v==='xxx-large')return true;const m=v.match(/^(\d{1,2})pt$/);return !!m&&+m[1]>=6&&+m[1]<=48};
  const FS={1:'x-small',2:'small',3:'medium',4:'large',5:'x-large',6:'xx-large',7:'xx-large'};
  const walk=n=>{let out='';n.childNodes.forEach(c=>{
   if(c.nodeType===3){out+=esc(c.nodeValue);return}if(c.nodeType!==1)return;const tg=c.tagName;if(/^(SCRIPT|STYLE|TEMPLATE|IFRAME|OBJECT|SVG|MATH)$/.test(tg))return;const inner=walk(c);
@@ -2978,23 +2979,26 @@ function rtRender(root){const w=document.createTreeWalker(root||document.body,No
 // 쓰는 칸 꾸미기
 function rtEnhance(ta){if(ta.dataset.rt)return;ta.dataset.rt='1';
  const box=document.createElement('div');box.className='rtbox';
- box.innerHTML=`<div class="rtbar" role="toolbar" aria-label="글씨 꾸미기"><select class="rtsz" aria-label="글씨 크기"><option value="">크기</option>${RT_SIZES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select><button type="button" class="rtb" data-c="bold" title="굵게" aria-label="굵게"><b>가</b></button><button type="button" class="rtb" data-c="underline" title="밑줄" aria-label="밑줄"><u>가</u></button>${RT_COLORS.map(([c,l])=>`<button type="button" class="rtc" data-col="${c}" title="${l}" aria-label="${l}" style="--c:${c}"></button>`).join('')}<button type="button" class="rtb rtx" data-c="removeFormat" title="꾸밈 지우기" aria-label="꾸밈 지우기">지우기</button></div><div class="rted" contenteditable="true" role="textbox" aria-multiline="true"></div>`;
- const ed=box.querySelector('.rted');ed.dataset.ph=ta.getAttribute('placeholder')||'';ed.style.minHeight=Math.max(5,+ta.getAttribute('rows')||3)*1.55+'em';
+ box.innerHTML=`<div class="rtbar" role="toolbar" aria-label="글씨 꾸미기"><select class="rtsz" aria-label="글씨 크기(pt)"><option value="">크기</option>${RT_PT.map(p=>`<option value="${p}">${p}pt</option>`).join('')}</select><button type="button" class="rtb" data-c="bold" title="굵게" aria-label="굵게"><b>가</b></button><button type="button" class="rtb" data-c="underline" title="밑줄" aria-label="밑줄"><u>가</u></button>${RT_COLORS.map(([c,l])=>`<button type="button" class="rtc" data-col="${c}" title="${l}" aria-label="${l}" style="--c:${c}"></button>`).join('')}<button type="button" class="rtb rtx" data-c="removeFormat" title="꾸밈 지우기" aria-label="꾸밈 지우기">지우기</button></div><div class="rted" contenteditable="true" role="textbox" aria-multiline="true"></div>`;
+ const ed=box.querySelector('.rted');ed.setAttribute('spellcheck','false');ed.dataset.ph=ta.getAttribute('placeholder')||'';ed.style.minHeight=Math.max(5,+ta.getAttribute('rows')||3)*1.55+'em';
  ed.innerHTML=rtHtml(ta.value);ta.style.cssText+=';position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;resize:none;padding:0;border:0';ta.tabIndex=-1;ta.setAttribute('aria-hidden','true');ta.after(box);
  let mine=false;ta.addEventListener('input',()=>{if(mine)return;ed.innerHTML=rtHtml(ta.value)});
  let saved=null;const keep=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))saved=s.getRangeAt(0).cloneRange()};
  document.addEventListener('selectionchange',keep);
  const restore=()=>{ed.focus();if(saved){const s=getSelection();s.removeAllRanges();s.addRange(saved)}};
- const sync=()=>{const h=ed.innerHTML;const fancy=/<(b|strong|u|i|em|font)\b|style=/i.test(h);let v;
+ let lastPt=null;const fixPt=()=>{if(!lastPt)return;ed.querySelectorAll('font[size="7"],[style*="xxx-large"]').forEach(el=>{el.removeAttribute('size');el.style.fontSize=lastPt+'pt'})};
+ const sync=()=>{fixPt();const h=ed.innerHTML;const fancy=/<(b|strong|u|i|em|font)\b|style=/i.test(h);let v;
   if(fancy)v=RT_MARK+rtClean(h);else{const d=document.createElement('div');d.innerHTML=rtClean(h).replace(/<br>/g,'\n');v=d.textContent}
   if(ta.value!==v){ta.value=v;mine=true;try{ta.dispatchEvent(new Event('input',{bubbles:true}))}finally{mine=false}}};
  const cmd=(c,v)=>{restore();try{document.execCommand('styleWithCSS',false,true)}catch(e){}document.execCommand(c,false,v);sync();keep()};
  box.querySelectorAll('button').forEach(b=>{b.addEventListener('mousedown',e=>e.preventDefault());b.onclick=()=>b.dataset.col?cmd('foreColor',b.dataset.col):cmd(b.dataset.c)});
- const sz=box.querySelector('.rtsz');sz.addEventListener('mousedown',keep);sz.onchange=()=>{const v=sz.value;sz.value='';if(!v)return;const map={'x-small':1,small:2,medium:3,large:4,'x-large':5,'xx-large':6};cmd('fontSize',String(map[v]||3))};
+ const sz=box.querySelector('.rtsz');sz.addEventListener('mousedown',keep);sz.onchange=()=>{const v=+sz.value;sz.value='';if(!v)return;
+  // 브라우저 기능으로 7단계 크기를 입힌 뒤, 그 부분만 고른 pt로 바꿈
+  lastPt=v;cmd('fontSize','7');fixPt();sync()};
  ed.addEventListener('input',sync);ed.addEventListener('blur',sync);
  ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t)});
  ta.focus=()=>{ed.focus();const r=document.createRange();r.selectNodeContents(ed);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}}
-let rtT=null;new MutationObserver(()=>{clearTimeout(rtT);rtT=setTimeout(()=>{RT_IDS.forEach(id=>{const t=document.getElementById(id);if(t&&t.tagName==='TEXTAREA')rtEnhance(t)});rtRender()},30)}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+let rtT=null;new MutationObserver(()=>{clearTimeout(rtT);rtT=setTimeout(()=>{RT_IDS.forEach(id=>{const t=document.getElementById(id);if(t&&t.tagName==='TEXTAREA')rtEnhance(t)});document.querySelectorAll('textarea:not([spellcheck]),input:not([spellcheck]):not([type=checkbox]):not([type=radio]):not([type=file])').forEach(x=>x.setAttribute('spellcheck','false'));rtRender()},30)}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
 (()=>{const st=document.createElement('style');st.textContent=`
 .rtbox{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
 .rtbar{display:flex;flex-wrap:nowrap;gap:4px;align-items:center;padding:6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);background:var(--surface-2,#f3f5f9)}
@@ -3008,7 +3012,7 @@ let rtT=null;new MutationObserver(()=>{clearTimeout(rtT);rtT=setTimeout(()=>{RT_
 .memo-new .rtbox{background:rgba(255,255,255,.55)}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792736824';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792738198';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

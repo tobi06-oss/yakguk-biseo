@@ -1,11 +1,11 @@
 {
- "version": "0.9.3",
- "notes": "글씨 꾸미기: 편집 줄 한 줄로, 쓰는 칸 높이 넉넉하게",
+ "version": "0.9.4",
+ "notes": "글씨 꾸미기: 크기를 pt 숫자로(8~32pt) · 맞춤법 빨간 밑줄 끔",
  "files": [
   {
    "p": "index.html",
-   "sha256": "851889016f282e6ba948c8a500bcf2668cd48eaa81a7c698a12ec23fd9693ed4",
-   "size": 429872
+   "sha256": "54d42c872b51f354f501a599377a1627aed1fe1aa1715ccaa66ce139b518ab4d",
+   "size": 430494
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "63cd3b82d2be4c08f227bb061ea5d288458a834e42cf9daaf9d113c7aae6f7c0",
+   "sha256": "1724fee63e80dfa16b37ff68c249c6d17463e4f4653985aad0b28d0f2f0398c4",
    "size": 211
   },
   {
