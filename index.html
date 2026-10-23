@@ -647,7 +647,7 @@ function buildModel(){
  const st=S.stock;if(!st||!st.rows)return null;
  const set=S.settings,P=(S.profile&&S.profile.items)||{},HI=(S.profile&&S.profile.hist)||{},per=+S.profile.periodDays||+set.periodDays||184;
  const SZ=sizeInfo(),lead=+set.leadDays||0,Pd=1+lead; // 주문 주기 1일 + 들어오기까지 걸리는 날
- const rop=set.rop==null?50:+set.rop; // 적정재고의 몇 %에서 주문
+ const rop=set.rop2!=null?+set.rop2:90; // 적정재고의 몇 %에서 주문 (v0.9.2부터 rop2, 기본 90% = 우리 약국 사입 패턴)
  const COV=+set.cov||35; // 많이 나가는 약 보유 일수 (v0.7.8: 기본 35일 — 이팜에 정해 둔 적정재고가 약 37일분이라 맞춤. 예전 cover 값은 안 씀)
  const dm=String(st.meta||'').match(/~\s*(\d{8})/),date=st.date||(dm?dm[1]:ymd8(new Date()));
  const today=ymd8(new Date()),hol=holidayAhead(today>date?today:date),SEA=seasonOn(),SI=(SEA&&SEA.items)||{};
@@ -1004,10 +1004,10 @@ function drawSettings(body){
   const Z=sizeInfo();
   const inS=panelState.kind==='settings';
   body.innerHTML=inS?`<div class="card"><h3>약국 정보</h3><div class="grid2"><div class="field">약국 이름<input id="sName" value="${esc(s.name)}"></div><div class="field">전화번호<input id="sTel" value="${esc(s.tel)}"></div></div><p class="muted">적정재고 기준·매일 재고 알림·파일 올리기·품목 예외는 첫 화면 "오늘의 재고" 옆 설정 단추로 옮겼어요.</p><div class="row"><button class="btn primary" type="button" id="sSave" ${canWrite?'':'disabled'}>저장</button></div></div>`:`
-  <div class="card"><h3>적정재고 기준</h3><p class="muted">적정재고는 "떨어질 일 없이 넉넉히 채워 두는 양"이고, 그 절반 아래로 내려가면 주문 목록에 떠요. 약국 규모에 따라 안전재고(z)·반품 권장 기준이 정해져요. 자동이면 조제약품현황으로 추정한 처방전 수로 골라요${Z.rx?` (지금 추정 하루 약 ${fmt(Math.round(Z.rx))}장 → ${SIZE[Z.auto].name})`:''}. 계산 방법은 재고 › 기준 탭에 있어요.</p>
+  <div class="card"><h3>적정재고 기준</h3><p class="muted">적정재고는 "떨어질 일 없이 넉넉히 채워 두는 양"이고, 아래 "주문 시점"(기본 90%) 아래로 내려가면 주문 목록에 떠요. 약국 규모에 따라 안전재고(z)·반품 권장 기준이 정해져요. 자동이면 조제약품현황으로 추정한 처방전 수로 골라요${Z.rx?` (지금 추정 하루 약 ${fmt(Math.round(Z.rx))}장 → ${SIZE[Z.auto].name})`:''}. 계산 방법은 재고 › 기준 탭에 있어요.</p>
   <div class="grid2"><div class="field">약국 규모<select id="sSize">${[['auto','자동'],['s','소형'],['m','중형'],['l','대형·문전']].map(([v,l])=>`<option value="${v}" ${(s.size||'auto')===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div class="field">많이 나가는 약 보유 일수<select id="sCov">${[[14,'14일분'],[21,'21일분'],[28,'28일분'],[30,'30일분'],[35,'35일분 (기본)']].map(([v,l])=>`<option value="${v}" ${(+s.cov||35)===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <div class="field">주문 시점<select id="sRop">${[[50,'적정재고의 절반 아래 (기본)'],[60,'적정재고의 60% 아래'],[30,'적정재고의 30% 아래']].map(([v,l])=>`<option value="${v}" ${(s.rop==null?50:+s.rop)===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field">주문 시점<select id="sRop">${[[90,'적정재고의 90% 아래 (기본 · 우리 약국 사입 패턴)'],[80,'적정재고의 80% 아래'],[70,'적정재고의 70% 아래'],[50,'적정재고의 절반 아래'],[100,'적정재고 아래로 내려가면 바로']].map(([v,l])=>`<option value="${v}" ${(s.rop2!=null?+s.rop2:90)===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div class="field">서비스수준<select id="sZ">${[[-0.3,'낮게 (재고 줄이기)'],[0,'기본'],[0.3,'높게 (품절 줄이기)'],[0.6,'아주 높게']].map(([v,l])=>`<option value="${v}" ${(+s.zAdj||0)===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <div class="grid2"><div class="field">주문하면 들어오기까지<select id="sLead">${[[0,'당일'],[1,'다음 날'],[2,'2일'],[3,'3일']].map(([v,l])=>`<option value="${v}" ${+s.leadDays===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <p class="muted">조제약품현황 기간은 파일의 검색기간에서 읽어요. 찾지 못할 때만 아래 값을 써요.</p>
@@ -1017,7 +1017,7 @@ function drawSettings(body){
   ${S.pharm&&S.members&&S.members.length&&typeof isMgr==='function'?`<div class="field">받는 사람 <span class="muted">(체크한 사람에게만 PC 포스트잇·휴대폰 알림이 가요${isMgr()?'':' · 국장·관리자만 바꿀 수 있어요'})</span><div class="wdays" id="sBriefTo">${S.members.map(m=>`<label class="wd wide"><input type="checkbox" value="${esc(m.uid)}" ${(s.briefTo||[]).includes(m.uid)?'checked':''} ${isMgr()?'':'disabled'}><span>${esc(m.uid===ME()?m.name+'(나)':m.name)}</span></label>`).join('')}</div></div>`:''}
   <p class="muted">PC 프로그램은 포스트잇으로, 휴대폰은 앱 알림(설정 › 기본에서 휴대폰 알림을 켠 기기)으로 와요. 근무 시작 30분쯤 전이 좋아요.</p>
   ${M?`<p class="muted">지금: ${esc(stockBrief())}</p>`:''}<div class="row"><button class="btn primary" type="button" id="sSave" ${canWrite?'':'disabled'}>저장</button></div></div>`;
-  $('sSave').onclick=async()=>{const n=inS?{...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim()}:{...s,...($('sSize')?{size:$('sSize').value,cov:+$('sCov').value,rop:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184)}:{}),...(!inS&&$('sBriefOn')?{briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'}:{})};if($('sBriefTo')&&isMgr())n.briefTo=[...document.querySelectorAll('#sBriefTo input:checked')].map(x=>x.value);
+  $('sSave').onclick=async()=>{const n=inS?{...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim()}:{...s,...($('sSize')?{size:$('sSize').value,cov:+$('sCov').value,rop2:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184)}:{}),...(!inS&&$('sBriefOn')?{briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'}:{})};if($('sBriefTo')&&isMgr())n.briefTo=[...document.querySelectorAll('#sBriefTo input:checked')].map(x=>x.value);
    if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast(inS?'약국 정보를 저장했어요':'재고 설정을 저장했어요');redrawPanel&&redrawPanel()}};
  }else if(t==='files'){
   body.innerHTML=`<div class="card"><h3>재고현황 (한 달에 한 번)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
@@ -1673,7 +1673,7 @@ function deskNoticeItems(){return unreadNotices().filter(n=>n.popup!==false).map
 function syNoticesChanged(){renderMemoHome();
  if(hasDesk())window.desk.setNotices(deskNoticeItems());if(typeof renderTeamTiles==='function')renderTeamTiles();
  else if(typeof renderStickies==='function')renderStickies();
- if(redrawPanel&&(panelState.kind==='memo'||panelState.kind==='team')&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()}
+ if(redrawPanel&&(panelState.kind==='memo'||panelState.kind==='team')&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select,.panel [contenteditable]'))redrawPanel()}
 async function noticePost(text,important,popup){try{const id=uid();await SY.cloud.set(P()+'/notices/'+id,{text:text.slice(0,2000),important:!!important,popup:popup!==false,by:SY.user.uid,byName:myName(),at:Date.now(),reads:{}});return true}catch(e){toast('보내지 못했어요: '+errMsg(e));return false}}
 async function noticeRead(id){if(String(id).startsWith('o:'))return orderMark(String(id).slice(2),'seen');if(String(id).startsWith('h:'))return handMarkRead(String(id).slice(2));const n=S.notices.find(x=>x.id===id);if(n){n.reads={...(n.reads||{}),[ME()]:Date.now()};syNoticesChanged()}
  try{await SY.cloud.set(P()+'/notices/'+id,{reads:{[ME()]:Date.now()}},true)}catch(e){toast('읽음 표시 실패: '+errMsg(e))}}
@@ -2041,7 +2041,7 @@ function teamWatch(W,err){
 function teamReset(){TEAM_COLS.forEach(c=>S[c]=[]);S.shiftDocs={};teamChanged()}
 let teamT=null;
 function teamChanged(){clearTimeout(teamT);teamT=setTimeout(()=>{renderTeamTiles();alertSync();if(typeof hasDesk==='function'&&hasDesk()&&typeof deskNoticeItems==='function')window.desk.setNotices(deskNoticeItems());
- if(redrawPanel&&panelState.kind==='team'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()},60)}
+ if(redrawPanel&&panelState.kind==='team'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select,.panel [contenteditable]'))redrawPanel()},60)}
 
 /* --- 전달사항 --- */
 const orderTo=o=>!o.to||!o.to.length?S.members.filter(m=>m.uid!==o.by):S.members.filter(m=>o.to.includes(m.uid));
@@ -2465,7 +2465,7 @@ const mnPath=()=>'users/'+SY.user.uid+'/notes';
 function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
  try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e),true)}catch(e){console.warn(e)}}
 function myNoteStop(){if(mnUnsub){try{mnUnsub()}catch(e){}}mnUnsub=null;S.mynotes=[];mnEdit=null;mnOpen=null;mnQ='';myNoteChanged()}
-function myNoteChanged(){renderMyNoteTile();if(redrawPanel&&panelState.kind==='mynote'&&!document.activeElement?.closest('.panel input,.panel textarea'))redrawPanel()}
+function myNoteChanged(){renderMyNoteTile();if(redrawPanel&&panelState.kind==='mynote'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel [contenteditable]'))redrawPanel()}
 function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynotes.length,ib=mnInboxCount();
  const tile=$('myNoteTile');if(tile)tile.classList.toggle('ring',!!ib);
  if(ib){s.textContent=`받은 수첩 ${ib}개 · 가져오기`;return}
@@ -2888,7 +2888,9 @@ function otcCard(){const s=S.settings||{};const w=document.createElement('div');
   if(await saveDoc('settings/main',n)){S.settings=n;toast('일반약 기준을 저장했어요');renderToday();redrawPanel&&redrawPanel()}};return w}
 function buyCard(kind){const U=otcUse();const c=document.createElement('div');c.className='card';const nHb=U&&U.hb?Object.keys(U.hb).length:0;
  c.innerHTML=`<h3>${kind||''} 사입현황</h3><p class="muted">이팜 사입현황(${kind==='일반약'?'일반약':'전문약'}으로 검색)을 올려 주세요. 조제약·일반약 파일은 약품코드별로 합쳐져서 서로 지워지지 않아요. ${kind==='일반약'?'일반약 판매 속도 계산에 써요':'재고 카드에 평소 주문 습관(몇 개씩, 며칠마다, 재고 얼마일 때)으로 보여 줘요'}. 필요한 칸: 일자 · 약품코드 · 구분 · 총수량 · 재고수량.</p>
-  <div class="row"><label class="btn sm primary" for="buyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="buyF" accept=".xls,.xlsx" multiple hidden><span class="sub">${nHb?`지금 ${fmt(nHb)}품목 · ${esc(U.from||'')}~${esc(U.to||'')}`:'아직 없음'}</span></div>`;
+  <div class="row"><label class="btn sm primary" for="buyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="buyF" accept=".xls,.xlsx" multiple hidden><span class="sub">${nHb?`지금 ${fmt(nHb)}품목 · ${esc(U.from||'')}~${esc(U.to||'')}`:'아직 없음'}</span><button class="btn sm" type="button" id="buyHow" style="margin-left:auto" aria-expanded="false">사입현황 저장법</button></div>
+  <ol class="buyhow" id="buyHowBox" hidden><li>재고관리 → 약품거래 및 재고현황</li><li>검색기간 <b>6개월</b> → 분류검색 → 사용약품전체 체크</li><li>분류구분(<b>약품종류</b>) → 검색구분(<b>${kind==='일반약'?'일반':'전문'}</b>) → 조회</li><li>왼쪽 약품들 전체 체크 → 선택약품 조회</li><li><b>사입현황</b> 탭을 누른 채로 미리보기 체크하고 출력</li><li>엑셀 저장</li></ol>`;
+ c.querySelector('#buyHow').onclick=e=>{const b=c.querySelector('#buyHowBox');b.hidden=!b.hidden;e.currentTarget.setAttribute('aria-expanded',String(!b.hidden))};
  c.querySelector('#buyF').onchange=async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs)await importBuy(new Uint8Array(await f.arrayBuffer()))};return c}
 // 재고 설정 탭 (v0.9.0): 조제약(적정재고 기준 + 파일 올리기 + 조제약 사입현황) / 일반약(일반약 기준 + 일반약 사입현황) / 알림·색 / 품목 예외
 function stocksetTabs(){return [['rx','조제약'],['otc','일반약'],['alert','알림·색']]}
@@ -2918,6 +2920,7 @@ setTimeout(todaySplit,0);
 .today .tg{font:inherit;color:inherit;text-align:left;border:0;cursor:pointer;gap:6px}
 .today .tg .tgh{font-weight:700;font-size:12.5px;letter-spacing:0;display:flex;align-items:center;gap:4px}
 .today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
+.buyhow{margin:4px 0 0;padding:10px 12px 10px 30px;background:var(--surface-2,#f3f5f9);border-radius:10px;font-size:13px;line-height:1.7}
 .otcrule{background:var(--accent-soft,#e8eefb);border:1px solid var(--accent,#2F5597);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.otcrule b{color:var(--accent,#2F5597);margin-right:6px}.otcrule span{font-size:12px;color:var(--ink-2)}
 .today .tg .tgx{font-size:10px;font-weight:600;padding:0 5px;border-radius:999px;border:1px solid currentColor;opacity:.7}
 .today .tgn{display:grid;grid-template-columns:1fr 1fr;gap:6px}.today .tgn>span{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -2925,10 +2928,86 @@ setTimeout(todaySplit,0);
 .today .tg:hover,.today .tg:focus-visible{filter:brightness(.97);outline:none}
 div.today{cursor:pointer}`;document.head.appendChild(st)})();
 // 사입현황이 있는 약: 평소 주문 습관 한 줄 (재고 카드에, 조제약·일반약 공통, v0.9.0)
-function buyHabit(i){const U=otcUse(),h=U&&U.hb&&U.hb[i.code];if(!h||h.n<2)return '';return `<div class="sub">평소 주문: 재고 ${fmt(h.rop)}${esc(i.unit||'')}쯤 남았을 때 ${fmt(h.q)}${esc(i.unit||'')}씩${h.gap?` · ${fmt(h.gap)}일마다`:''} (사입 ${h.n}회)</div>`}
+function buyHabit(i){const U=otcUse(),h=U&&U.hb&&U.hb[i.code];if(!h||h.n<2)return '';return `<div class="sub">평소 주문: 재고 ${fmt(Math.round(h.rop))}${esc(i.unit||'')}쯤 남았을 때 ${fmt(Math.round(h.q))}${esc(i.unit||'')}씩${h.gap?` · ${fmt(h.gap)}일마다`:''} (사입 ${h.n}회)</div>`}
+
+/* ===== 글자 크기 (설정 › 기본, v0.9.1) — 기기마다(cb-font-pt), 포인트 단위. 기본 11pt(= 지금 화면 15px 글씨). 화면 전체를 그 비율로 확대·축소 ===== */
+const FONT_PT=[9,10,11,12,13,14,15,16];
+function fontPt(){try{const v=+localStorage.getItem('cb-font-pt');return FONT_PT.includes(v)?v:11}catch(e){return 11}}
+function fontApply(){const z=fontPt()/11;document.documentElement.style.zoom=z===1?'':String(z)}
+fontApply();
+function fontCard(){const c=document.createElement('div');c.className='card';const cur=fontPt();
+ c.innerHTML=`<h3>글자 크기</h3><div class="row" style="flex-wrap:wrap;gap:6px">${FONT_PT.map(p=>`<button type="button" class="btn sm${p===cur?' primary':''}" data-fpt="${p}" aria-pressed="${p===cur}">${p}pt${p===11?' (기본)':''}</button>`).join('')}</div><p class="muted">이 기기에만 적용돼요. 화면 전체가 같은 비율로 커지거나 작아져요.</p>`;
+ c.querySelectorAll('[data-fpt]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('cb-font-pt',b.dataset.fpt)}catch(e){}fontApply();toast('글자 크기: '+b.dataset.fpt+'pt');redrawPanel&&redrawPanel()});return c}
+{const _ds3=drawSettings;drawSettings=function(body){_ds3(body);if(panelState.kind==='settings'&&panelState.tab==='etc')body.prepend(fontCard())}}
+
+/* ===== 글씨 꾸미기 (v0.9.2): 메모·인수인계·공지·전달사항·매뉴얼·내 수첩 쓰는 칸에 크기·굵게·밑줄·색 =====
+   저장: 꾸밈이 하나라도 있으면 글 맨 앞에 보이지 않는 표시(U+2063) + 걸러낸 HTML, 없으면 예전처럼 그냥 글.
+   쓰는 칸: 원래 textarea는 숨겨 두고 그 값을 계속 맞춰 줌 → 저장 코드는 그대로(textarea.value를 읽음).
+   보여 주기: 화면에 표시(U+2063)로 시작하는 글이 나오면 자동으로 꾸밈을 입혀 줌(작은 글씨 칸 .ts·.sub 등은 꾸밈 없이 글만).
+   PC 포스트잇 창(sticky.html·popup.html)은 꾸밈 없이 글만. */
+const RT_MARK='⁣';
+const RT_IDS=['mText','hText','heText','nText','neText','oText','oeText','mfB','mnB'];
+const RT_SIZES=[['x-small','아주 작게'],['small','작게'],['medium','보통'],['large','조금 크게'],['x-large','크게'],['xx-large','아주 크게']];
+const RT_COLORS=[['#1f2328','검정'],['#d0312d','빨강'],['#1f5fbf','파랑'],['#1e8f4e','초록'],['#e07b00','주황'],['#7a3fc6','보라']];
+const rtIs=t=>typeof t==='string'&&t.charAt(0)===RT_MARK;
+function rtClean(html){
+ const doc=new DOMParser().parseFromString('<div>'+String(html||'')+'</div>','text/html');const root=doc.body.firstChild;
+ const okColor=v=>/^(#[0-9a-f]{3,6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i.test(String(v||'').trim());
+ const okSize=v=>RT_SIZES.some(([k])=>k===String(v||'').trim())||String(v||'').trim()==='xxx-large';
+ const FS={1:'x-small',2:'small',3:'medium',4:'large',5:'x-large',6:'xx-large',7:'xx-large'};
+ const walk=n=>{let out='';n.childNodes.forEach(c=>{
+  if(c.nodeType===3){out+=esc(c.nodeValue);return}if(c.nodeType!==1)return;const tg=c.tagName;if(/^(SCRIPT|STYLE|TEMPLATE|IFRAME|OBJECT|SVG|MATH)$/.test(tg))return;const inner=walk(c);
+  if(tg==='BR'){out+='<br>';return}
+  if(tg==='B'||tg==='STRONG'){out+=inner?'<b>'+inner+'</b>':'';return}
+  if(tg==='U'){out+=inner?'<u>'+inner+'</u>':'';return}
+  if(tg==='I'||tg==='EM'){out+=inner?'<i>'+inner+'</i>':'';return}
+  if(tg==='DIV'||tg==='P'){out+=(out&&!out.endsWith('<br>')?'<br>':'')+inner;return}
+  const st=[];let col=c.style&&c.style.color,sz=c.style&&c.style.fontSize;if(tg==='FONT'){col=col||c.getAttribute('color');if(c.getAttribute('size'))sz=FS[+c.getAttribute('size')]||sz}
+  if(c.style&&(c.style.fontWeight==='bold'||+c.style.fontWeight>=600)){out+=inner?'<b>'+inner+'</b>':'';return}
+  if(col&&okColor(col))st.push('color:'+col.trim());if(sz&&okSize(sz))st.push('font-size:'+sz.trim());
+  out+=st.length&&inner?`<span style="${st.join(';')}">${inner}</span>`:inner});return out};
+ return walk(root)}
+function rtHtml(t){return rtIs(t)?rtClean(t.slice(1)):esc(String(t||'')).replace(/\n/g,'<br>')}
+function rtPlain(t){if(!rtIs(t))return String(t||'');const d=document.createElement('div');d.innerHTML=rtClean(t.slice(1)).replace(/<br>/g,'\n');return d.textContent}
+// 화면 어디든 표시로 시작하는 글이 나오면 꾸밈 입히기
+const RT_PLAIN_SEL='.ts,.sub,.hr .m,option,.tt,.pin,.am';
+function rtRender(root){const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.nodeValue.indexOf(RT_MARK)>=0?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_SKIP});const list=[];let n;while((n=w.nextNode()))list.push(n);
+ list.forEach(tn=>{const p=tn.parentNode;if(!p||p.closest&&p.closest('textarea,[contenteditable],script,style'))return;const v=tn.nodeValue,i=v.indexOf(RT_MARK),before=v.slice(0,i),after=v.slice(i+1);
+  if(p.closest&&p.closest(RT_PLAIN_SEL)){tn.nodeValue=before+rtPlain(RT_MARK+after);return}
+  const sp=document.createElement('span');sp.className='rt';sp.innerHTML=rtClean(after);if(before)p.insertBefore(document.createTextNode(before),tn);p.replaceChild(sp,tn)})}
+// 쓰는 칸 꾸미기
+function rtEnhance(ta){if(ta.dataset.rt)return;ta.dataset.rt='1';
+ const box=document.createElement('div');box.className='rtbox';
+ box.innerHTML=`<div class="rtbar" role="toolbar" aria-label="글씨 꾸미기"><select class="rtsz" aria-label="글씨 크기"><option value="">크기</option>${RT_SIZES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select><button type="button" class="rtb" data-c="bold" title="굵게" aria-label="굵게"><b>가</b></button><button type="button" class="rtb" data-c="underline" title="밑줄" aria-label="밑줄"><u>가</u></button>${RT_COLORS.map(([c,l])=>`<button type="button" class="rtc" data-col="${c}" title="${l}" aria-label="${l}" style="--c:${c}"></button>`).join('')}<button type="button" class="rtb rtx" data-c="removeFormat" title="꾸밈 지우기" aria-label="꾸밈 지우기">지우기</button></div><div class="rted" contenteditable="true" role="textbox" aria-multiline="true"></div>`;
+ const ed=box.querySelector('.rted');ed.dataset.ph=ta.getAttribute('placeholder')||'';ed.style.minHeight=Math.max(3,+ta.getAttribute('rows')||3)*1.6+'em';
+ ed.innerHTML=rtHtml(ta.value);ta.style.cssText+=';position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;resize:none;padding:0;border:0';ta.tabIndex=-1;ta.setAttribute('aria-hidden','true');ta.after(box);
+ let mine=false;ta.addEventListener('input',()=>{if(mine)return;ed.innerHTML=rtHtml(ta.value)});
+ let saved=null;const keep=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))saved=s.getRangeAt(0).cloneRange()};
+ document.addEventListener('selectionchange',keep);
+ const restore=()=>{ed.focus();if(saved){const s=getSelection();s.removeAllRanges();s.addRange(saved)}};
+ const sync=()=>{const h=ed.innerHTML;const fancy=/<(b|strong|u|i|em|font)\b|style=/i.test(h);let v;
+  if(fancy)v=RT_MARK+rtClean(h);else{const d=document.createElement('div');d.innerHTML=rtClean(h).replace(/<br>/g,'\n');v=d.textContent}
+  if(ta.value!==v){ta.value=v;mine=true;try{ta.dispatchEvent(new Event('input',{bubbles:true}))}finally{mine=false}}};
+ const cmd=(c,v)=>{restore();try{document.execCommand('styleWithCSS',false,true)}catch(e){}document.execCommand(c,false,v);sync();keep()};
+ box.querySelectorAll('button').forEach(b=>{b.addEventListener('mousedown',e=>e.preventDefault());b.onclick=()=>b.dataset.col?cmd('foreColor',b.dataset.col):cmd(b.dataset.c)});
+ const sz=box.querySelector('.rtsz');sz.addEventListener('mousedown',keep);sz.onchange=()=>{const v=sz.value;sz.value='';if(!v)return;const map={'x-small':1,small:2,medium:3,large:4,'x-large':5,'xx-large':6};cmd('fontSize',String(map[v]||3))};
+ ed.addEventListener('input',sync);ed.addEventListener('blur',sync);
+ ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t)});
+ ta.focus=()=>{ed.focus();const r=document.createRange();r.selectNodeContents(ed);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}}
+let rtT=null;new MutationObserver(()=>{clearTimeout(rtT);rtT=setTimeout(()=>{RT_IDS.forEach(id=>{const t=document.getElementById(id);if(t&&t.tagName==='TEXTAREA')rtEnhance(t)});rtRender()},30)}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+(()=>{const st=document.createElement('style');st.textContent=`
+.rtbox{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.rtbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border-bottom:1px solid var(--line);background:var(--surface-2,#f3f5f9)}
+.rtbar select{height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:13px;padding:0 6px}
+.rtbar .rtb{min-width:34px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.rtbar .rtx{font-size:12px;padding:0 8px;margin-left:auto}
+.rtbar .rtc{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);background:var(--c);cursor:pointer;padding:0}
+.rted{padding:10px 12px;outline:none;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.rted:empty:before{content:attr(data-ph);color:var(--ink-3,#99a)}
+.memo-new .rtbox{background:rgba(255,255,255,.55)}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792661644';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792736517';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
@@ -2954,7 +3033,7 @@ renderFavs();
  db=dbNs;sample=smp;
  if(sample){const lim=await sample.limits().catch(()=>null);useTools=!!(lim&&lim.tools);canImg=!!(lim&&lim.images);$('attachLbl').hidden=!canImg}
  if(!db){$('banner').hidden=false;$('banner').textContent='이 화면에서는 약국 자료 저장소를 열 수 없어요.';return}
- const watch=(path,fn)=>db.doc(path).onSnapshot(s=>{fn(s.exists?s.data():null);S.ready[path]=1;renderToday();if(redrawPanel&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()},()=>{});
+ const watch=(path,fn)=>db.doc(path).onSnapshot(s=>{fn(s.exists?s.data():null);S.ready[path]=1;renderToday();if(redrawPanel&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select,.panel [contenteditable]'))redrawPanel()},()=>{});
  watch('stock/current',d=>S.stock=d);
  watch('stock/previous',d=>S.prev=d);
  watch('profile/current',d=>S.profile=d||{items:{}});

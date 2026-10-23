@@ -27,16 +27,17 @@ button:focus-visible{outline:2px solid #2F5597;outline-offset:2px}
 .late{background:#D6304A;color:#fff;border-radius:6px;padding:0 6px;margin-left:4px}
 </style></head><body><div id="wrap" role="alertdialog" aria-label="알림"></div>
 <script>
+function rtPlain(t){t=String(t||'');if(t.charAt(0)!=='\u2063')return t;const d=document.createElement('div');d.innerHTML=t.slice(1).replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p)>/gi,'\n');return d.textContent}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let ctx=null;function chime(){try{ctx=ctx||new AudioContext();const t=ctx.currentTime;[[880,0],[1175,.18],[880,.5],[1175,.68],[880,1.2],[1175,1.38]].forEach(([f,s])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.22,t+s+.02);g.gain.exponentialRampToValueAtTime(.001,t+s+.4);o.connect(g).connect(ctx.destination);o.start(t+s);o.stop(t+s+.45)})}catch(e){}}
 const R=[-1.2,.9,-.5,1.1];
 let lastKey='',seen=new Set();
 window.desk.onItems((items,ring)=>{
  const w=document.getElementById('wrap');const key=JSON.stringify(items);if(key===lastKey&&w.children.length&&!w.querySelector('[data-done]')){if(ring)chime();return}lastKey=key;
- w.innerHTML=items.map((x,i)=>x.kind==='notice'?`<div class="sticky c-${x.important?'pink':'blue'}" style="--r:${R[i%4]}deg"><div class="h"><span>📢 공지 · ${esc(x.byName)}</span><span>${esc(x.when)}</span></div><div class="t">${esc(x.text)}</div><div class="a"><button class="ok" data-id="n:${esc(x.id)}" data-a="ok">확인했어요</button></div></div>`:x.kind==='brief'?`<div class="sticky brief c-blue" style="--r:${R[i%4]}deg"><div class="h"><span>☀ ${esc(x.title||'아침 재고 진단')}</span><span>${esc(x.sub||'')}</span></div>
+ w.innerHTML=items.map((x,i)=>x.kind==='notice'?`<div class="sticky c-${x.important?'pink':'blue'}" style="--r:${R[i%4]}deg"><div class="h"><span>📢 공지 · ${esc(x.byName)}</span><span>${esc(x.when)}</span></div><div class="t">${esc(rtPlain(x.text))}</div><div class="a"><button class="ok" data-id="n:${esc(x.id)}" data-a="ok">확인했어요</button></div></div>`:x.kind==='brief'?`<div class="sticky brief c-blue" style="--r:${R[i%4]}deg"><div class="h"><span>☀ ${esc(x.title||'아침 재고 진단')}</span><span>${esc(x.sub||'')}</span></div>
   <ul class="lines">${(x.lines||[]).map(l=>`<li>${l}</li>`).join('')}</ul><div class="a"><button class="ok" data-id="__brief" data-a="ok">확인</button><button data-id="__brief" data-a="open">재고 열기</button></div></div>`
  :`<div class="sticky c-${esc(x.color)}" style="--r:${R[i%4]}deg"><div class="h"><span>🔔 ${esc(x.when)}${x.late?'<span class="late">놓친 알림</span>':''}</span><span>${esc(x.rep)}</span></div>
-  <div class="t">${esc(x.text)}</div><div class="a"><button class="ok" data-id="${esc(x.id)}" data-a="ok">확인</button><button data-id="${esc(x.id)}" data-a="10">10분 뒤</button><button data-id="${esc(x.id)}" data-a="60">1시간 뒤</button><button data-id="${esc(x.id)}" data-a="tomorrow">내일</button></div></div>`).join('');
+  <div class="t">${esc(rtPlain(x.text))}</div><div class="a"><button class="ok" data-id="${esc(x.id)}" data-a="ok">확인</button><button data-id="${esc(x.id)}" data-a="10">10분 뒤</button><button data-id="${esc(x.id)}" data-a="60">1시간 뒤</button><button data-id="${esc(x.id)}" data-a="tomorrow">내일</button></div></div>`).join('');
  w.querySelectorAll('.sticky').forEach((s,i)=>{const id=(s.querySelector('button')||{}).dataset?.id;if(id&&!seen.has(id)){s.classList.add('new');seen.add(id)}});
  w.querySelectorAll('button').forEach(b=>b.onclick=()=>{const s=b.closest('.sticky');if(s.dataset.done)return;s.dataset.done=1;s.style.opacity=.4;s.querySelectorAll('button').forEach(x=>x.disabled=true);window.desk.act(b.dataset.id,b.dataset.a)});
  requestAnimationFrame(()=>{window.desk.fit(w.getBoundingClientRect().height+2);const f=w.querySelector('button.ok');f&&f.focus()});

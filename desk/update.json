@@ -1,11 +1,11 @@
 {
- "version": "0.9.0",
- "notes": "재고 설정을 조제약·일반약·알림·색 탭으로(첫 화면 칸마다 톱니) · 사입현황 올리기(조제약·일반약) · 재고 카드에 평소 주문 습관 · 일반약 기준은 위에 한 번만",
+ "version": "0.9.2",
+ "notes": "주문 시점 기본 90%(우리 약국 패턴) · 메모·인수인계·공지·전달사항·매뉴얼·내 수첩 글씨 꾸미기(크기·굵게·밑줄·색) · 글자 크기 설정",
  "files": [
   {
    "p": "index.html",
-   "sha256": "b5c88cdd419c45a5e0ed831a71fb921ea702914ffda81fa8f3e1f4c0974fb18c",
-   "size": 418930
+   "sha256": "d617ab5023ab1963694caa255898773fb3a7a9763c62cd52c65e09827358df5c",
+   "size": 429749
   },
   {
    "p": "main.js",
@@ -24,13 +24,13 @@
   },
   {
    "p": "popup.html",
-   "sha256": "5b35ab5592695f8bde4df242b15f5beaf08be94de125c0d6385d6820e60f4c35",
-   "size": 5281
+   "sha256": "f7713dc1d47da4e72dd5a6ad8e863a925b7165e80e8f69080b835c31bb8534ac",
+   "size": 5512
   },
   {
    "p": "sticky.html",
-   "sha256": "7c7f032d2b5e6ad4533dfa2951aa53828ce0fb11939c01a2f6246ae6eb61ed99",
-   "size": 3500
+   "sha256": "63901109e7dff4d134f9bcd59a0dbbadf624f8ac1681b61a347eca54972b3bad",
+   "size": 3789
   },
   {
    "p": "fakecloud.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "eef39d18b15786ef6088c89e1e6ebfef752423bcee9f0a36dfd770a41849186b",
+   "sha256": "a8e50059e6307ffe3dd97462efd6a2a736a22519940b1db11e6319b3482f63ad",
    "size": 211
   },
   {
