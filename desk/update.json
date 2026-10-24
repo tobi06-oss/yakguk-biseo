@@ -1,11 +1,11 @@
 {
- "version": "0.9.6",
- "notes": "\"재고 소진\" 띄어쓰기 · 부족 판정 정리(30일치 넘으면·6개월 조제 없는 보험약·가끔 나오는 약은 1건 낼 재고 있으면 빼기)",
+ "version": "0.9.7",
+ "notes": "첫 화면 오늘의 재고 숫자·글자 가운데 정렬",
  "files": [
   {
    "p": "index.html",
-   "sha256": "5c699bfb2e81195bba14811c5dc0dcbb9a26192e83beca6b18cd25b2245c88f5",
-   "size": 435221
+   "sha256": "243477eacee76cf48defa1eaef449010238d4d166eb8af26b6097ab2930b05c2",
+   "size": 435301
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "2f0b4eb4b4449a07dc15f891f9d131c4cff2fe5cda29e26cd64b0042588b89ce",
+   "sha256": "a39809d4a3aca36dd5892b133a1ad4a3dcab91c561eae98ac105733269011620",
    "size": 211
   },
   {
