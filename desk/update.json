@@ -1,11 +1,11 @@
 {
- "version": "0.9.7",
- "notes": "첫 화면 오늘의 재고 숫자·글자 가운데 정렬",
+ "version": "0.9.8",
+ "notes": "오늘의 재고: 글씨는 왼쪽 그대로, 숫자만 글씨 가운데 아래로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "243477eacee76cf48defa1eaef449010238d4d166eb8af26b6097ab2930b05c2",
-   "size": 435301
+   "sha256": "b19708eb43062e77aad75da458dea90e4b9c7878886093a83f2f679c50d08dec",
+   "size": 435295
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "a39809d4a3aca36dd5892b133a1ad4a3dcab91c561eae98ac105733269011620",
+   "sha256": "19f7dfc9d5214e436bc36d86be6c3e566a1dc50a3fa9d87e0858e9db6b384e48",
    "size": 211
   },
   {
