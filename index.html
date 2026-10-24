@@ -2465,7 +2465,7 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '기타';if(m.sec)return m.sec;if(m.fromName==='약국 매뉴얼'){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return x.sec}return '기타'};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
+S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '';const v=String(m.sec||'').trim();if(v)return v;if(m.fromName==='약국 매뉴얼'&&m.sec==null){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return String(x.sec).trim()}return ''};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
 const mnPath=()=>'users/'+SY.user.uid+'/notes';
 function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
  try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e),true)}catch(e){console.warn(e)}}
@@ -2511,15 +2511,15 @@ function drawMyNote(body){
  body.innerHTML=lock+mnInboxHtml()+`<input class="search" id="mnQ" type="search" placeholder="내 수첩 검색" value="${esc(mnQ)}"><div id="mnList" style="display:flex;flex-direction:column;gap:8px"></div>`;
  const run=()=>{mnQ=body.querySelector('#mnQ').value;const nq=norm(mnQ.trim()),list=body.querySelector('#mnList');
   if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
-  if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)}
-  const cats=groupBy(mnSorted(),mnSec);
-  if(!nq&&!mnCat){list.innerHTML=catListHtml(cats,'mc',true);bindCatManage(list,{can:true,rename:mnCatRename,del:mnCatDel,run});
-   list.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{mnCat=b.dataset.mc;mnOpen=null;mnOpenSet.clear();run()});return}
-  const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):mnSorted().filter(m=>mnSec(m)===mnCat);
-  const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
+  if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)||null}
+  // 분류 없이 적은 글은 전체 분류 화면에 바로 (약국 매뉴얼과 같게, v0.9.9)
+  const cats=groupBy(mnSorted().filter(m=>mnSec(m)),mnSec),loose=mnSorted().filter(m=>!mnSec(m)),top=!nq&&!mnCat;
+  const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):top?loose:mnSorted().filter(m=>mnSec(m)===mnCat);
+  const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'mc',true)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
    ${items.length?`<div class="row"><button class="btn sm" type="button" id="mnExp">모두 펼치기</button><button class="btn sm" type="button" id="mnCol">모두 접기</button></div>`:''}`;
   list.innerHTML=head+(items.map(m=>{const o=mnOpenHas(m.id)||!!nq;
-   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span>${m.fromName==='약국 매뉴얼'?'':`<span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span>`}</button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||'<p class="muted">맞는 항목이 없어요.</p>');
+   return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span>${m.fromName==='약국 매뉴얼'?'':`<span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span>`}</button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||(top?'':'<p class="muted">맞는 항목이 없어요.</p>'));
+  if(top){bindCatManage(list,{can:true,rename:mnCatRename,del:mnCatDel,run});list.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{mnCat=b.dataset.mc;mnOpen=null;mnOpenSet.clear();run()})}
   const bk=list.querySelector('#mnBack');if(bk)bk.onclick=()=>{mnCat=null;mnOpen=null;mnOpenSet.clear();run()};
   const ex=list.querySelector('#mnExp');if(ex)ex.onclick=()=>{items.forEach(m=>mnOpenSet.add(m.id));run()};
   const co=list.querySelector('#mnCol');if(co)co.onclick=()=>{mnOpenSet.clear();mnOpen=null;run()};
@@ -2533,17 +2533,17 @@ function drawMyNote(body){
 }
 function mnForm(m){
  const f=document.createElement('div');f.className='card';
- const secs=[...new Set(S.mynotes.map(mnSec).concat((S.manual||[]).map(x=>x.sec||'기타')))];
- f.innerHTML=`<div class="field">분류<input id="mnS" list="mnSecs" maxlength="40" value="${esc(m?mnSec(m):(mnCat||''))}"><datalist id="mnSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+ const secs=[...new Set(S.mynotes.map(mnSec).concat((S.manual||[]).map(mSecOf)).filter(Boolean))];
+ f.innerHTML=`<div class="field">분류 (선택 · 비워 두면 분류 없이 제목만)<input id="mnS" list="mnSecs" maxlength="40" placeholder="없음" value="${esc(m?mnSec(m):(mnCat||''))}"><datalist id="mnSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
  <div class="field">제목<input id="mnT" maxlength="100" value="${esc(m?m.title||'':'')}"></div>
  <div class="field">내용<textarea id="mnB" rows="8" maxlength="5000">${esc(m?m.body||'':'')}</textarea></div>
  <div class="row"><button class="btn primary" type="button" id="mnSave">저장</button>${m?'<button class="btn" type="button" id="mnCancel">취소</button>':''}</div>`;
  const q=s=>f.querySelector(s);
- q('#mnSave').onclick=async()=>{const sec=q('#mnS').value.trim().slice(0,40)||'기타',title=q('#mnT').value.trim().slice(0,100),b=q('#mnB').value.trim().slice(0,5000);
+ q('#mnSave').onclick=async()=>{const sec=q('#mnS').value.trim().slice(0,40),title=q('#mnT').value.trim().slice(0,100),b=q('#mnB').value.trim().slice(0,5000);
   if(!title&&!b){toast('제목이나 내용을 적어 주세요');return}
   q('#mnSave').disabled=true;const now=Date.now();const id=m?m.id:'n'+uid();
   const ok=await mnPut(id,m?{sec,title,body:b,upd:now}:{sec,title,body:b,pin:false,at:now,upd:now});
-  if(ok){toast(m?'고쳤어요':'내 수첩에 저장했어요');mnEdit=null;mnOpen=id;mnCat=sec;panelState.tab='list';redrawPanel&&redrawPanel()}else if(q('#mnSave'))q('#mnSave').disabled=false};
+  if(ok){toast(m?'고쳤어요':'내 수첩에 저장했어요');mnEdit=null;mnOpen=id;mnCat=sec||null;panelState.tab='list';redrawPanel&&redrawPanel()}else if(q('#mnSave'))q('#mnSave').disabled=false};
  if(m)q('#mnCancel').onclick=()=>{mnEdit=null;redrawPanel()};
  setTimeout(()=>{const i=q(m?'#mnB':'#mnT');if(i&&i.isConnected)i.focus()},30);
  return f}
@@ -2563,7 +2563,7 @@ function mnInboxHtml(){if(!(S.mninbox||[]).length)return '';
 function bindMnInbox(body){
  body.querySelectorAll('[data-mnin]').forEach(b=>b.onclick=async()=>{const x=S.mninbox.find(y=>y.id===b.dataset.mnin);if(!x)return;b.disabled=true;
   const now=Date.now();let ok=true;
-  for(const [i,n] of (x.notes||[]).entries()){const id='n'+uid()+i;const d={sec:String(n.sec||'기타').slice(0,40),title:String(n.title||'').slice(0,100),body:String(n.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:x.fromName||''};
+  for(const [i,n] of (x.notes||[]).entries()){const id='n'+uid()+i;const d={sec:String(n.sec||'').trim().slice(0,40),title:String(n.title||'').slice(0,100),body:String(n.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:x.fromName||''};
    S.mynotes.push({id,...d});if(!(await tSet(mnPath()+'/'+id,d,true))){ok=false;break}}
   if(ok){await tDel(P()+'/inbox/'+SY.user.uid+'/items/'+x.id);S.mninbox=S.mninbox.filter(y=>y.id!==x.id);toast(`${(x.notes||[]).length}개를 내 수첩에 넣었어요`)}
   myNoteChanged();if(redrawPanel)redrawPanel()});
@@ -2602,7 +2602,7 @@ async function mnFromManual(ids,btn){
  const todo=items.filter(m=>!same(m));
  if(!todo.length){toast(items.length>1?'모두 이미 내 수첩에 있어요':'이미 내 수첩에 있어요');return}
  if(btn)btn.disabled=true;const now=Date.now();let n=0;
- for(const [i,m] of todo.entries()){const id='n'+uid()+i;const d={sec:String(m.sec||'기타').slice(0,40),title:String(m.h||'').slice(0,100),body:String(m.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:'약국 매뉴얼'};
+ for(const [i,m] of todo.entries()){const id='n'+uid()+i;const d={sec:mSecOf(m).slice(0,40),title:String(m.h||'').slice(0,100),body:String(m.body||'').slice(0,5000),pin:false,at:now,upd:now,fromName:'약국 매뉴얼'};
   S.mynotes.push({id,...d});if(!(await tSet(mnPath()+'/'+id,d,true)))break;n++}
  myNoteChanged();
  if(n)toast(`${n}개를 내 수첩에 담았어요`+(items.length>todo.length?` (이미 있던 ${items.length-todo.length}개 빼고)`:''));
@@ -2717,6 +2717,7 @@ header{padding-block:calc(14px + env(safe-area-inset-top,0px)) 10px}
 .tiles{gap:10px;margin-bottom:10px}
 #teamTop,#homeTiles.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 #teamTop .tile,#homeTiles.three .tile{padding:13px 12px}
+#teamTop .tile:not(.wide),#homeTiles .tile:not(.wide){align-items:center;text-align:center} /* 아이콘이 위에 있는 칸: 아이콘·글씨 가운데 (v0.9.9) */
 #teamTop .tt,#homeTiles.three .tt{font-size:15.5px;line-height:1.25;word-break:keep-all}
 .tiles.alt-row{grid-template-columns:repeat(2,minmax(0,1fr))}
 .tiles.alt-row .tile.wide{grid-column:auto;padding:12px}
@@ -3040,7 +3041,7 @@ function lowDaysCard(){const v=S.settings&&S.settings.lowDays!=null?+S.settings.
 {const _ds5=drawSettings;drawSettings=function(body){_ds5(body);if(panelState.kind==='stockset'&&panelState.tab==='rx'){const f=body.querySelector('#sSize');const card=f&&f.closest('.card');const lc=lowDaysCard();if(card)card.after(lc);else body.prepend(lc)}}}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792836066';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1792836681';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
