@@ -1,11 +1,11 @@
 {
- "version": "0.10.1",
- "notes": "재고현황및재고수정: 재고량·현재고 어느 쪽이든 재고로 읽기 (재고 올리기·사용량 올리기·PC 폴더 모두)",
+ "version": "0.10.2",
+ "notes": "어제 재고로 되돌리기 버튼(재고 설정 › 조제약 맨 아래) · 첫 화면 유통기한 줄 두 칸으로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "63dc43b5553ffe6f13a47c60dfca3a5f9824260bcce2cec54efd9055d016f933",
-   "size": 454159
+   "sha256": "f861bd512b0bf2f46e019cf864debf7c13aec574a0593a6c2da5b5c73e4cbd96",
+   "size": 456174
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "86b09b7e82eda1500e66248cd0708f213d223f598da361b7e7b77e71013b4480",
+   "sha256": "7d4ff7db740699215f0a5b90a931d4bf745e747a95d407d9bbdad0c1699644ad",
    "size": 212
   },
   {

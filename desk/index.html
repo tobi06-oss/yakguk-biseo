@@ -3118,17 +3118,34 @@ function expCard(){const s=S.settings||{},D=expDoc(),v=expDays();const c=documen
 {const _ds6=drawSettings;drawSettings=function(body){_ds6(body);if(panelState.kind==='stockset'&&panelState.tab==='rx')body.appendChild(expCard())}}
 // 첫 화면: 오늘의 재고 아래 한 줄 (임박한 약이 있을 때만)
 function todayExp(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty'))return;t.querySelector('.texp')?.remove();const x=expModel();if(!x)return;const bad=x.past.length+x.left.length;if(!x.rows.length)return;
- const b=document.createElement('button');b.type='button';b.className='texp';b.innerHTML=`<i class="${bad?'dot-bad':'dot-ok'}"></i><span>유통기한 ${x.N}일 안 <b>${x.rows.length}</b>${bad?` · 다 못 쓸 약 <b>${bad}</b>`:' · 모두 기한 전에 씀'}</span><span class="gx">›</span>`;
+ const b=document.createElement('button');b.type='button';b.className='texp';b.innerHTML=`<em class="xh">유통기한 ›</em><span class="xc"><em><i class="dot-warn"></i>${x.N}일 안</em><b>${x.rows.length}</b></span><span class="xc"><em><i class="${bad?'dot-bad':'dot-ok'}"></i>다 못 쓸 약</em><b${bad?' class="bad"':''}>${bad}</b></span>`;
  b.onclick=e=>{e.stopPropagation();openPanel('stock','exp')};t.appendChild(b)}
 {const _rt3=renderToday;renderToday=function(){_rt3();todayExp()}}
 setTimeout(todayExp,0);
-(()=>{const st=document.createElement('style');st.textContent=`.today .texp{grid-column:1/-1;display:flex;align-items:center;gap:7px;margin:-4px 12px 12px;padding:8px 12px;border:0;border-radius:12px;background:rgba(255,255,255,.55);font:inherit;font-size:13px;color:inherit;text-align:left;cursor:pointer;position:relative;z-index:1}
-.item .ostk{display:flex;gap:6px;grid-column:1/-1;justify-content:flex-end;margin-top:6px}.wsh{font-weight:700;font-size:13.5px;margin:12px 2px 6px;color:var(--accent,#2F5597)}.wsh:first-of-type{margin-top:4px}.wsh .c{font-size:12px;opacity:.7}.expsort{gap:6px;align-items:center;margin-bottom:6px}.expsort .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}.item .ob{min-width:52px;height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2)}.item .ob.ok{background:var(--accent);border-color:var(--accent);color:#fff}.item .ob.arm{background:var(--bad);border-color:var(--bad);color:#fff}.dnl .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}.dnl .drow:first-of-type{border-top:0}
-.today .texp i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}.today .texp b{font-size:14px}.today .texp .gx{margin-left:auto;opacity:.7}.today .texp:hover,.today .texp:focus-visible{filter:brightness(.97);outline:none}html.sidemode .today .texp{margin:-2px 8px 8px;padding:5px 8px;font-size:12px}`;document.head.appendChild(st)})();
+(()=>{const st=document.createElement('style');st.textContent=`.today .texp{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr 1fr;align-items:center;gap:0;margin:-4px 12px 12px;padding:6px 4px;border:0;border-radius:12px;background:rgba(255,255,255,.55);font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;z-index:1}
+.today .texp .xh{font-style:normal;font-weight:700;font-size:12.5px;padding:0 12px 0 8px;white-space:nowrap}
+.today .texp .xc{display:flex;flex-direction:column;align-items:center;gap:1px;border-left:1px solid rgba(0,0,0,.12);padding:2px 6px}
+.today .texp .xc em{font-style:normal;font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.today .texp i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}.today .texp b{font-size:18px;line-height:1.2}.today .texp b.bad{color:var(--bad)}
+.today .texp:hover,.today .texp:focus-visible{filter:brightness(.97);outline:none}html.sidemode .today .texp{margin:-2px 8px 8px;padding:4px 2px}html.sidemode .today .texp .xh{padding:0 6px;font-size:11.5px}html.sidemode .today .texp b{font-size:15px}`;document.head.appendChild(st)})();
 // 매일 재고 알림: 휴대폰 푸시 글(stockBrief)과 PC 포스트잇(showStockBrief)에 한 줄
 {const _sb=stockBrief;stockBrief=function(){const s=_sb.apply(this,arguments);if(!s)return s;const x=expModel(),bad=x?x.past.length+x.left.length:0;return bad?`${s} · 유통기한 임박 ${bad}`:s}}
 // PC 포스트잇(desk_pc.js showStockBrief)에 넣을 줄
 function expBriefLines(lines){const x=expModel(),a=x?x.past.concat(x.left):[];if(!a.length)return;lines.push(`유통기한 임박(다 못 쓸 약) <b>${a.length}</b>`);a.slice(0,3).forEach(r=>lines.push(`· ${esc(r.i.base)} ${r.days<0?'기한 지남':expDate(r.e)} · 약 ${esc(fmt(Math.round(r.left)))}${esc(r.i.unit||'')} 남을 듯`))}
+
+/* ===== 어제 재고로 되돌리기 (v0.10.2, 사용자) — 잘못된 파일을 재고로 읽었을 때. 재고 설정 › 조제약 맨 아래.
+   stock/previous(어제 재고)를 stock/current로 되돌리고, 잘못 읽은 날짜의 매일 재고 기록(stock/daily)·성과(stock/kpi) 칸을 지움.
+   그 뒤 오늘 파일을 다시 올리면 평소처럼 어제 → 오늘로 이어짐. */
+async function restorePrevStock(){const P=S.prev,C=S.stock;if(!P||!P.rows||!C)return toast('되돌릴 어제 재고가 없어요');if(P.date===C.date)return toast('이미 어제 재고예요');
+ const bad=C.date;if(!await saveDoc('stock/current',P))return;S.stock=P;
+ const D=S.daily;if(D&&D.dates){const k=D.dates.indexOf(bad);if(k>=0){const n={dates:D.dates.filter((_,j)=>j!==k),c:{}};Object.keys(D.c||{}).forEach(c=>{n.c[c]=D.c[c].filter((_,j)=>j!==k)});if(await saveDoc('stock/daily',n))S.daily=n}}
+ const K=S.kpi;if(K&&K.days&&K.days[bad]){const days={...K.days};delete days[bad];if(await saveDoc('stock/kpi',{days}))S.kpi={days}}
+ renderToday();redrawPanel&&redrawPanel();toast(`${dateLabel(P.date)} 재고로 되돌렸어요 · 오늘 재고 파일을 다시 올려 주세요`)}
+function restoreCard(){const c=document.createElement('div');c.className='card';const P=S.prev,C=S.stock,can=!!(P&&P.rows&&C&&P.date!==C.date);
+ c.innerHTML=`<h3>어제 재고로 되돌리기</h3><p class="muted">엉뚱한 파일이 재고로 읽혀 숫자가 이상할 때 써요. 지금 재고(${C?dateLabel(C.date):'-'})를 지우고 어제 재고(${P?dateLabel(P.date):'없음'})로 되돌려요. 그다음 오늘 재고 파일을 다시 올리면 돼요.</p>
+  <div class="row"><button class="btn" type="button" id="rsPrev" ${can&&canWrite?'':'disabled'}>${P?dateLabel(P.date)+' 재고로 되돌리기':'어제 재고 없음'}</button></div>`;
+ const b=c.querySelector('#rsPrev');b.onclick=()=>{if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='한 번 더 누르면 되돌려요';b.style.cssText='background:var(--bad);border-color:var(--bad);color:#fff';setTimeout(()=>{if(b.isConnected){b.classList.remove('arm');b.style.cssText='';b.textContent=dateLabel(P.date)+' 재고로 되돌리기'}},4000);return}restorePrevStock()};return c}
+{const _ds7=drawSettings;drawSettings=function(body){_ds7(body);if(panelState.kind==='stockset'&&panelState.tab==='rx')body.appendChild(restoreCard())}}
 
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
