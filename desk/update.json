@@ -1,11 +1,11 @@
 {
- "version": "0.10.10",
- "notes": "휴대폰 첫 화면 확대·축소 막기",
+ "version": "0.10.11",
+ "notes": "PC 오늘의 재고 칸 정렬 고침 · 기록 중 줄 맞춤",
  "files": [
   {
    "p": "index.html",
-   "sha256": "10aeaace2809544b25c5ac0e142789655f6f8241d8eed970cda600afef604f4c",
-   "size": 469948
+   "sha256": "be20c42afcad8421d0e83a6fbeb1c78dfe3ee538a411b2c3619cc159bd2622f7",
+   "size": 470006
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "6b806c2098de679b0e19eb32f5e53d780d65f86ead4c446db1dec2ccc9fe5266",
+   "sha256": "7a4c3736bca0026b9ba029f3de7a38d9285a0dcaece455b9615dd140d1f93258",
    "size": 213
   },
   {

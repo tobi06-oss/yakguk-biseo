@@ -2929,12 +2929,12 @@ setTimeout(todaySplit,0);
 .today .tgs{grid-auto-flow:unset;grid-template-columns:1fr 1fr}
 .today .tg{font:inherit;color:inherit;text-align:left;border:0;cursor:pointer;gap:6px}
 .today .tg .tgh{font-weight:700;font-size:12.5px;letter-spacing:0;display:flex;align-items:center;gap:4px}
-.today .tg{position:relative}.today .tg>.tgset{position:absolute;top:8px;right:8px}.today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
+.today .tg{position:relative;align-items:stretch}.today .tgn{width:100%}.today .tg>.tgset{position:absolute;top:8px;right:8px}.today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
 .buyhow{margin:4px 0 0;padding:10px 12px 10px 30px;background:var(--surface-2,#f3f5f9);border-radius:10px;font-size:13px;line-height:1.7}
 .otcrule{background:var(--accent-soft,#e8eefb);border:1px solid var(--accent,#2F5597);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.otcrule b{color:var(--accent,#2F5597);margin-right:6px}.otcrule span{font-size:12px;color:var(--ink-2)}
 .today .tg .tgx{font-size:10px;font-weight:600;padding:0 5px;border-radius:999px;border:1px solid currentColor;opacity:.7}
 .today .tgn{display:grid;grid-template-columns:1fr 1fr;gap:6px}.today .tgc{display:flex;flex-direction:column;align-items:flex-start;justify-self:center;gap:6px;min-width:0}.today .tgc>span{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;margin-left:-13px}.today .tgc>span>b{margin-left:13px}.today .tgc>.tgh{margin-left:-13px}
-.today .tg b{font-size:20px!important}.today .tg b.sm{font-size:13px!important;font-family:inherit;padding-top:6px}.today .tg .tgoff{font-size:12px;opacity:.8;padding:6px 0}
+.today .tg b{font-size:20px!important}.today .tg b.sm{font-size:13px!important;font-family:inherit;line-height:25px;padding-top:0}.today .tg .tgoff{font-size:12px;opacity:.8;padding:6px 0}
 .today .tg:hover,.today .tg:focus-visible{filter:brightness(.97);outline:none}
 div.today{cursor:pointer}
 /* 오늘의 재고 제목은 공지사항 칸 제목과 같은 글씨 (v0.10.7) */
@@ -3217,7 +3217,7 @@ async function deadMark(code,k){const i=M&&(M.byCode[code]);const n={...deadMark
  const st=document.createElement('style');st.textContent='html.nozoom,html.nozoom body{touch-action:pan-x pan-y;overscroll-behavior-x:none}html.nozoom body{overflow-x:hidden}';document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793077457';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793077889';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
