@@ -1,11 +1,11 @@
 {
- "version": "0.10.14",
- "notes": "유통기한 탭: 다 못 쓸 약 / 다 쓸 약 목록을 제목 옆 탭으로 바꿔 보기",
+ "version": "0.10.15",
+ "notes": "유통기한 목록 탭을 밑줄 탭 모양으로",
  "files": [
   {
    "p": "index.html",
-   "sha256": "550d00fc314e527939bb966f9582736d9351ca61013299ab24d6e3c1c433088b",
-   "size": 475065
+   "sha256": "ee82bcc4ce11f430aea01432e9b69dec88fa60e337c21bd278dd4ab5daf15865",
+   "size": 475380
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "5cd315bec2a80873dbdc531fc5d1f5b11c3fb146e1fe0354be58134c0008271b",
+   "sha256": "f5c1805a174ca7ceaecab2e1a12e2ef13b917b7cdb8289fd76f30dcbcee490a3",
    "size": 213
   },
   {
