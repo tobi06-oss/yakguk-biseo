@@ -3526,6 +3526,8 @@ renderFavs();
  watch('profile/season',d=>S.season=d||null);
  watch('exceptions/returned',d=>S.ret=d||null);
  watch('stock/packs',d=>S.packs=d||null);
+ // 아래 자료는 화면 코드가 DESKDB에서 바로 읽음 → 다른 기기에서 바뀌어 들어와도 첫 화면·패널을 다시 그리도록 지켜봄 (v0.10.18)
+ ['stock/otcuse','stock/expiry','exceptions/expiry','exceptions/dead'].forEach(p=>watch(p,()=>{}));
  watch('settings/amode',d=>{S.amode=d||null;window.alertSync&&alertSync()});
  watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
  watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});

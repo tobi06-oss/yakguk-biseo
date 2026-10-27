@@ -3368,7 +3368,7 @@ setTimeout(todayXl,0);
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793093606';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793108350';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
@@ -3406,6 +3406,8 @@ renderFavs();
  watch('profile/season',d=>S.season=d||null);
  watch('exceptions/returned',d=>S.ret=d||null);
  watch('stock/packs',d=>S.packs=d||null);
+ // 아래 자료는 화면 코드가 DESKDB에서 바로 읽음 → 다른 기기에서 바뀌어 들어와도 첫 화면·패널을 다시 그리도록 지켜봄 (v0.10.18)
+ ['stock/otcuse','stock/expiry','exceptions/expiry','exceptions/dead'].forEach(p=>watch(p,()=>{}));
  watch('settings/amode',d=>{S.amode=d||null;window.alertSync&&alertSync()});
  watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
  watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();renderStickies();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});

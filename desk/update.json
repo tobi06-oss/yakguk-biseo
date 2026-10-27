@@ -1,11 +1,11 @@
 {
- "version": "0.10.18",
- "notes": "약국 매뉴얼·개인 업무수첩: 끌어서 순서 바꾸기",
+ "version": "0.10.19",
+ "notes": "다른 기기에서 받은 유통기한 자료도 첫 화면에 바로 보이게",
  "files": [
   {
    "p": "index.html",
-   "sha256": "13fe5aee40aa585e9dc20c6dfdd5a0f12540495c4316dbf7ef1116e43f0de9e7",
-   "size": 493880
+   "sha256": "17ad89712baa0ecc9c4be31de2d412d92484f327df805bf24c703453278c57d5",
+   "size": 494155
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "638975154a38c9c67fa6e12776b60cafd622ecfd62c1aba064f6c73757184bb6",
+   "sha256": "d4cd07d2836c1c2f07b0658e2c3936c4f0c1ae753ca5d5c14d0a2cf048d7dc51",
    "size": 213
   },
   {
