@@ -1,11 +1,11 @@
 {
- "version": "0.10.9",
- "notes": "첫 화면 단추로 열면 그 단추 내용만 보이게(다른 탭·바로가기 없앰)",
+ "version": "0.10.10",
+ "notes": "휴대폰 첫 화면 확대·축소 막기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "03fb5a833be9672f0ae9feb34a550ee5fef53322a0817698e8984230cb43e335",
-   "size": 469002
+   "sha256": "10aeaace2809544b25c5ac0e142789655f6f8241d8eed970cda600afef604f4c",
+   "size": 469948
   },
   {
    "p": "main.js",
@@ -39,8 +39,8 @@
   },
   {
    "p": "package.json",
-   "sha256": "f240ee6d1f36bb0c50a39b7981879ee395d818e809e5c2085b29e54f214dd182",
-   "size": 212
+   "sha256": "6b806c2098de679b0e19eb32f5e53d780d65f86ead4c446db1dec2ccc9fe5266",
+   "size": 213
   },
   {
    "p": "icon.png",

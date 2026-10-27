@@ -3207,6 +3207,14 @@ async function deadMark(code,k){const i=M&&(M.byCode[code]);const n={...deadMark
  body.querySelectorAll('[data-dm]').forEach(b=>b.onclick=()=>deadMark(b.dataset.dm,b.dataset.k));
  body.querySelectorAll('[data-dundo]').forEach(b=>b.onclick=()=>deadMark(b.dataset.dundo,'undo'))}}
 
+/* ===== 휴대폰 첫 화면은 확대·축소 막기 (v0.10.10) — 터치하다 화면이 밀리지 않게. 열린 화면(패널)에서는 그대로 확대 가능 ===== */
+(()=>{const H=document.documentElement,home=()=>!document.querySelector('.scrim'),sync=()=>H.classList.toggle('nozoom',home());
+ sync();new MutationObserver(sync).observe(document.body,{childList:true});
+ // iOS 사파리는 touch-action만으로는 두 손가락 확대를 다 못 막아서 제스처 이벤트도 막음
+ ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>{if(home())e.preventDefault()},{passive:false}));
+ document.addEventListener('touchmove',e=>{if(e.touches.length>1&&home())e.preventDefault()},{passive:false});
+ const st=document.createElement('style');st.textContent='html.nozoom,html.nozoom body{touch-action:pan-x pan-y;overscroll-behavior-x:none}html.nozoom body{overflow-x:hidden}';document.head.appendChild(st)})();
+
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
 function flashTitle(){}
