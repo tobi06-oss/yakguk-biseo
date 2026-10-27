@@ -1,11 +1,11 @@
 {
- "version": "0.10.5",
- "notes": "유통기한 기한을 일수로 직접 입력 · 사입처별 기한(예: 세화 210일)",
+ "version": "0.10.6",
+ "notes": "사입처별 기한: 있는 사입처만 자동완성으로 고르기(오타 방지)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "e0c19a967e8fe3cf13b24e33b6bee5c469f6fdca24d2c17f1955de040634e346",
-   "size": 465926
+   "sha256": "c9a2d52048430c157f07202b08bf3f76147ee6e682cdc849b6c16ef13f7f44fe",
+   "size": 467865
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "63936b2b51b83a3135f84de318c36e0b236bb514403434bee2a64cf9a87c5911",
+   "sha256": "298b88fa2d1eef6b7e9a71f00c45b6b6ad07eddb8e72fc59a764df08d1e6d09d",
    "size": 212
   },
   {
