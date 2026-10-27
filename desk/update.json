@@ -1,11 +1,11 @@
 {
- "version": "0.10.3",
- "notes": "오늘의 재고 넓은 창 가운데 정렬 · 유통기한 기한 설정을 유통기한 탭 안으로 · 장기미조제 카드 목록·확인·보류 · 유통기한 줄 한 줄",
+ "version": "0.10.4",
+ "notes": "오늘의 재고 칸을 점이 아닌 글씨 기준으로 가운데 정렬",
  "files": [
   {
    "p": "index.html",
-   "sha256": "c73e808c988f87690349b9ae87ad383b345a1507ff309d13111e1631b5d6dc8c",
-   "size": 462692
+   "sha256": "b646eb3d39c5f323a38fbdfd8921ccd26f491c6dd65e15986d295a4c70bb05a6",
+   "size": 462710
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "339f7df00ec23420b60d038e75ea0655ad13de89e157ef664faf068338ace818",
+   "sha256": "71c78c7c6cd2392f0cdb317bf72a029e6269cddb98e45e69de4923d65bc5d832",
    "size": 212
   },
   {
