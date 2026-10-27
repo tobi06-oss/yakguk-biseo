@@ -3229,9 +3229,61 @@ async function deadMark(code,k){const i=M&&(M.byCode[code]);const n={...deadMark
  ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>{if(home())e.preventDefault()},{passive:false}));
  document.addEventListener('touchmove',e=>{if(e.touches.length>1&&home())e.preventDefault()},{passive:false});
  const st=document.createElement('style');st.textContent='html.nozoom,html.nozoom body{touch-action:pan-x pan-y;overscroll-behavior-x:none}html.nozoom body{overflow-x:hidden}';document.head.appendChild(st)})();
+// 오늘의 재고 → 엑셀 저장 (v0.10.16): 조제약·일반약·유통기한 아래 항목을 골라 시트별로 저장
+const XL_KEY='cb-xl-pick';
+function xlTree(){if(!M)return [];const o=typeof otcModel==='function'?otcModel():null,id=typeof otcIdle==='function'?otcIdle():null,x=typeof expModel==='function'?expModel():null;
+ const nm=i=>i.base||i.raw||i.code,r1=v=>v==null?'':Math.round(v*10)/10,dd=e=>e&&e!=='0'?`${e.slice(0,4)}-${e.slice(4,6)}-${e.slice(6,8)}`:'',ld=s=>s?`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`:'';
+ const RX=['약품명','규격','현재고','단위','최소재고','적정재고','주문할 양','며칠분 남음','사입처','제약회사','마지막 조제'],rx=i=>[nm(i),i.str||'',r1(i.cur),i.unit||'',r1(i.mn),r1(i.opt),r1(i.need),i.days==null?'':Math.round(i.days),i.ws||'',i.co||'',ld(i.last)];
+ const EX=['약품명','규격','향정','유효기간','남은 일수','수량','단위','하루 조제','기한까지 남을 양','사입처'],ex=r=>[nm(r.i),r.i.str||'',r.psy?'향정':'',dd(r.e),r.days,r1(r.q),r.i.unit||'',r1(r.d),r.left!=null?Math.round(r.left):'',(r.ws&&r.ws.length?r.ws.join(', '):r.i.ws)||''];
+ return [
+  {k:'rx',l:'조제약',c:[
+   {k:'low',l:'부족',h:RX,rows:M.low.map(rx)},
+   ...(S.prev?[{k:'gone',l:'재고 소진',h:RX,rows:M.gone.map(rx)}]:[]),
+   {k:'dead',l:'장기미조제',h:['약품명','규격','현재고','단위','조제 안 한 날','마지막 조제','재고 금액(사입가)','사입처','제약회사'],rows:M.deadAct.map(i=>[nm(i),i.str||'',r1(i.cur),i.unit||'',i.idle||'',ld(i.last),Math.round((i.cur||0)*(i.buy||0)),i.ws||'',i.co||''])},
+   {k:'over',l:'과다 재고',h:['약품명','규격','현재고','단위','적정재고','넘는 양','며칠분 남음','사입처','제약회사'],rows:M.over.map(i=>[nm(i),i.str||'',r1(i.cur),i.unit||'',r1(i.opt),r1(Math.max(0,i.cur-i.opt)),i.days==null?'':Math.round(i.days),i.ws||'',i.co||''])}]},
+  {k:'otc',l:'일반약',c:[
+   {k:'low',l:'부족',h:['약품명','규격','현재고','단위','하루 판매','최소재고','적정재고','주문할 양','며칠분 남음','사입처'],rows:o&&o.low?o.low.map(z=>[nm(z.i),z.i.str||'',r1(z.i.cur),z.i.unit||'',r1(z.d),r1(z.mn),r1(z.opt),r1(z.need),z.days==null?'':Math.round(z.days),z.i.ws||'']):[]},
+   {k:'idle',l:'장기미판매',h:['약품명','규격','현재고','단위','사입처','제약회사'],rows:id?id.map(i=>[nm(i),i.str||'',r1(i.cur),i.unit||'',i.ws||'',i.co||'']):[],none:!id}]},
+  {k:'exp',l:'유통기한',c:x?[
+   {k:'past',l:'기한 지남',h:EX,rows:x.past.map(ex)},
+   {k:'left',l:'기한 전에 다 못 쓸 것 같은 약',h:EX,rows:x.left.map(ex)},
+   {k:'ok',l:'다 쓸 것 같은 약',h:EX,rows:x.ok.map(ex)}]:[],none:!x}]}
+function xlPick(){try{const v=JSON.parse(localStorage.getItem(XL_KEY)||'null');if(v&&typeof v==='object')return v}catch(e){}return null}
+function xlSave(tree,pick){const wb=XLSX.utils.book_new();let n=0;const d=M.date||'';
+ tree.forEach(g=>g.c.forEach(s=>{if(!pick[g.k+'.'+s.k])return;const ws=XLSX.utils.aoa_to_sheet([[`${g.l} · ${s.l} (${dateLabel(M.date)} 재고 기준)`],[],s.h,...s.rows]);
+  ws['!cols']=s.h.map((h,k)=>({wch:k===0?26:Math.max(8,Math.min(24,String(h).length*2+2))}));
+  XLSX.utils.book_append_sheet(wb,ws,`${g.l}-${s.l}`.replace(/[\\/?*[\]:]/g,'').slice(0,31));n++}));
+ if(!n){toast('저장할 항목을 하나 이상 골라 주세요');return false}
+ xlDown(new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`오늘의재고_${String(d).replace(/\D/g,'')||'자료'}.xlsx`);toast(`${n}개 항목을 엑셀로 저장했어요`);return true}
+function xlDown(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.style.display='none';(document.querySelector('.scrim')||document.body).appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000)}
+function xlOpen(){if(!M){toast('재고 자료가 아직 없어요');return}document.querySelector('.scrim')?.remove();
+ const tree=xlTree(),saved=xlPick(),pick={};tree.forEach(g=>g.c.forEach(s=>{const id=g.k+'.'+s.k;pick[id]=saved?!!saved[id]:true}));
+ const scrim=document.createElement('div');scrim.className='scrim';const p=document.createElement('div');p.className='panel xlp';p.setAttribute('role','dialog');p.setAttribute('aria-label','엑셀로 저장');scrim.appendChild(p);
+ const close=()=>scrim.remove();scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ const draw=()=>{p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>엑셀로 저장</h2><div class="row"><button class="iconbtn" type="button" id="xlClose" aria-label="닫기">✕</button></div></div></div>
+  <div class="panel-body"><p class="muted">넣을 항목을 고르세요. 고른 항목마다 엑셀 시트가 하나씩 생겨요. (${esc(dateLabel(M.date))} 재고 기준)</p>
+  ${tree.map(g=>{const ids=g.c.map(s=>g.k+'.'+s.k),on=ids.filter(i=>pick[i]).length;return `<div class="card xlg"><label class="xlh"><input type="checkbox" data-xg="${g.k}" ${on&&on===ids.length?'checked':''} ${g.c.length?'':'disabled'}><b>${g.l}</b>${g.none?'<span class="sub"> · 자료 없음</span>':''}</label>
+   ${g.c.map(s=>`<label class="xls"><input type="checkbox" data-xs="${g.k}.${s.k}" ${pick[g.k+'.'+s.k]?'checked':''}><span>${s.l}</span><span class="c">${s.none?'자료 없음':fmt(s.rows.length)+'개'}</span></label>`).join('')}</div>`}).join('')}
+  <div class="row" style="gap:8px;margin-top:4px"><button class="btn sm" type="button" id="xlAll">모두 고르기</button><button class="btn sm" type="button" id="xlNone">모두 빼기</button><button class="btn primary" type="button" id="xlGo" style="margin-left:auto">엑셀 파일 저장</button></div></div>`;
+  tree.forEach(g=>{const ids=g.c.map(s=>g.k+'.'+s.k),on=ids.filter(i=>pick[i]).length,b=p.querySelector(`[data-xg="${g.k}"]`);if(b)b.indeterminate=on>0&&on<ids.length});
+  const keep=()=>{try{localStorage.setItem(XL_KEY,JSON.stringify(pick))}catch(e){}};
+  p.querySelectorAll('[data-xg]').forEach(b=>b.onchange=()=>{const g=tree.find(t=>t.k===b.dataset.xg);g.c.forEach(s=>pick[g.k+'.'+s.k]=b.checked);keep();draw()});
+  p.querySelectorAll('[data-xs]').forEach(b=>b.onchange=()=>{pick[b.dataset.xs]=b.checked;keep();draw()});
+  p.querySelector('#xlAll').onclick=()=>{Object.keys(pick).forEach(k=>pick[k]=true);keep();draw()};p.querySelector('#xlNone').onclick=()=>{Object.keys(pick).forEach(k=>pick[k]=false);keep();draw()};
+  p.querySelector('#xlGo').onclick=()=>{if(xlSave(tree,pick))close()};p.querySelector('#xlClose').onclick=close};
+ document.body.appendChild(scrim);draw();p.querySelector('#xlClose').focus()}
+function todayXl(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty')||!M)return;const d=t.querySelector('.d'),go=d&&d.querySelector('.go');if(!go||d.querySelector('.xlgo'))return;
+ const b=document.createElement('span');b.className='go xlgo';b.setAttribute('role','button');b.tabIndex=0;b.innerHTML='<span class="l">엑셀 저장</span><span class="s">엑셀</span>';b.setAttribute('aria-label','엑셀로 저장');b.title='오늘의 재고를 엑셀로 저장';
+ const run=e=>{e.stopPropagation();e.preventDefault();xlOpen()};b.addEventListener('click',run);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')run(e)});
+ const w=document.createElement('span');w.className='gos';go.replaceWith(w);w.append(b,go)}
+{const _rt3=renderToday;renderToday=function(){_rt3();todayXl()}}
+setTimeout(todayXl,0);
+(()=>{const st=document.createElement('style');st.textContent=`.today .gos{display:inline-flex;gap:6px;align-items:center;flex:0 0 auto}.today .gos .go{white-space:nowrap}.today .xlgo .s{display:none}@media (max-width:420px){.today .xlgo .l{display:none}.today .xlgo .s{display:inline}.today .gos{gap:4px}}.today .xlgo{cursor:pointer}.today .xlgo:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.xlp .xlg{padding:10px 14px}.xlp .xlh{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;padding:4px 0}.xlp .xls{display:flex;align-items:center;gap:8px;padding:6px 0 6px 26px;cursor:pointer;border-top:1px solid var(--line,#eee)}.xlp .xls:first-of-type{border-top:0}
+.xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793081837';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793085752';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));

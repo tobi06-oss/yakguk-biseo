@@ -1,11 +1,11 @@
 {
- "version": "0.10.15",
- "notes": "유통기한 목록 탭을 밑줄 탭 모양으로",
+ "version": "0.10.16",
+ "notes": "오늘의 재고 엑셀 저장 (조제약·일반약·유통기한 항목을 골라 시트별로)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "ee82bcc4ce11f430aea01432e9b69dec88fa60e337c21bd278dd4ab5daf15865",
-   "size": 475380
+   "sha256": "78c5190972b41363778ead3c99b9c3e272d20c2111d520053ac84099967c01b8",
+   "size": 483955
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "f5c1805a174ca7ceaecab2e1a12e2ef13b917b7cdb8289fd76f30dcbcee490a3",
+   "sha256": "27bca80db28de19823431454af475c8b4625b501759d6e3b6b9c97524cc58cbe",
    "size": 213
   },
   {
