@@ -778,9 +778,11 @@ function renderToday(){
 
 /* ===== 패널 ===== */
 let panelState={kind:null,tab:null},redrawPanel=null;
-function openPanel(kind,tab){
+// 첫 화면 단추로 열면 그 단추에 해당하는 탭만 보여 줌 (scope). all=true 이거나 탭 없이 열면 전체 탭
+const panelScope=(k,t,all)=>{if(all||!t)return null;if(k==='stock')return ['otc','exp'].includes(t)?[t]:['order','today','dead','search','over','kpi','basis'];if(k==='team'||k==='stockset')return [t];return null};
+function openPanel(kind,tab,all){
  document.querySelector('.scrim')?.remove();
- panelState={kind,tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'etc',team:'notice',stockset:(window.stocksetTabs?'rx':'basic')}[kind]};
+ panelState={kind,scope:panelScope(kind,tab,all),tab:tab||{stock:'order',manual:'list',mynote:'list',memo:'memos',settings:'etc',team:'notice',stockset:(window.stocksetTabs?'rx':'basic')}[kind]};
  const scrim=document.createElement('div');scrim.className='scrim';
  const p=document.createElement('div');p.className='panel';p.setAttribute('role','dialog');scrim.appendChild(p);
  scrim.onclick=e=>{if(e.target===scrim)close()};scrim.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
@@ -801,10 +803,10 @@ function openPanel(kind,tab){
    :kind==='memo'?([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
    :kind==='stockset'?(window.stocksetTabs?stocksetTabs():[['basic','기준·알림'],['files','파일 올리기']]).concat([['exc','품목 예외',Object.keys(S.exc).length]])
    :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[['basic','약국 정보']]).concat(window.bellPopDraw?[['bell','알림']]:[]);
-  p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${({stock:['stockset'],stockset:['stock']}[kind]||[]).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
-   <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
+  const sc=panelState.scope,shown=sc?tabs.filter(t=>sc.includes(t[0])||t[0]===panelState.tab):tabs,vis=shown.length?shown:tabs,one=vis.length===1;
+  p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${one&&sc?vis[0][1]+(kind==='stockset'?' 설정':''):TITLES[kind]}</h2><div class="row"><button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
+   ${one?'':`<div class="tabs" role="tablist">${vis.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>`}</div><div class="panel-body" id="pbody"></div>`;
   p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
-  p.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openPanel(b.dataset.go));
   $('pClose').onclick=close;
   const body=$('pbody');
   if(kind==='team')drawTeam(body);else if(kind==='alt')drawAlt(body);else if(kind==='stock')drawStock(body);else if(kind==='manual')drawManual(body);else if(kind==='mynote')drawMyNote(body);else if(kind==='memo')drawMemo(body);else drawSettings(body);
@@ -2840,7 +2842,7 @@ const TSET_SVG='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 function todaySetAdd(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty')||t.querySelector('.tset'))return;const go=t.querySelector('.d .go');if(!go)return;
  const w=document.createElement('span');w.className='dr';go.before(w);w.appendChild(go);
  const g=document.createElement('span');g.className='tset';g.id='todaySet';g.setAttribute('role','button');g.tabIndex=0;g.title='재고 설정';g.setAttribute('aria-label','재고 설정');g.innerHTML=TSET_SVG;w.prepend(g);
- const open=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset','rx')};g.addEventListener('click',open);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)})}
+ const open=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset','rx',true)};g.addEventListener('click',open);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)})}
 {const _rt=renderToday;renderToday=function(){_rt();todaySetAdd()}}
 setTimeout(todaySetAdd,0);
 // 재고 설정 › 기준·알림 맨 위에 오늘의 재고 색 (예전엔 설정 › 기본)
@@ -3207,7 +3209,7 @@ async function deadMark(code,k){const i=M&&(M.byCode[code]);const n={...deadMark
  body.querySelectorAll('[data-dundo]').forEach(b=>b.onclick=()=>deadMark(b.dataset.dundo,'undo'))}}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793076859';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793077239';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
