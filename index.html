@@ -1580,7 +1580,7 @@ document.addEventListener('paste',e=>{if(!canImg)return;const f=[...(e.clipboard
 /* ===== 약국 계정 · 여러 기기 실시간 연동 · 공지 ===== */
 // 약국 비서 전용 Firebase 프로젝트 (무매데스크와 분리)
 const FB_CFG={apiKey:"AIzaSyDaZHYPgMmeBtLoxa7dg2VXtECBKtGpQQ4",authDomain:"yakguk-biseo.firebaseapp.com",projectId:"yakguk-biseo",storageBucket:"yakguk-biseo.firebasestorage.app",messagingSenderId:"338689915013",appId:"1:338689915013:web:3a6026e36ce22dafd751ec"};
-const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode','exceptions/returned','stock/packs','stock/otcuse'];
+const WHOLE=['settings/main','exceptions/main','manual/main','profile/current','stock/current','stock/previous','stock/ordered','stock/kpi','stock/daily','profile/season','settings/amode','exceptions/returned','stock/packs','stock/otcuse','stock/expiry','exceptions/expiry'];
 const ROLE={owner:'국장',admin:'관리자',staff:'직원'};
 // 권한 이름: 국장·관리자는 모두 '관리자' 권한. 직함(국장/관리자/직원)은 가입할 때 고름
 const PERM={owner:'관리자',admin:'관리자',staff:'직원'};const TITLE_OPTS=['국장','관리자','직원'];
@@ -3040,8 +3040,88 @@ function lowDaysCard(){const v=S.settings&&S.settings.lowDays!=null?+S.settings.
  c.querySelector('#lowDSave').onclick=async()=>{const n={...S.settings,lowDays:+c.querySelector('#lowD').value};if(await saveDoc('settings/main',n)){S.settings=n;renderToday();toast('부족 판정을 저장했어요');redrawPanel&&redrawPanel()}};return c}
 {const _ds5=drawSettings;drawSettings=function(body){_ds5(body);if(panelState.kind==='stockset'&&panelState.tab==='rx'){const f=body.querySelector('#sSize');const card=f&&f.closest('.card');const lc=lowDaysCard();if(card)card.after(lc);else body.prepend(lc)}}}
 
+/* ===== 유통기한 임박 (v0.10.0) — 이팜 "약품유효기간리스트"(사입일자·약품코드·총수량·유효기간·현재고) =====
+   재고가 몇 번 들어온 것인지는 파일에 없어서 "먼저 들어온 약부터 쓴다"고 보고, 최근 사입부터 현재고만큼이 남아 있다고 계산.
+   파일 올린 뒤 재고가 늘었으면 늘어난 만큼은 새로 들어온(기한 모르는) 약으로 봄. 저장: stock/expiry {at,n,l:{code:{c:파일 현재고,l:[[유효기간8,수량],…]}}}
+   기한 전에 다 쓸지는 하루 조제량(i.daily, 없으면 일반약 판매 속도)으로. 기준 일수 settings.expDays(기본 90).
+   보이는 곳: 재고 › 유통기한 탭, 첫 화면 오늘의 재고 아래 한 줄, 매일 재고 알림(포스트잇·휴대폰), 재고 설정 › 조제약 "유통기한" 카드. */
+const expDoc=()=>{try{return DESKDB.get('stock/expiry')||null}catch(e){return null}};
+const expDays=()=>{const v=(S.settings||{}).expDays;return v==null?90:+v};
+const exp8=s=>{const d=String(s??'').replace(/\D/g,'');if(d.length===8&&+d.slice(0,4)>2000&&+d.slice(4,6)>=1&&+d.slice(4,6)<=12)return d;if(d.length===6&&+d.slice(0,4)>2000)return d+'28';return ''};
+async function importExp(u){try{const aoa=readAoa(u);let h=-1;for(let k=0;k<Math.min(aoa.length,30);k++){const r=(aoa[k]||[]).map(H);if(r.includes('유효기간')&&r.includes('약품코드')){h=k;break}}
+  if(h<0)throw new Error('유효기간 파일이 아니에요 (약품코드·유효기간 칸이 없어요)');const hd=aoa[h].map(H),c=n=>hd.indexOf(n);const qc=c('총수량')>=0?c('총수량'):c('사입수량'),dc=c('사입일자'),cc=c('현재고'),wc=c('사입거래처');
+  const by={},cur={};for(let k=h+1;k<aoa.length;k++){const r=aoa[k];const code=String(r[c('약품코드')]??'').trim();if(!code)continue;
+   if(cc>=0&&r[cc]!==''&&r[cc]!=null&&cur[code]==null)cur[code]=+r[cc]||0;const q=+r[qc]||0;if(q<=0)continue;
+   (by[code]=by[code]||[]).push({d:String(r[dc]??'').replace(/\D/g,''),q,e:exp8(r[c('유효기간')]),w:wc>=0?String(r[wc]??'').trim():''})}
+  const l={};let nE=0;Object.entries(by).forEach(([code,a])=>{const st=cur[code]||0;if(st<=0)return;a.sort((x,y)=>y.d.localeCompare(x.d));let rem=st;const m={};
+   for(const x of a){if(rem<=0)break;const k=Math.min(x.q,rem);rem-=k;const e=(x.e||'0')+'|'+x.w;m[e]=(m[e]||0)+k}
+   l[code]={c:st,l:Object.entries(m).sort((x,y)=>x[0].localeCompare(y[0])).map(([e,q])=>{const [ex,w]=e.split('|');return [ex,Math.round(q*100)/100,w]})};if(Object.keys(m).some(e=>!e.startsWith('0|')))nE++});
+  const doc={src:'약품유효기간리스트',at:Date.now(),n:nE,l};if(await saveDoc('stock/expiry',doc)){toast(`유효기간 ${fmt(nE)}품목을 읽었어요`);renderToday();redrawPanel&&redrawPanel();return{ok:true,kind:'expiry',n:nE}}return{ok:false}
+ }catch(e){toast(e.message||'파일을 읽지 못했어요');return{ok:false}}}
+const isExpHdr=u=>{try{const aoa=readAoa(u);for(let k=0;k<Math.min(aoa.length,30);k++){if((aoa[k]||[]).map(H).includes('유효기간'))return true}}catch(e){}return false};
+// 이 파일에도 "현재고" 칸이 있어서 재고 파일로 잘못 읽히지 않게 (폴더 자동·재고 올리기 둘 다)
+{const _is=importStock;importStock=async function(buf,source){if(isExpHdr(buf))return importExp(buf);return _is.apply(this,arguments)}}
+if(typeof onDeskFile==='function'){const _odf2=onDeskFile;onDeskFile=async function(name,buf){if(isExpHdr(new Uint8Array(buf))){const r=await importExp(new Uint8Array(buf));if(r.ok)window.desk.imported({name,kind:r.kind,n:r.n});return}return _odf2(name,buf)}}
+// 확인(처리함: 그 기한 이하 묶음은 다시 안 띄움, 더 늦은 기한이 임박하면 다시 뜸) · 보류(7일 안 보기) · 예외(이 약은 유통기한 알림 안 함). exceptions/expiry {items:{code:{k:'ok'|'hold'|'skip',e,at,name}}}
+const expMarks=()=>{try{return (DESKDB.get('exceptions/expiry')||{}).items||{}}catch(e){return {}}};
+const expHidden=(m,e)=>!!m&&(m.k==='skip'||(m.k==='hold'&&Date.now()-m.at<7*864e5)||(m.k==='ok'&&e<=m.e));
+async function expMark(code,k,e){const i=M&&M.byCode[code];const n={...expMarks()};if(k==='undo')delete n[code];else n[code]={k,e:e||'',at:Date.now(),name:i?i.base:(n[code]&&n[code].name)||code};
+ Object.keys(n).forEach(c=>{if(n[c].k==='hold'&&Date.now()-n[c].at>7*864e5)delete n[c]});
+ if(await saveDoc('exceptions/expiry',{items:n})){renderToday();if(k==='skip')toast(`${i?i.base:''} — 유통기한 알림에서 뺐어요 (아래 "확인·보류·예외한 약"에서 되돌릴 수 있어요)`);redrawPanel&&redrawPanel()}}
+function expModel(){const D=expDoc();if(!D||!D.l||!M)return null;const today=ymd8(new Date()),N=expDays(),U=otcUse(),MK=expMarks(),rows=[];let hid=0;
+ M.items.forEach(i=>{const x=D.l[i.code];if(!x||!(i.cur>0))return;
+  // 지금 재고만큼, 최근에 들어온 것부터 남아 있다고 봄 (파일 뒤에 늘어난 만큼은 기한 모름)
+  let rem=Math.min(i.cur,x.c);const lots=[];for(let k=x.l.length-1;k>=0&&rem>0;k--){const q=Math.min(x.l[k][1],rem);rem-=q;lots.unshift([x.l[k][0],q,x.l[k][2]||''])}
+  const d=i.daily>0?i.daily:(U&&U.d&&+U.d[i.code])||0;let used=0,soon=null;
+  for(const [e,q,w] of lots){if(e==='0')continue;const days=dayDiff(today,e),can=Math.max(0,d*Math.max(days,0)-used),w0=Math.min(q,can);used+=w0;
+   if(days<=N){if(!soon)soon={e,days,q:0,left:0,ws:[]};soon.q+=q;soon.left+=q-w0;if(w&&!soon.ws.includes(w))soon.ws.push(w);if(days<soon.days){soon.e=e;soon.days=days}}}
+  if(soon){if(expHidden(MK[i.code],soon.e)){hid++;return}soon.left=Math.round(soon.left*10)/10;soon.q=Math.round(soon.q*10)/10;rows.push({i,d,...soon})}});
+ rows.sort((a,b)=>a.days-b.days);const past=rows.filter(r=>r.days<0),left=rows.filter(r=>r.days>=0&&r.left>=1),ok=rows.filter(r=>r.days>=0&&r.left<1);
+ return{N,D,rows,past,left,ok,MK,hid}}
+const expSort=()=>{try{return localStorage.getItem('cb-exp-sort')||'date'}catch(e){return 'date'}};
+const expDate=e=>`${e.slice(0,4)}.${+e.slice(4,6)}.${+e.slice(6)}`;
+function expTab(){const x=expModel();return x?[['exp','유통기한',x.past.length+x.left.length]]:[['exp','유통기한']]}
+{const _ot=window.otcTab;window.otcTab=otcTab=function(){return (_ot?_ot():[]).concat(expTab())}}
+{const _dst3=drawStock;drawStock=function(body){if(panelState.tab!=='exp')return _dst3(body);if(needStock(body))return;const x=expModel();
+ if(!x){body.innerHTML='<div class="card"><p class="muted">유효기간 자료가 아직 없어요. 재고 설정 › 조제약의 "유통기한" 카드에서 이팜 약품유효기간리스트 엑셀을 올리거나, PC 폴더에 넣어 두면 읽어요.</p><button class="btn primary" type="button" id="goExp">유통기한 설정으로</button></div>';$('goExp').onclick=()=>openPanel('stockset','rx');return}
+ const u=r=>esc(r.i.unit||''),wsOf=r=>r.ws&&r.ws.length?'사입처 '+r.ws.join(', '):r.i.ws?'사입처 '+r.i.ws+' (최근 조제 기록)':'사입처 정보 없음',sortWs=expSort()==='ws',
+  wsKey=r=>(r.ws&&r.ws[0])||r.i.ws||'',list=(a,kind)=>{if(!sortWs)return a.map(r=>row(r,kind)).join('');const g={};a.forEach(r=>{const k=wsKey(r)||'사입처 정보 없음';(g[k]=g[k]||[]).push(r)});
+   return Object.keys(g).sort((x,y)=>(x==='사입처 정보 없음')-(y==='사입처 정보 없음')||x.localeCompare(y,'ko')).map(k=>`<div class="wsh">${esc(k)} <span class="c">${g[k].length}</span></div>`+g[k].map(r=>row(r,kind)).join('')).join('')},row=(r,kind)=>`<div class="item"><div class="nm"><b>${esc(r.i.base)}</b> <span class="sub">${esc(r.i.str||'')}</span><div class="sub">${esc(wsOf(r))}</div><div class="sub">기한 ${expDate(r.e)} · ${r.days<0?`<b style="color:var(--bad)">${fmt(-r.days)}일 지남</b>`:`${fmt(r.days)}일 남음`} · 하루 ${r.d>0?fmt(Math.round(r.d*10)/10)+u(r):'조제 거의 없음'}</div></div><div class="q"><b>${fmt(r.q)}</b> <span class="sub">${u(r)}</span>${kind==='left'?`<div class="sub" style="color:var(--bad);font-weight:600">약 ${fmt(Math.round(r.left))}${u(r)} 남을 듯</div>`:kind==='ok'?'<div class="sub" style="color:var(--ok,#1a7f37)">기한 전에 다 씀</div>':''}</div><div class="ostk"><button class="ob ok" type="button" data-em="${esc(r.i.code)}" data-e="${r.e}" data-k="ok">확인</button><button class="ob hold" type="button" data-em="${esc(r.i.code)}" data-e="${r.e}" data-k="hold">보류</button><button class="ob skip" type="button" data-eskip="${esc(r.i.code)}">예외</button></div></div>`;
+ const KL={ok:'확인',hold:'보류',skip:'예외'},marked=Object.entries(x.MK).filter(([,m])=>m.k!=='hold'||Date.now()-m.at<7*864e5).sort((a,b)=>b[1].at-a[1].at);
+ body.innerHTML=`<p class="muted"><b>확인</b>: 반품·정리했어요(이 기한 묶음은 다시 안 띄움) · <b>보류</b>: 7일 동안 안 보기 · <b>예외</b>: 이 약은 유통기한 알림 안 함.</p><div class="row expsort"><span class="sub">정렬</span><button class="btn sm${sortWs?'':' on'}" type="button" data-es="date" aria-pressed="${!sortWs}">기한 빠른 순</button><button class="btn sm${sortWs?' on':''}" type="button" data-es="ws" aria-pressed="${sortWs}">사입처별</button></div><p class="muted">유효기간이 ${x.N}일 안에 끝나는 약이에요. 이팜 파일에는 지금 재고가 언제 들어온 것인지 없어서, 먼저 들어온 약부터 썼다고 보고 계산해요. "남을 듯"은 최근 6개월 하루 조제량으로 기한까지 다 못 쓸 양이에요 — 반품하거나 먼저 쓰도록 챙겨 주세요.</p>
+  ${x.past.length?`<div class="card"><h3>기한 지남 <span class="c">${x.past.length}</span></h3>${list(x.past,'past')}</div>`:''}
+  <div class="card"><h3>기한 전에 다 못 쓸 것 같은 약 <span class="c">${x.left.length}</span></h3>${x.left.length?list(x.left,'left'):'<p class="muted">없어요.</p>'}</div>
+  <details class="card"><summary>${x.N}일 안 기한이지만 다 쓸 것 같은 약 ${x.ok.length}개</summary>${list(x.ok,'ok')}</details>
+  ${marked.length?`<div class="card dnl"><h3>확인·보류·예외한 약 <span class="c">${marked.length}</span></h3><p class="sub">확인: 더 늦은 기한의 약이 임박하면 다시 떠요 · 보류: 7일 뒤 다시 떠요 · 예외: 되돌릴 때까지 안 떠요.</p>${marked.map(([c,m])=>`<div class="drow"><span>${esc(m.name||c)} <span class="sub">${KL[m.k]||''}${m.e&&m.k==='ok'?' · 기한 '+expDate(m.e):''}</span></span><button class="btn sm" type="button" data-eundo="${esc(c)}">되돌리기</button></div>`).join('')}</div>`:''}
+  <p class="sub">유효기간 자료 ${new Date(x.D.at).getMonth()+1}/${new Date(x.D.at).getDate()} 올림 · ${fmt(x.D.n||0)}품목 · 재고 ${dateLabel(M.date)} 기준</p>`;
+ body.querySelectorAll('[data-em]').forEach(b=>b.onclick=()=>expMark(b.dataset.em,b.dataset.k,b.dataset.e));
+ body.querySelectorAll('[data-es]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('cb-exp-sort',b.dataset.es)}catch(e){}redrawPanel&&redrawPanel()});
+ body.querySelectorAll('[data-eundo]').forEach(b=>b.onclick=()=>expMark(b.dataset.eundo,'undo'));
+ body.querySelectorAll('[data-eskip]').forEach(b=>b.onclick=()=>{if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='정말?';setTimeout(()=>{if(b.isConnected){b.classList.remove('arm');b.textContent='예외'}},3000);return}expMark(b.dataset.eskip,'skip')})}}
+function expCard(){const s=S.settings||{},D=expDoc(),v=expDays();const c=document.createElement('div');c.className='card';
+ c.innerHTML=`<h3>유통기한</h3><p class="muted">이팜 "약품유효기간리스트" 엑셀을 올리면 재고 › 유통기한 탭과 첫 화면에 임박한 약을 보여 주고, 매일 재고 알림에도 넣어요. PC 폴더에 넣어 두면 알아서 읽어요. 필요한 칸: 사입일자 · 약품코드 · 총수량 · 유효기간 · 현재고.</p>
+  <div class="row"><label class="btn sm primary" for="expF" role="button" tabindex="0">유효기간 파일 올리기</label><input type="file" id="expF" accept=".xls,.xlsx" hidden><span class="sub">${D?`지금 ${fmt(D.n||0)}품목 · ${new Date(D.at).getMonth()+1}/${new Date(D.at).getDate()} 올림`:'아직 없음'}</span></div>
+  <div class="field">이만큼 남으면 임박으로 보기<select id="expD">${[[30,'30일'],[60,'60일'],[90,'90일 (기본)'],[120,'120일'],[180,'180일']].map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="row"><button class="btn primary" type="button" id="expSave" ${canWrite?'':'disabled'}>저장</button></div>`;
+ c.querySelector('#expF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importExp(new Uint8Array(await f.arrayBuffer()))};
+ c.querySelector('#expSave').onclick=async()=>{const n={...S.settings,expDays:+c.querySelector('#expD').value};if(await saveDoc('settings/main',n)){S.settings=n;renderToday();toast('유통기한 기준을 저장했어요');redrawPanel&&redrawPanel()}};return c}
+{const _ds6=drawSettings;drawSettings=function(body){_ds6(body);if(panelState.kind==='stockset'&&panelState.tab==='rx')body.appendChild(expCard())}}
+// 첫 화면: 오늘의 재고 아래 한 줄 (임박한 약이 있을 때만)
+function todayExp(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty'))return;t.querySelector('.texp')?.remove();const x=expModel();if(!x)return;const bad=x.past.length+x.left.length;if(!x.rows.length)return;
+ const b=document.createElement('button');b.type='button';b.className='texp';b.innerHTML=`<i class="${bad?'dot-bad':'dot-ok'}"></i><span>유통기한 ${x.N}일 안 <b>${x.rows.length}</b>${bad?` · 다 못 쓸 약 <b>${bad}</b>`:' · 모두 기한 전에 씀'}</span><span class="gx">›</span>`;
+ b.onclick=e=>{e.stopPropagation();openPanel('stock','exp')};t.appendChild(b)}
+{const _rt3=renderToday;renderToday=function(){_rt3();todayExp()}}
+setTimeout(todayExp,0);
+(()=>{const st=document.createElement('style');st.textContent=`.today .texp{grid-column:1/-1;display:flex;align-items:center;gap:7px;margin:-4px 12px 12px;padding:8px 12px;border:0;border-radius:12px;background:rgba(255,255,255,.55);font:inherit;font-size:13px;color:inherit;text-align:left;cursor:pointer;position:relative;z-index:1}
+.item .ostk{display:flex;gap:6px;grid-column:1/-1;justify-content:flex-end;margin-top:6px}.wsh{font-weight:700;font-size:13.5px;margin:12px 2px 6px;color:var(--accent,#2F5597)}.wsh:first-of-type{margin-top:4px}.wsh .c{font-size:12px;opacity:.7}.expsort{gap:6px;align-items:center;margin-bottom:6px}.expsort .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}.item .ob{min-width:52px;height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2)}.item .ob.ok{background:var(--accent);border-color:var(--accent);color:#fff}.item .ob.arm{background:var(--bad);border-color:var(--bad);color:#fff}.dnl .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}.dnl .drow:first-of-type{border-top:0}
+.today .texp i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}.today .texp b{font-size:14px}.today .texp .gx{margin-left:auto;opacity:.7}.today .texp:hover,.today .texp:focus-visible{filter:brightness(.97);outline:none}html.sidemode .today .texp{margin:-2px 8px 8px;padding:5px 8px;font-size:12px}`;document.head.appendChild(st)})();
+// 매일 재고 알림: 휴대폰 푸시 글(stockBrief)과 PC 포스트잇(showStockBrief)에 한 줄
+{const _sb=stockBrief;stockBrief=function(){const s=_sb.apply(this,arguments);if(!s)return s;const x=expModel(),bad=x?x.past.length+x.left.length:0;return bad?`${s} · 유통기한 임박 ${bad}`:s}}
+// PC 포스트잇(desk_pc.js showStockBrief)에 넣을 줄
+function expBriefLines(lines){const x=expModel(),a=x?x.past.concat(x.left):[];if(!a.length)return;lines.push(`유통기한 임박(다 못 쓸 약) <b>${a.length}</b>`);a.slice(0,3).forEach(r=>lines.push(`· ${esc(r.i.base)} ${r.days<0?'기한 지남':expDate(r.e)} · 약 ${esc(fmt(Math.round(r.left)))}${esc(r.i.unit||'')} 남을 듯`))}
+
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1792836681';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793070719';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
