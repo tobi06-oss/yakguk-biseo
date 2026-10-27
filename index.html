@@ -3060,8 +3060,19 @@ async function importExp(u){try{const aoa=readAoa(u);let h=-1;for(let k=0;k<Math
  }catch(e){toast(e.message||'파일을 읽지 못했어요');return{ok:false}}}
 const isExpHdr=u=>{try{const aoa=readAoa(u);for(let k=0;k<Math.min(aoa.length,30);k++){if((aoa[k]||[]).map(H).includes('유효기간'))return true}}catch(e){}return false};
 // 이 파일에도 "현재고" 칸이 있어서 재고 파일로 잘못 읽히지 않게 (폴더 자동·재고 올리기 둘 다)
-{const _is=importStock;importStock=async function(buf,source){if(isExpHdr(buf))return importExp(buf);return _is.apply(this,arguments)}}
-if(typeof onDeskFile==='function'){const _odf2=onDeskFile;onDeskFile=async function(name,buf){if(isExpHdr(new Uint8Array(buf))){const r=await importExp(new Uint8Array(buf));if(r.ok)window.desk.imported({name,kind:r.kind,n:r.n});return}return _odf2(name,buf)}}
+// 이팜 "재고현황및재고수정" 사용량 형식(사용량 + 재고량 또는 현재고, 단위수량별로 같은 약이 여러 줄): 사용량으로 읽고(importDisp) 재고로도 저장 (v0.10.1)
+// 재고현황 올리기 단추·사용량 올리기 단추·PC 폴더 자동 읽기 모두 같게
+const isUseHdr=u=>{try{const aoa=readAoa(u),h=findHdr(aoa).h;if(h<0)return false;const hd=aoa[h].map(H);return hd.includes('사용량')&&(hd.includes('재고량')||hd.includes('현재고'))&&!hd.includes('조제수량')}catch(e){return false}};
+async function importUseStock(buf,source){const was=window.__inUse;window.__inUse=1;let r;try{r=await importDisp(buf)}finally{window.__inUse=was}const s=await importStock0(useToStock(buf),source);return s&&s.ok?{...s,kind:'disp+stock',n:s.n}:r}
+let importStock0=null;
+{const _is=importStock;importStock0=(b,s)=>_is(b,s);importStock=async function(buf,source){if(isExpHdr(buf))return importExp(buf);if(isUseHdr(buf))return importUseStock(buf,source);return _is.apply(this,arguments)}}
+{const _id=importDisp;importDisp=async function(buf){if(!window.__inUse&&isUseHdr(buf))return importUseStock(buf,'upload');return _id.apply(this,arguments)}}
+// 재고량 칸을 현재고로 바꾸고 약품코드마다 한 줄만 남겨 재고 파일 모양으로 (단위수량별로 같은 약이 여러 줄)
+function useToStock(u){const aoa=readAoa(u),h=findHdr(aoa).h,hd=aoa[h].map(H),cc=hd.indexOf('약품코드'),seen=new Set(),out=aoa.slice(0,h);const hasCur=hd.includes('현재고');out.push(aoa[h].map((x,k)=>hd[k]==='재고량'&&!hasCur?'현재고':hd[k]==='참고단위'?'재고단위':hd[k]==='제조회사'?'제약회사':x));
+ for(let k=h+1;k<aoa.length;k++){const r=aoa[k],c=cc>=0?String(r[cc]??'').trim():'';if(c&&seen.has(c))continue;if(c)seen.add(c);out.push(r)}
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(out),'s');return new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'}))}
+if(typeof onDeskFile==='function'){const _odf2=onDeskFile;onDeskFile=async function(name,buf){const u=new Uint8Array(buf);if(isExpHdr(u)){const r=await importExp(u);if(r.ok)window.desk.imported({name,kind:r.kind,n:r.n});return}
+ if(isUseHdr(u)){const r=await importUseStock(u,'auto');if(r&&r.ok){window.desk.imported({name,kind:r.kind,n:r.n});if(typeof briefForMe==='function'&&briefForMe()&&typeof showStockBrief==='function')showStockBrief()}return}return _odf2(name,buf)}}
 // 확인(처리함: 그 기한 이하 묶음은 다시 안 띄움, 더 늦은 기한이 임박하면 다시 뜸) · 보류(7일 안 보기) · 예외(이 약은 유통기한 알림 안 함). exceptions/expiry {items:{code:{k:'ok'|'hold'|'skip',e,at,name}}}
 const expMarks=()=>{try{return (DESKDB.get('exceptions/expiry')||{}).items||{}}catch(e){return {}}};
 const expHidden=(m,e)=>!!m&&(m.k==='skip'||(m.k==='hold'&&Date.now()-m.at<7*864e5)||(m.k==='ok'&&e<=m.e));
@@ -3121,7 +3132,7 @@ setTimeout(todayExp,0);
 function expBriefLines(lines){const x=expModel(),a=x?x.past.concat(x.left):[];if(!a.length)return;lines.push(`유통기한 임박(다 못 쓸 약) <b>${a.length}</b>`);a.slice(0,3).forEach(r=>lines.push(`· ${esc(r.i.base)} ${r.days<0?'기한 지남':expDate(r.e)} · 약 ${esc(fmt(Math.round(r.left)))}${esc(r.i.unit||'')} 남을 듯`))}
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793070719';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793072211';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
