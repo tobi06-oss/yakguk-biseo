@@ -1,11 +1,11 @@
 {
- "version": "0.10.6",
- "notes": "사입처별 기한: 있는 사입처만 자동완성으로 고르기(오타 방지)",
+ "version": "0.10.7",
+ "notes": "오늘의 재고: 조제약·일반약 제목을 점 줄에 맞춤 · 제목 글씨를 공지사항과 같게",
  "files": [
   {
    "p": "index.html",
-   "sha256": "c9a2d52048430c157f07202b08bf3f76147ee6e682cdc849b6c16ef13f7f44fe",
-   "size": 467865
+   "sha256": "ccefba867b5953b9c729207ef7c4cb43a4d319a10ab45d1ec1f8781ac25fcdfd",
+   "size": 468716
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "298b88fa2d1eef6b7e9a71f00c45b6b6ad07eddb8e72fc59a764df08d1e6d09d",
+   "sha256": "296771f989a22f3dfbbed559d1449cecfc748689fde444ebccc6f870248b15a3",
    "size": 212
   },
   {

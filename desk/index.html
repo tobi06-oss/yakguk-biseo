@@ -2914,8 +2914,11 @@ function otcIdle(){const D=S.daily;if(!D||!D.dates||!D.c||!M)return null;const d
 function todaySplit(){const t=$('today');if(!t||t.hidden||t.classList.contains('empty')||!M)return;const ks=t.querySelector('.ks');if(!ks)return;
  const rxLow=M.low.length,o=typeof otcModel==='function'?otcModel():null,on=true,idle=otcIdle();
  const dot=c=>`<i class="${c}"></i>`;const stat=(l,n,c)=>`<span><em>${dot(c)}${l}</em><b${typeof n==='number'?'':' class="sm"'}>${n}</b></span>`;
- ks.className='ks tgs';ks.innerHTML=`<button type="button" class="k tg" data-tg="rx"><em class="tgh">조제약 ›<span class="tgset" role="button" tabindex="0" data-ts="rx" aria-label="조제약 설정" title="조제약 설정">${TSET_SVG}</span></em><span class="tgn">${stat('부족',rxLow,rxLow?(M.urgent.some(i=>i.disp)?'dot-bad':'dot-warn'):'dot-ok')}${stat('장기미조제',M.deadAct.length,M.deadAct.length?'dot-warn':'dot-ok')}</span></button>
-  <button type="button" class="k tg" data-tg="otc"><em class="tgh">일반약 ›<span class="tgset" role="button" tabindex="0" data-ts="otc" aria-label="일반약 설정" title="일반약 설정">${TSET_SVG}</span></em>${on?`<span class="tgn">${stat('부족',o&&!o.none?o.low.length:'–',o&&o.low&&o.low.length?'dot-warn':'dot-ok')}${stat('장기미판매',idle?idle.length:'기록 중',idle&&idle.length?'dot-warn':'dot-ok')}</span>`:'<span class="tgoff">꺼져 있어요 · 눌러서 켜기</span>'}</button>`;
+ // 제목(조제약 ›)은 첫 칸 "부족" 앞 점과 같은 왼쪽 줄에 맞춤 (v0.10.7): 두 칸 각각 [제목, 숫자]를 한 묶음으로 가운데
+ const gear=k=>`<span class="tgset" role="button" tabindex="0" data-ts="${k}" aria-label="${k==='rx'?'조제약':'일반약'} 설정" title="${k==='rx'?'조제약':'일반약'} 설정">${TSET_SVG}</span>`,
+  cols=(h,a,b)=>`<span class="tgn"><span class="tgc"><em class="tgh">${h} ›</em>${a}</span><span class="tgc"><em class="tgh" aria-hidden="true" style="visibility:hidden">${h}</em>${b}</span></span>`;
+ ks.className='ks tgs';ks.innerHTML=`<button type="button" class="k tg" data-tg="rx">${gear('rx')}${cols('조제약',stat('부족',rxLow,rxLow?(M.urgent.some(i=>i.disp)?'dot-bad':'dot-warn'):'dot-ok'),stat('장기미조제',M.deadAct.length,M.deadAct.length?'dot-warn':'dot-ok'))}</button>
+  <button type="button" class="k tg" data-tg="otc">${gear('otc')}${on?cols('일반약',stat('부족',o&&!o.none?o.low.length:'–',o&&o.low&&o.low.length?'dot-warn':'dot-ok'),stat('장기미판매',idle?idle.length:'기록 중',idle&&idle.length?'dot-warn':'dot-ok')):'<em class="tgh">일반약 ›</em><span class="tgoff">꺼져 있어요 · 눌러서 켜기</span>'}</button>`;
  ks.querySelectorAll('[data-ts]').forEach(g=>{const go=e=>{e.stopPropagation();e.preventDefault();openPanel('stockset',g.dataset.ts)};g.addEventListener('click',go);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go(e)})});
  ks.querySelectorAll('[data-tg]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.tg==='rx')openPanel('stock','order');else if(on)openPanel('stock','otc');else openPanel('stockset','otc')})}
 {const _rt2=renderToday;renderToday=function(){_rt2();todaySplit()}}
@@ -2924,14 +2927,16 @@ setTimeout(todaySplit,0);
 .today .tgs{grid-auto-flow:unset;grid-template-columns:1fr 1fr}
 .today .tg{font:inherit;color:inherit;text-align:left;border:0;cursor:pointer;gap:6px}
 .today .tg .tgh{font-weight:700;font-size:12.5px;letter-spacing:0;display:flex;align-items:center;gap:4px}
-.today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
+.today .tg{position:relative}.today .tg>.tgset{position:absolute;top:8px;right:8px}.today .tgset{margin-left:auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;opacity:.75}.today .tgset:hover,.today .tgset:focus-visible{opacity:1;background:rgba(0,0,0,.06);outline:none}.today .tgset svg{width:14px;height:14px}
 .buyhow{margin:4px 0 0;padding:10px 12px 10px 30px;background:var(--surface-2,#f3f5f9);border-radius:10px;font-size:13px;line-height:1.7}
 .otcrule{background:var(--accent-soft,#e8eefb);border:1px solid var(--accent,#2F5597);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}.otcrule b{color:var(--accent,#2F5597);margin-right:6px}.otcrule span{font-size:12px;color:var(--ink-2)}
 .today .tg .tgx{font-size:10px;font-weight:600;padding:0 5px;border-radius:999px;border:1px solid currentColor;opacity:.7}
-.today .tgn{display:grid;grid-template-columns:1fr 1fr;gap:6px}.today .tgn>span{display:flex;flex-direction:column;align-items:center;justify-self:center;gap:2px;min-width:0;margin-left:-13px}.today .tgn>span>b{margin-left:13px}
+.today .tgn{display:grid;grid-template-columns:1fr 1fr;gap:6px}.today .tgc{display:flex;flex-direction:column;align-items:flex-start;justify-self:center;gap:6px;min-width:0}.today .tgc>span{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;margin-left:-13px}.today .tgc>span>b{margin-left:13px}.today .tgc>.tgh{margin-left:-13px}
 .today .tg b{font-size:20px!important}.today .tg b.sm{font-size:13px!important;font-family:inherit;padding-top:6px}.today .tg .tgoff{font-size:12px;opacity:.8;padding:6px 0}
 .today .tg:hover,.today .tg:focus-visible{filter:brightness(.97);outline:none}
-div.today{cursor:pointer}`;document.head.appendChild(st)})();
+div.today{cursor:pointer}
+/* 오늘의 재고 제목은 공지사항 칸 제목과 같은 글씨 (v0.10.7) */
+html .today:not(.empty) .d>span:first-child{font-family:var(--display);font-size:15.5px;font-weight:400;letter-spacing:0;color:var(--ink);line-height:1.25}html .today:not(.empty) .d>span:first-child .num{font-size:13px}html.sidemode .today:not(.empty) .d>span:first-child{font-size:13.5px}`;document.head.appendChild(st)})();
 // 사입현황이 있는 약: 평소 주문 습관 한 줄 (재고 카드에, 조제약·일반약 공통, v0.9.0)
 function buyHabit(i){if(isFill(i))return '<div class="sub"><b>금액 맞춤 품목</b> · 매입 금액을 맞추려고 넉넉히 사는 약이라 사입 패턴·과다 재고에서 빼요</div>';const U=otcUse(),h=U&&U.hb&&U.hb[i.code];if(!h||h.n<2)return '';return `<div class="sub">평소 주문: 재고 ${fmt(Math.round(h.rop))}${esc(i.unit||'')}쯤 남았을 때 ${fmt(Math.round(h.q))}${esc(i.unit||'')}씩${h.gap?` · ${fmt(h.gap)}일마다`:''} (사입 ${h.n}회)</div>`}
 
