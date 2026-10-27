@@ -789,7 +789,6 @@ function openPanel(kind,tab){
   p.addEventListener('touchmove',e=>{if(!on)return;const y=e.touches[0].clientY-sy,x=e.touches[0].clientX-sx;if(y<=0||Math.abs(x)>y*0.7){if(dy===0)on=false;return}dy=y;p.style.animation='none';p.style.transition='none';p.style.transform='translateY('+Math.min(y,400)+'px)'},{passive:true});
   p.addEventListener('touchend',()=>{if(!on||dy===0)return;if(dy>90){close()}else{p.style.transition='transform .18s';p.style.transform=''}on=false;dy=0});}
  function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
- const teamOn=!!(window.drawTeam&&S.pharm);
  const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:'메모·알림',settings:'설정',team:'약국',stockset:'재고 설정'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
@@ -801,7 +800,7 @@ function openPanel(kind,tab){
    :kind==='memo'?([['memos','메모',S.memo.memos.length],['alarms','알림',S.memo.alarms.filter(a=>a.on&&seeAlarm(a)).length]])
    :kind==='stockset'?(window.stocksetTabs?stocksetTabs():[['basic','기준·알림'],['files','파일 올리기']]).concat([['exc','품목 예외',Object.keys(S.exc).length]])
    :[['etc','기본']].concat(window.accountView?[['account','약국 계정']]:[['basic','약국 정보']]).concat(window.bellPopDraw?[['bell','알림']]:[]);
-  p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${(teamOn?['team']:[]).concat(['stock','manual','memo','settings']).filter(k=>k!==kind).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
+  p.innerHTML=`<div class="panel-top"><div class="panel-h"><h2>${TITLES[kind]}</h2><div class="row">${({stock:['stockset'],stockset:['stock']}[kind]||[]).map(k=>`<button class="btn sm" type="button" data-go="${k}">${TITLES[k]}</button>`).join('')}<button class="iconbtn" type="button" id="pClose" aria-label="닫기">✕</button></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${panelState.tab===k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`).join('')}</div></div><div class="panel-body" id="pbody"></div>`;
   p.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{panelState.tab=b.dataset.tab;draw()});
   p.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openPanel(b.dataset.go));

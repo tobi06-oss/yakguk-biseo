@@ -1,11 +1,11 @@
 {
- "version": "0.10.7",
- "notes": "오늘의 재고: 조제약·일반약 제목을 점 줄에 맞춤 · 제목 글씨를 공지사항과 같게",
+ "version": "0.10.8",
+ "notes": "화면 위쪽 바로가기 줄 정리(재고 ↔ 재고 설정만 남김)",
  "files": [
   {
    "p": "index.html",
-   "sha256": "ccefba867b5953b9c729207ef7c4cb43a4d319a10ab45d1ec1f8781ac25fcdfd",
-   "size": 468716
+   "sha256": "f31a4afc3725a2ac91c2faea94abaafb0dd9ec96d0b428021031050a9e3be54f",
+   "size": 468638
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "296771f989a22f3dfbbed559d1449cecfc748689fde444ebccc6f870248b15a3",
+   "sha256": "7946c3855be43f9859cad34d986eb39bf80c9a9023211cf8446c40da33f328bd",
    "size": 212
   },
   {
