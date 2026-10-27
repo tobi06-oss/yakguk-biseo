@@ -3250,10 +3250,28 @@ function xlTree(){if(!M)return [];const o=typeof otcModel==='function'?otcModel(
 function xlPick(){try{const v=JSON.parse(localStorage.getItem(XL_KEY)||'null');if(v&&typeof v==='object')return v}catch(e){}return null}
 function xlSave(tree,pick){const wb=XLSX.utils.book_new();let n=0;const d=M.date||'';
  tree.forEach(g=>g.c.forEach(s=>{if(!pick[g.k+'.'+s.k])return;const ws=XLSX.utils.aoa_to_sheet([[`${g.l} · ${s.l} (${dateLabel(M.date)} 재고 기준)`],[],s.h,...s.rows]);
-  ws['!cols']=s.h.map((h,k)=>({wch:k===0?26:Math.max(8,Math.min(24,String(h).length*2+2))}));
+  ws['!cols']=s.h.map((h,k)=>({wch:k===0?26:k===1?16:Math.max(9,Math.min(24,String(h).length*2+2))}));
   XLSX.utils.book_append_sheet(wb,ws,`${g.l}-${s.l}`.replace(/[\\/?*[\]:]/g,'').slice(0,31));n++}));
  if(!n){toast('저장할 항목을 하나 이상 골라 주세요');return false}
- xlDown(new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`오늘의재고_${String(d).replace(/\D/g,'')||'자료'}.xlsx`);toast(`${n}개 항목을 엑셀로 저장했어요`);return true}
+ xlDown(new Blob([xlStyle(XLSX.write(wb,{type:'array',bookType:'xlsx'}))],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`오늘의재고_${String(d).replace(/\D/g,'')||'자료'}.xlsx`);toast(`${n}개 항목을 엑셀로 저장했어요`);return true}
+// 엑셀 꾸미기 (v0.10.17): 표 테두리, 맨 윗줄(제목칸)·첫 열(약 이름)은 옅은 음영, 표 전체 가운데 정렬. 무료판 SheetJS는 서식을 못 써서 저장된 xlsx(zip) 안 XML을 직접 고침
+// 시트 모양: 1행 제목, 2행 빈 줄, 3행 칸 이름, 4행부터 약
+function xlStyle(buf){try{const C=XLSX.CFB,z=C.read(new Uint8Array(buf),{type:'array'}),te=new TextEncoder(),td=new TextDecoder();
+ const put=(p,t)=>{const f=C.find(z,p);if(f){f.content=te.encode(t);f.size=f.content.length}};
+ const B='<left style="thin"><color rgb="FFA6A6A6"/></left><right style="thin"><color rgb="FFA6A6A6"/></right><top style="thin"><color rgb="FFA6A6A6"/></top><bottom style="thin"><color rgb="FFA6A6A6"/></bottom><diagonal/>';
+ put('/xl/styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+  +'<fonts count="3"><font><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font><font><b/><sz val="13"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font></fonts>'
+  +'<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>'
+  +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border>'+B+'</border></borders>'
+  +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+  +'<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+  +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
+  +'<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+  +'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs>'
+  +'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0"/></styleSheet>');
+ z.FullPaths.filter(p=>/\/xl\/worksheets\/sheet\d+\.xml$/.test(p)).forEach(p=>{const f=C.find(z,p.replace(/^Root Entry/,''));if(!f)return;
+  const x=td.decode(f.content).replace(/<c r="([A-Z]+)(\d+)"/g,(m,col,row)=>{const r=+row,st=r===1?1:r===3?2:r>3?(col==='A'?3:4):0;return st?`${m} s="${st}"`:m});put(p.replace(/^Root Entry/,''),x)});
+ return C.write(z,{fileType:'zip',type:'array'})}catch(e){return buf}}
 function xlDown(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.style.display='none';(document.querySelector('.scrim')||document.body).appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000)}
 function xlOpen(){if(!M){toast('재고 자료가 아직 없어요');return}document.querySelector('.scrim')?.remove();
  const tree=xlTree(),saved=xlPick(),pick={};tree.forEach(g=>g.c.forEach(s=>{const id=g.k+'.'+s.k;pick[id]=saved?!!saved[id]:true}));

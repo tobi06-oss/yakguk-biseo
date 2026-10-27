@@ -1,11 +1,11 @@
 {
- "version": "0.10.16",
- "notes": "오늘의 재고 엑셀 저장 (조제약·일반약·유통기한 항목을 골라 시트별로)",
+ "version": "0.10.17",
+ "notes": "엑셀 저장: 표 테두리·음영·가운데 정렬",
  "files": [
   {
    "p": "index.html",
-   "sha256": "78c5190972b41363778ead3c99b9c3e272d20c2111d520053ac84099967c01b8",
-   "size": 483955
+   "sha256": "5b5ea95ad52dbbb8b81f4f5d55dba4f4f7e649d9d55f8917d9a8841ce8609546",
+   "size": 487004
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "27bca80db28de19823431454af475c8b4625b501759d6e3b6b9c97524cc58cbe",
+   "sha256": "ea25e23f13017ff63a5808ff8b0ce64bdb870a95368c5c0fd191ceaa26b1c354",
    "size": 213
   },
   {
