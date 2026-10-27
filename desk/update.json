@@ -1,11 +1,11 @@
 {
- "version": "0.10.17",
- "notes": "엑셀 저장: 표 테두리·음영·가운데 정렬",
+ "version": "0.10.18",
+ "notes": "약국 매뉴얼·개인 업무수첩: 끌어서 순서 바꾸기",
  "files": [
   {
    "p": "index.html",
-   "sha256": "5b5ea95ad52dbbb8b81f4f5d55dba4f4f7e649d9d55f8917d9a8841ce8609546",
-   "size": 487004
+   "sha256": "13fe5aee40aa585e9dc20c6dfdd5a0f12540495c4316dbf7ef1116e43f0de9e7",
+   "size": 493880
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "ea25e23f13017ff63a5808ff8b0ce64bdb870a95368c5c0fd191ceaa26b1c354",
+   "sha256": "638975154a38c9c67fa6e12776b60cafd622ecfd62c1aba064f6c73757184bb6",
    "size": 213
   },
   {

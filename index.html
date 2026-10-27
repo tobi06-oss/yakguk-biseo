@@ -971,6 +971,7 @@ function drawManual(body){
   const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'cat',canWrite)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
   list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${mOpenHas(m.id)||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${mOpenHas(m.id)||!!q}">${esc(m.h)}${q&&mSecOf(m)?` <span class="sub">${esc(mSecOf(m))}</span>`:''}</button>${mOpenHas(m.id)||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||(top?'':'<p class="muted">맞는 항목이 없어요.</p>'));
   if(top){bindCatManage(list,{can:canWrite,rename:manualCatRename,del:manualCatDel,run});list.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{manualCat=b.dataset.cat;openItem=null;manualOpen.clear();run()})}
+  if(!q)manualDragSort(list,top,run);
   $('mBack')&&($('mBack').onclick=()=>{manualCat=null;openItem=null;manualOpen.clear();run()});
   list.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>{const i=b.dataset.item;if(mOpenHas(i)){manualOpen.delete(i);if(openItem===i)openItem=null}else manualOpen.add(i);run()});
   list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editId=b.dataset.edit;run()});
@@ -2463,6 +2464,10 @@ i.ev{background:var(--accent)}i.lv{background:var(--warn)}i.mw{background:var(--
 .catrow .catact [data-crx]{color:var(--bad,#E5484D);border-color:color-mix(in srgb,var(--bad,#E5484D) 35%,transparent)}
 .catrow.edit{grid-column:1/-1}.catrow input.search{margin:0}
 @media (max-width:360px){.catgrid{grid-template-columns:1fr}}
+.dsort .catrow .cat,.dsort>.acc>button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.dsort .catrow.dragging,.dsort>.acc.dragging{position:relative;z-index:5;pointer-events:none;opacity:.92;box-shadow:0 12px 28px -8px rgba(0,0,0,.35);transition:none!important}
+body.dsorting,body.dsorting *{-webkit-user-select:none!important;user-select:none!important;cursor:grabbing!important}
+.dsort-hint{margin:0 2px;font-size:12px;color:var(--ink-3)}
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -2476,7 +2481,9 @@ function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynote
  const tile=$('myNoteTile');if(tile)tile.classList.toggle('ring',!!ib);
  if(ib){s.textContent=`받은 수첩 ${ib}개 · 가져오기`;return}
  s.textContent=!SY.user?'로그인하면 나만 보는 수첩':n?`비공개 · ${n}개`:'나만 보는 비공개 수첩'}
-const mnSorted=()=>S.mynotes.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||(b.upd||b.at||0)-(a.upd||a.at||0));
+// 순서: 끌어서 정한 순서(ord)가 있으면 그대로, 없는 글(새 글)은 맨 위에 최근 것부터 (v0.10.18)
+const mnOrdCmp=(a,b)=>(a.ord==null?0:1)-(b.ord==null?0:1)||(a.ord||0)-(b.ord||0)||(b.upd||b.at||0)-(a.upd||a.at||0);
+const mnSorted=()=>S.mynotes.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||mnOrdCmp(a,b));
 const mnDate=ms=>{if(!ms)return '';const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()}`};
 async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id);
  if(old)Object.assign(old,d);else S.mynotes.push({id,...d});myNoteChanged();
@@ -2501,6 +2508,64 @@ const mSecOf=m=>String((m&&m.sec)||'').trim();
 const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>mSecOf(x)===old?{...x,sec:nw}:x));
 const manualCatDel=sec=>manualCatSave(a=>a.filter(x=>mSecOf(x)!==sec));
 
+/* --- 끌어서 순서 바꾸기 (약국 매뉴얼 · 개인 업무수첩 공통, v0.10.18)
+   PC는 마우스로 끌고, 휴대폰은 길게 눌렀다가 끌어요. 놓으면 done(새 순서의 키 목록) --- */
+function dragSort(box,o){if(!box)return;box.classList.add('dsort');
+ const items=()=>[...box.children].filter(x=>x.matches(o.item));
+ const keys=()=>items().map(o.key);
+ let st=null,raf=0;
+ const scroller=()=>box.closest('.panel-body')||document.scrollingElement;
+ const place=()=>{const el=st.el;el.style.transform='';const r=el.getBoundingClientRect();el.style.transform=`translate(${st.x-st.gx-r.left}px,${st.y-st.gy-r.top}px)`;return r};
+ const step=()=>{if(!st||!st.on)return;const sc=scroller(),sr=sc===document.scrollingElement?{top:0,bottom:innerHeight}:sc.getBoundingClientRect();
+  if(st.y<sr.top+48)sc.scrollTop-=10;else if(st.y>sr.bottom-48)sc.scrollTop+=10;
+  const r=place(),hit=document.elementFromPoint(st.x,st.y),t=hit&&hit.closest(o.item);
+  if(t&&t!==st.el&&t.parentElement===box){const tr=t.getBoundingClientRect(),all=items(),down=all.indexOf(st.el)<all.indexOf(t);
+   const row=Math.abs(tr.top-r.top)<4,past=row?(down?st.x>tr.left+tr.width/2:st.x<tr.left+tr.width/2):(down?st.y>tr.top+tr.height/2:st.y<tr.top+tr.height/2);
+   if(past||tr.height<=r.height*1.5){box.insertBefore(st.el,down?t.nextSibling:t);place()}}
+  raf=requestAnimationFrame(step)};
+ const begin=()=>{const el=st.el,r=el.getBoundingClientRect();st.on=true;st.gx=st.x0-r.left;st.gy=st.y0-r.top;st.before=keys().join('\n');
+  el.classList.add('dragging');document.body.classList.add('dsorting');try{getSelection().removeAllRanges()}catch(e){}
+  if(st.touch&&navigator.vibrate)try{navigator.vibrate(15)}catch(e){}
+  raf=requestAnimationFrame(step)};
+ const finish=()=>{const s=st;st=null;clearTimeout(s.timer);cancelAnimationFrame(raf);if(!s.on)return;
+  s.el.classList.remove('dragging');s.el.style.transform='';document.body.classList.remove('dsorting');
+  // 끈 뒤 손을 떼면 생기는 클릭(분류 열기·펼치기)은 막음
+  const eat=e=>{e.stopPropagation();e.preventDefault()};window.addEventListener('click',eat,true);setTimeout(()=>window.removeEventListener('click',eat,true),60);
+  const now=keys();if(now.join('\n')!==s.before)o.done(now)};
+ const grab=e=>{const h=e.target.closest(o.handle),el=h&&h.closest(o.item);return el&&el.parentElement===box&&!e.target.closest('input,textarea,select,[contenteditable]')?el:null};
+ box.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0||st)return;const el=grab(e);if(!el)return;
+  st={el,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,on:false,touch:false};
+  const mv=ev=>{if(!st)return;st.x=ev.clientX;st.y=ev.clientY;if(!st.on&&Math.hypot(st.x-st.x0,st.y-st.y0)>6)begin()};
+  const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);finish()};
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up)});
+ box.addEventListener('touchstart',e=>{if(st||e.touches.length!==1)return;const el=grab(e);if(!el)return;const p=e.touches[0];
+  st={el,x0:p.clientX,y0:p.clientY,x:p.clientX,y:p.clientY,on:false,touch:true};st.timer=setTimeout(()=>{if(st&&!st.on)begin()},450)},{passive:true});
+ box.addEventListener('touchmove',e=>{if(!st||!st.touch)return;const p=e.touches[0];st.x=p.clientX;st.y=p.clientY;
+  if(st.on){e.preventDefault();e.stopPropagation()}else if(Math.hypot(st.x-st.x0,st.y-st.y0)>10){clearTimeout(st.timer);st=null}},{passive:false});
+ const tend=e=>{if(st&&st.touch){if(st.on){e.stopPropagation();if(e.cancelable)e.preventDefault()}finish()}};
+ box.addEventListener('touchend',tend);box.addEventListener('touchcancel',tend);
+ box.addEventListener('contextmenu',e=>{if(st)e.preventDefault()})}
+// 목록 arr 에서 pick 에 맞는 것들의 자리만 ids 순서대로 다시 채움 (나머지는 그대로)
+function reorderSubset(arr,pick,ids,idOf){const by=new Map(arr.filter(pick).map(x=>[idOf(x),x]));const seq=ids.map(i=>by.get(i)).filter(Boolean);
+ if(seq.length!==by.size)return null;let k=0;return arr.map(x=>pick(x)?seq[k++]:x)}
+const dsHint=()=>`<p class="dsort-hint">${matchMedia('(pointer:coarse)').matches?'길게 눌렀다가 끌면':'끌어서 놓으면'} 순서를 바꿀 수 있어요</p>`;
+// 분류 칸·항목 끌기 연결. o.cats(새 분류 순서) · o.items(새 항목 순서)
+function bindDragSort(list,o){
+ const g=list.querySelector('.catgrid'),n=list.querySelectorAll(':scope>.acc').length;if(!(o.cats&&g&&g.children.length>1)&&!(o.items&&n>1))return;
+ (g||list.querySelector(':scope>.acc')).insertAdjacentHTML('beforebegin',dsHint());
+ if(o.cats)dragSort(list.querySelector('.catgrid'),{item:'.catrow',handle:'.cat',key:el=>el.querySelector('.cat')?.dataset[o.catKey],done:o.cats});
+ if(o.items)dragSort(list,{item:'.acc',handle:'.acc>button',key:el=>el.querySelector(':scope>button')?.dataset[o.itemKey],done:o.items})}
+// 약국 매뉴얼: 순서는 manual/main 의 items 배열 순서 (분류 순서 = 분류가 처음 나오는 순서)
+function manualDragSort(list,top,run){if(!canWrite)return;
+ const save=async fn=>{await manualCatSave(a=>fn(a)||a);run()};
+ bindDragSort(list,{catKey:'cat',itemKey:'item',
+  cats:top?ns=>save(a=>reorderSubset(a,m=>mSecOf(m),ns.flatMap(s=>a.filter(m=>mSecOf(m)===s).map(m=>m.id)),m=>m.id)):null,
+  items:ids=>save(a=>reorderSubset(a,top?m=>!mSecOf(m):m=>mSecOf(m)===manualCat,ids,m=>m.id))})}
+// 개인 업무수첩: 글마다 ord 를 매겨 저장 (바뀐 글만)
+async function mnReorder(pick,ids){const full=S.mynotes.slice().sort(mnOrdCmp);const out=reorderSubset(full,pick,ids,m=>m.id);if(!out)return;
+ const ch=[];out.forEach((m,i)=>{if(m.ord!==i+1){m.ord=i+1;ch.push(m)}});myNoteChanged();
+ const ok=await Promise.all(ch.map(m=>tSet(mnPath()+'/'+m.id,{ord:m.ord},true)));if(ok.every(Boolean))toast('순서를 바꿨어요')}
+
 function drawMyNote(body){
  const lock=`<div class="card mn-lock">${LOCK_SVG}<div><b>나만 보는 비공개 수첩</b><p class="muted">여기 적은 내용은 내 계정에만 저장돼요. 국장님·관리자·다른 직원 누구도 볼 수 없고, 약국 공용 자료(약국 매뉴얼·메모·공지)와도 따로 보관돼요. 같은 계정으로 로그인한 PC·휴대폰에서만 열려요.</p></div></div>`;
  if(!SY.user||!SY.cloud){
@@ -2514,12 +2579,14 @@ function drawMyNote(body){
   if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
   if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)||null}
   // 분류 없이 적은 글은 전체 분류 화면에 바로 (약국 매뉴얼과 같게, v0.9.9)
-  const cats=groupBy(mnSorted().filter(m=>mnSec(m)),mnSec),loose=mnSorted().filter(m=>!mnSec(m)),top=!nq&&!mnCat;
+  const cats=groupBy(S.mynotes.slice().sort(mnOrdCmp).filter(m=>mnSec(m)),mnSec),loose=mnSorted().filter(m=>!mnSec(m)),top=!nq&&!mnCat;
   const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):top?loose:mnSorted().filter(m=>mnSec(m)===mnCat);
   const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'mc',true)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
    ${items.length?`<div class="row"><button class="btn sm" type="button" id="mnExp">모두 펼치기</button><button class="btn sm" type="button" id="mnCol">모두 접기</button></div>`:''}`;
   list.innerHTML=head+(items.map(m=>{const o=mnOpenHas(m.id)||!!nq;
    return `<div class="acc" data-open="${o?1:0}"><button type="button" data-mi="${esc(m.id)}" aria-expanded="${o}"><span>${m.pin?'<span class="mn-pin" aria-label="고정">●</span>':''}${esc(m.title||'(제목 없음)')}${nq?` <span class="sub">${esc(mnSec(m))}</span>`:''}</span>${m.fromName==='약국 매뉴얼'?'':`<span class="mn-meta">${m.fromName?esc(m.fromName)+' · ':''}${mnDate(m.upd||m.at)}</span>`}</button>${o?`<div class="ab">${esc(m.body||'')}<div class="row"><button class="btn sm" type="button" data-me="${esc(m.id)}">고치기</button><button class="btn sm" type="button" data-mp="${esc(m.id)}">${m.pin?'고정 풀기':'맨 위에 고정'}</button>${S.pharm?`<button class="btn sm" type="button" data-ms="${esc(m.id)}">동료에게 보내기</button>`:''}<button class="btn sm danger" type="button" data-mx="${esc(m.id)}">지우기</button></div></div>`:''}</div>`}).join('')||(top?'':'<p class="muted">맞는 항목이 없어요.</p>'));
+  if(!nq){bindDragSort(list,{catKey:'mc',itemKey:'mi',cats:top?ns=>mnReorder(m=>mnSec(m),ns.flatMap(s=>S.mynotes.slice().sort(mnOrdCmp).filter(m=>mnSec(m)===s).map(m=>m.id))):null,
+    items:ids=>mnReorder(top?m=>!mnSec(m):m=>mnSec(m)===mnCat,ids)})}
   if(top){bindCatManage(list,{can:true,rename:mnCatRename,del:mnCatDel,run});list.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{mnCat=b.dataset.mc;mnOpen=null;mnOpenSet.clear();run()})}
   const bk=list.querySelector('#mnBack');if(bk)bk.onclick=()=>{mnCat=null;mnOpen=null;mnOpenSet.clear();run()};
   const ex=list.querySelector('#mnExp');if(ex)ex.onclick=()=>{items.forEach(m=>mnOpenSet.add(m.id));run()};
@@ -3301,7 +3368,7 @@ setTimeout(todayXl,0);
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793086799';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793093606';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
