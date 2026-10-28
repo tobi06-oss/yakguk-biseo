@@ -1,11 +1,11 @@
 {
- "version": "0.10.21",
- "notes": "재고 설정 › 조제약: 조제약품현황이 위, 재고현황이 아래 · 이팜 순서 안내 · 반품 목록 칸 뺌",
+ "version": "0.10.22",
+ "notes": "재고 설정 › 조제약: 이팜에서 재고 가져오기 칸이 맨 위에",
  "files": [
   {
    "p": "index.html",
-   "sha256": "789df7f8535d8bc046dbbd22ab60cb7fdff62ac5ff0f8c53eca9b554f7b1bced",
-   "size": 493626
+   "sha256": "8253a5d5061330d227243d2591a741c56113832b491be6b76f65f001be0936ad",
+   "size": 493929
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "38da7f8acd077270cb57553c4c6ce92474ce9f03be78cf2cd55a806b24b9b1b9",
+   "sha256": "7722d9cfa15f946b98855824f7caae4e18b2c03a46667b6d175e6626ddff3541",
    "size": 213
   },
   {

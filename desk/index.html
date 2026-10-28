@@ -2968,7 +2968,9 @@ function stocksetTabs(){return [['rx','조제약'],['otc','일반약'],['alert',
 {const _ds2=drawSettings;drawSettings=function(body){if(panelState.kind!=='stockset')return _ds2(body);const t=panelState.tab;
  const sub=tab=>{const d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column;gap:12px';body.appendChild(d);panelState.tab=tab;try{_ds2(d)}finally{panelState.tab=t}return d};
  if(t==='rx'){body.innerHTML='';const a=sub('basic');const al=a.querySelector('#sBriefOn');if(al){const card=al.closest('.card'),sv=a.querySelector('#sSave'),st=a.querySelector('#sSize');if(sv&&st)st.closest('.card').appendChild(sv.closest('.row'));card.remove()}
-  sub('files');body.appendChild(buyCard('조제약'));return}
+  sub('files');body.appendChild(buyCard('조제약'));
+  // PC: 이팜 엑셀 폴더 칸(이팜에서 재고 가져오기 단추)을 맨 위로 (v0.10.22)
+  const fc=[...body.querySelectorAll('.card h3')].find(h=>h.textContent==='이팜 엑셀 폴더 자동 읽기');if(fc)body.prepend(fc.closest('.card'));return}
  if(t==='otc'){body.innerHTML='';body.appendChild(otcCard());return}
  if(t==='alert'){body.innerHTML='';const a=sub('basic');const st=a.querySelector('#sSize');if(st)st.closest('.card').remove();a.prepend(heroCard());return}
  return _ds2(body)}}
@@ -3380,8 +3382,8 @@ let deskCfg={};
 function deskFolderCard(){const li=deskCfg.lastImport;return `<div class="card"><h3>이팜 엑셀 폴더 자동 읽기</h3>
  <p class="muted">이팜에서 재고현황·사용량(재고현황및재고수정)·조제약품현황을 XLSX로 저장하는 폴더를 정해 두면, 새 파일이 생길 때마다 알아서 읽고 아침 재고 진단을 포스트잇으로 띄워요.</p>
  <p class="muted">${deskCfg.watchDir?`폴더: <b>${esc(deskCfg.watchDir)}</b>`:'아직 정하지 않았어요'}${li?`<br>마지막으로 읽은 파일: ${esc(li.name)} (${new Date(li.at).toLocaleString('ko-KR')})`:''}</p>
- <div class="row"><button class="btn primary" type="button" id="dkPick">${deskCfg.watchDir?'폴더 바꾸기':'폴더 고르기'}</button>${deskCfg.watchDir?'<button class="btn" type="button" id="dkClear">자동 읽기 끄기</button>':''}</div>
- ${deskCfg.watchDir&&window.desk.epharmStock?`<div class="row" style="align-items:center"><button class="btn primary" type="button" id="dkEp">이팜에서 재고 가져오기</button><span class="sub">이팜이 켜져 있으면 약 1분 동안 이팜 화면을 대신 눌러 재고현황과 조제약품현황(최근 6개월)을 이 폴더에 저장해요. 그동안 마우스·키보드를 만지지 마세요.</span></div>`:''}</div>`}
+ ${deskCfg.watchDir&&window.desk.epharmStock?`<div class="row" style="align-items:center"><button class="btn primary" type="button" id="dkEp">이팜에서 재고 가져오기</button><span class="sub">이팜이 켜져 있으면 약 1분 동안 이팜 화면을 대신 눌러 재고현황과 조제약품현황(최근 6개월)을 이 폴더에 저장해요. 그동안 마우스·키보드를 만지지 마세요.</span></div>`:''}
+ <div class="row"><button class="btn${deskCfg.watchDir&&window.desk.epharmStock?'':' primary'}" type="button" id="dkPick">${deskCfg.watchDir?'폴더 바꾸기':'폴더 고르기'}</button>${deskCfg.watchDir?'<button class="btn" type="button" id="dkClear">자동 읽기 끄기</button>':''}</div></div>`}
 function bindDeskFolder(body){const p=body.querySelector('#dkPick');if(p)p.onclick=async()=>{deskCfg.watchDir=await window.desk.pickFolder();toast(deskCfg.watchDir?'폴더를 정했어요. 최근 파일을 읽어 볼게요':'');redrawPanel()};
  const c=body.querySelector('#dkClear');if(c)c.onclick=()=>{window.desk.clearFolder();deskCfg.watchDir='';redrawPanel()};
  const ep=body.querySelector('#dkEp');if(ep)ep.onclick=async()=>{ep.disabled=true;ep.textContent='가져오는 중…';const r=await window.desk.epharmStock();

@@ -2969,7 +2969,9 @@ function stocksetTabs(){return [['rx','조제약'],['otc','일반약'],['alert',
 {const _ds2=drawSettings;drawSettings=function(body){if(panelState.kind!=='stockset')return _ds2(body);const t=panelState.tab;
  const sub=tab=>{const d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column;gap:12px';body.appendChild(d);panelState.tab=tab;try{_ds2(d)}finally{panelState.tab=t}return d};
  if(t==='rx'){body.innerHTML='';const a=sub('basic');const al=a.querySelector('#sBriefOn');if(al){const card=al.closest('.card'),sv=a.querySelector('#sSave'),st=a.querySelector('#sSize');if(sv&&st)st.closest('.card').appendChild(sv.closest('.row'));card.remove()}
-  sub('files');body.appendChild(buyCard('조제약'));return}
+  sub('files');body.appendChild(buyCard('조제약'));
+  // PC: 이팜 엑셀 폴더 칸(이팜에서 재고 가져오기 단추)을 맨 위로 (v0.10.22)
+  const fc=[...body.querySelectorAll('.card h3')].find(h=>h.textContent==='이팜 엑셀 폴더 자동 읽기');if(fc)body.prepend(fc.closest('.card'));return}
  if(t==='otc'){body.innerHTML='';body.appendChild(otcCard());return}
  if(t==='alert'){body.innerHTML='';const a=sub('basic');const st=a.querySelector('#sSize');if(st)st.closest('.card').remove();a.prepend(heroCard());return}
  return _ds2(body)}}
@@ -3366,7 +3368,7 @@ setTimeout(todayXl,0);
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793174435';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793174671';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
