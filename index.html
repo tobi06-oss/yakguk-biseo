@@ -611,6 +611,10 @@ const WATCH_DAYS=60,RX_LINES=3.5;
 const PSY=/졸피뎀|알프라졸람|로라제팜|디아제팜|클로나제팜|에티졸람|트리아졸람|브로마제팜|클로바잠|클로티아제팜|옥사제팜|클로르디아제폭시드|플루라제팜|에스조피클론|조피클론|미다졸람|펜터민|펜디메트라진|마진돌|디에틸프로피온|로르메타제팜|플루니트라제팜|페노바르비탈|토피솔람|쿠아제팜|자낙스|스틸녹스|졸피드|리보트릴|아티반|디아제팜/;
 const ymd8=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 const d8=s=>new Date(+String(s).slice(0,4),+String(s).slice(4,6)-1,+String(s).slice(6,8));
+// 올리기 칸 제목 옆 최신 갱신 시각 (v0.10.23): 오늘이면 [오늘] 16:59, 지난 날이면 10/27 (월)
+function upStamp(at){if(!at)return '';const d=new Date(at);if(isNaN(d))return '';const n=new Date(),two=x=>String(x).padStart(2,'0');
+ return d.toDateString()===n.toDateString()?`<span class="upst"><i>오늘</i>${two(d.getHours())}:${two(d.getMinutes())}</span>`:`<span class="upst">${d.getMonth()+1}/${d.getDate()} (${'일월화수목금토'[d.getDay()]})</span>`}
+(()=>{const st=document.createElement('style');st.textContent='.upst{font-size:12px;font-weight:500;color:var(--ink-3);margin-left:8px;white-space:nowrap}.upst i{font-style:normal;font-weight:700;font-size:11px;background:var(--accent);color:var(--on-accent,#fff);border-radius:999px;padding:1px 7px;margin-right:5px}';document.head.appendChild(st)})();
 const dayDiff=(a,b)=>Math.round((d8(b)-d8(a))/864e5);
 const addDays=(s,n)=>{const d=d8(s);d.setDate(d.getDate()+n);return ymd8(d)};
 // 쉬는 날: 일요일·공휴일·약국 휴무(캘린더) — 캘린더가 없는 화면에서는 일요일만
@@ -1028,14 +1032,14 @@ function drawSettings(body){
    if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast(inS?'약국 정보를 저장했어요':'재고 설정을 저장했어요');redrawPanel&&redrawPanel()}};
  }else if(t==='files'){
   // 조제약품현황(매일) 위, 재고현황 아래 (v0.10.21: 반품 목록 올리기 카드는 뺌 — 예전에 올린 목록은 그대로 씀)
-  body.innerHTML=`<div class="card"><h3>조제약품현황</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}</p>
+  body.innerHTML=`<div class="card"><h3>조제약품현황${upStamp(S.profile&&S.profile.savedAt)}</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}</p>
    <p class="muted">이팜: 조제관리 → 조제내역현황 → 기간설정(6개월) → 조제약품별 → 조회 → 미리보기 → 출력 → 변환 → XLSX</p>
    <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn primary" for="fDisp" role="button" tabindex="0">조제약품현황 올리기</label></div>
    <p class="muted">매일 올리면 사용량·적정재고와 조제약 재고가 함께 바뀌어요. 재고현황및재고수정(단위수량 칸 있는 것)을 이 단추로 올리면 통 크기도 읽어요${S.packs&&S.packs.c?` (지금 ${fmt(Object.keys(S.packs.c).length)}품목)`:''}.</p></div>
-  <div class="card"><h3>재고현황</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
+  <div class="card"><h3>재고현황${upStamp(S.stock&&S.stock.savedAt)}</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
    <p class="muted">이팜: 재고관리 → 재고현황 및 재고 수정 → 기간설정(6개월) → 검색상세(사용약품전체) → 재고조회구분(현재고(+)) → 조회 → 미리보기 체크 → 출력 → 변환 → XLSX</p>
    <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
-  <div class="card"><h3>작년 같은 시기 (선택 · 한 달에 한 번)</h3><p class="muted">${S.season&&S.season.from?`지금 자료: ${S.season.from.slice(0,4)}년 ${dateLabel(S.season.from)}~${dateLabel(S.season.to)}${seasonOn()?' · 적용 중':' · 기간이 지나 적용 안 됨'}`:'아직 없음'}</p><p class="muted">조제약품현황을 <b>작년 오늘부터 한 달 뒤까지</b>로 뽑아 올리면, 작년 이맘때 더 많이 나간 약(겨울 감기약·항생제 등)을 미리 준비해요. 조제약품현황 올리기 단추로 올리면 날짜를 보고 알아서 구분해요.</p></div>
+  <div class="card"><h3>작년 같은 시기 (선택 · 한 달에 한 번)${upStamp(S.season&&S.season.savedAt)}</h3><p class="muted">${S.season&&S.season.from?`지금 자료: ${S.season.from.slice(0,4)}년 ${dateLabel(S.season.from)}~${dateLabel(S.season.to)}${seasonOn()?' · 적용 중':' · 기간이 지나 적용 안 됨'}`:'아직 없음'}</p><p class="muted">조제약품현황을 <b>작년 오늘부터 한 달 뒤까지</b>로 뽑아 올리면, 작년 이맘때 더 많이 나간 약(겨울 감기약·항생제 등)을 미리 준비해요. 조제약품현황 올리기 단추로 올리면 날짜를 보고 알아서 구분해요.</p></div>
   ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
   $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
   body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
@@ -1091,9 +1095,15 @@ async function importStock(buf,source){
   if(!rows.length)throw new Error('현재고가 있는 품목이 없어요.');
   const meta=String(aoa.slice(0,h).flat().find(x=>/검색기간|재고금액/.test(String(x)))||'');const dm=meta.match(/~\s*(\d{8})/);
   const d=new Date();const date=dm?dm[1]:`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  // 이팜 "현재고(+)"로 뽑으면 재고 0인 약이 파일에서 빠짐 → 지난 재고에 있었는데 이번에 없는 약은 재고 0으로 남김 (v0.10.23)
+  // r[7]=빠진 날. 60일 넘게 계속 없으면(안 파는 약) 뺌. 다시 들어오면 그 줄로 바뀜. 일부만 든 파일(30% 넘게 빠짐)이면 하지 않음
+  const base=S.stock&&S.stock.date&&S.stock.date!==date?S.stock:S.prev;let gone=[];
+  if(base&&base.rows&&base.date&&base.date<date){const key=r=>String(r[1]||'')||String(r[0]),have=new Set(rows.map(key));
+   base.rows.forEach(r=>{const k=key(r);if(have.has(k))return;const since=r[7]||date;if(dayDiff(since,date)>60)return;have.add(k);gone.push([r[0],r[1],r[2],r[3],r[4],0,r[6],since])});
+   if(gone.length>base.rows.length*0.3)gone=[];rows=rows.concat(gone)}
   const doc={meta,date,rows,source:source||'upload',savedAt:new Date().toISOString()};
   if(S.stock&&S.stock.date&&S.stock.date!==date){if(!await saveDoc('stock/previous',S.stock))return;S.prev=S.stock}
-  if(await saveDoc('stock/current',doc)){S.stock=doc;await recordDaily();recordKpi();renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})${skipped?` · 재고 0 ${fmt(skipped)}품목 제외`:''}`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,skipped,date}}
+  if(await saveDoc('stock/current',doc)){S.stock=doc;await recordDaily();recordKpi();renderToday();toast(`${fmt(rows.length)}품목 재고를 저장했어요 (${dateLabel(date)})${skipped?` · 재고 0 ${fmt(skipped)}품목 제외`:''}${gone.length?` · 지난번에 있다가 빠진 ${fmt(gone.length)}품목은 재고 0으로`:''}`);redrawPanel&&redrawPanel();return{ok:true,kind:'stock',n:rows.length,skipped,date}}
   return{ok:false}
  }catch(err){toast(err.message||'파일을 읽지 못했어요');return{ok:false,error:err.message}}}
 async function onDispFile(e){const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -2959,7 +2969,7 @@ function otcCard(){const s=S.settings||{};const w=document.createElement('div');
   c.querySelector('#otcSave').onclick=async()=>{const n={...S.settings,otcRopW:+c.querySelector('#otcR').value,otcFillW:+c.querySelector('#otcF').value};
   if(await saveDoc('settings/main',n)){S.settings=n;toast('일반약 기준을 저장했어요');renderToday();redrawPanel&&redrawPanel()}};return w}
 function buyCard(kind){const U=otcUse();const c=document.createElement('div');c.className='card';const nHb=U&&U.hb?Object.keys(U.hb).length:0;
- c.innerHTML=`<h3>${kind||''} 사입현황</h3><p class="muted">이팜 사입현황(${kind==='일반약'?'일반약':'전문약'}으로 검색)을 올려 주세요. 조제약·일반약 파일은 약품코드별로 합쳐져서 서로 지워지지 않아요. ${kind==='일반약'?'일반약 판매 속도 계산에 써요':'재고 카드에 평소 주문 습관(몇 개씩, 며칠마다, 재고 얼마일 때)으로 보여 줘요'}. 필요한 칸: 일자 · 약품코드 · 구분 · 총수량 · 재고수량.</p>
+ c.innerHTML=`<h3>${kind||''} 사입현황${upStamp(U&&U.at)}</h3><p class="muted">이팜 사입현황(${kind==='일반약'?'일반약':'전문약'}으로 검색)을 올려 주세요. 조제약·일반약 파일은 약품코드별로 합쳐져서 서로 지워지지 않아요. ${kind==='일반약'?'일반약 판매 속도 계산에 써요':'재고 카드에 평소 주문 습관(몇 개씩, 며칠마다, 재고 얼마일 때)으로 보여 줘요'}. 필요한 칸: 일자 · 약품코드 · 구분 · 총수량 · 재고수량.</p>
   <div class="row"><label class="btn sm primary" for="buyF" role="button" tabindex="0">사입현황 올리기</label><input type="file" id="buyF" accept=".xls,.xlsx" multiple hidden><span class="sub">${nHb?`지금 ${fmt(nHb)}품목 · ${esc(U.from||'')}~${esc(U.to||'')}`:'아직 없음'}</span><button class="btn sm" type="button" id="buyHow" style="margin-left:auto" aria-expanded="false">사입현황 저장법</button></div>
   <ol class="buyhow" id="buyHowBox" hidden><li>재고관리 → 약품거래 및 재고현황</li><li>검색기간 <b>6개월</b> → 분류검색 → 사용약품전체 체크</li><li>분류구분(<b>약품종류</b>) → 검색구분(<b>${kind==='일반약'?'일반':'전문'}</b>) → 조회</li><li>왼쪽 약품들 전체 체크 → 선택약품 조회</li><li><b>사입현황</b> 탭을 누른 채로 미리보기 체크하고 출력</li><li>엑셀 저장</li></ol>`;
  c.querySelector('#buyHow').onclick=e=>{const b=c.querySelector('#buyHowBox');b.hidden=!b.hidden;e.currentTarget.setAttribute('aria-expanded',String(!b.hidden))};
@@ -2971,7 +2981,7 @@ function stocksetTabs(){return [['rx','조제약'],['otc','일반약'],['alert',
  if(t==='rx'){body.innerHTML='';const a=sub('basic');const al=a.querySelector('#sBriefOn');if(al){const card=al.closest('.card'),sv=a.querySelector('#sSave'),st=a.querySelector('#sSize');if(sv&&st)st.closest('.card').appendChild(sv.closest('.row'));card.remove()}
   sub('files');body.appendChild(buyCard('조제약'));
   // PC: 이팜 엑셀 폴더 칸(이팜에서 재고 가져오기 단추)을 맨 위로 (v0.10.22)
-  const fc=[...body.querySelectorAll('.card h3')].find(h=>h.textContent==='이팜 엑셀 폴더 자동 읽기');if(fc)body.prepend(fc.closest('.card'));return}
+  const fc=[...body.querySelectorAll('.card h3')].find(h=>h.textContent.startsWith('이팜 엑셀 폴더 자동 읽기'));if(fc)body.prepend(fc.closest('.card'));return}
  if(t==='otc'){body.innerHTML='';body.appendChild(otcCard());return}
  if(t==='alert'){body.innerHTML='';const a=sub('basic');const st=a.querySelector('#sSize');if(st)st.closest('.card').remove();a.prepend(heroCard());return}
  return _ds2(body)}}
@@ -3224,7 +3234,7 @@ function expSetBox(){const c=document.createElement('div');c.className='expset';
    const n={...S.settings,expDays:n0,expWs:Object.fromEntries(W)};if(await saveDoc('settings/main',n)){S.settings=n;renderToday();toast('유통기한 기준을 저장했어요');redrawPanel&&redrawPanel()}}};
  draw();return c}
 function expCard(){const s=S.settings||{},D=expDoc(),v=expDays();const c=document.createElement('div');c.className='card';c.id='expCard';
- c.innerHTML=`<h3>유통기한</h3><p class="muted">이팜 "약품유효기간리스트" 엑셀을 올리면 재고 › 유통기한 탭과 첫 화면에 임박한 약을 보여 주고, 매일 재고 알림에도 넣어요. PC 폴더에 넣어 두면 알아서 읽어요. 필요한 칸: 사입일자 · 약품코드 · 총수량 · 유효기간 · 현재고.</p>
+ c.innerHTML=`<h3>유통기한${upStamp(D&&D.at)}</h3><p class="muted">이팜 "약품유효기간리스트" 엑셀을 올리면 재고 › 유통기한 탭과 첫 화면에 임박한 약을 보여 주고, 매일 재고 알림에도 넣어요. PC 폴더에 넣어 두면 알아서 읽어요. 필요한 칸: 사입일자 · 약품코드 · 총수량 · 유효기간 · 현재고.</p>
   <div class="row"><label class="btn sm primary" for="expF" role="button" tabindex="0">유효기간 파일 올리기</label><input type="file" id="expF" accept=".xls,.xlsx" hidden><span class="sub">${D?`지금 ${fmt(D.n||0)}품목 · ${new Date(D.at).getMonth()+1}/${new Date(D.at).getDate()} 올림`:'아직 없음'}</span></div>`;c.appendChild(expSetBox());
  c.querySelector('#expF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importExp(new Uint8Array(await f.arrayBuffer()))};
  return c}
@@ -3368,7 +3378,7 @@ setTimeout(todayXl,0);
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793174671';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793175409';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
