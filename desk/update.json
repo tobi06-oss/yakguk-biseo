@@ -1,11 +1,11 @@
 {
- "version": "0.10.20",
- "notes": "이팜에서 재고 가져오기 단추: 재고 설정 › 조제약에서 누르면 이팜을 대신 눌러 재고현황·조제약품현황을 저장해요",
+ "version": "0.10.21",
+ "notes": "재고 설정 › 조제약: 조제약품현황이 위, 재고현황이 아래 · 이팜 순서 안내 · 반품 목록 칸 뺌",
  "files": [
   {
    "p": "index.html",
-   "sha256": "b54a1ce61dd2c8777a089e3f01391a60dd7cae34b9be7f3a270037aedfb30546",
-   "size": 495065
+   "sha256": "789df7f8535d8bc046dbbd22ab60cb7fdff62ac5ff0f8c53eca9b554f7b1bced",
+   "size": 493626
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "d2809a8a180a3d21a36c71c4fb9f04a0697421456bca9172364068b9aec0d79b",
+   "sha256": "38da7f8acd077270cb57553c4c6ce92474ce9f03be78cf2cd55a806b24b9b1b9",
    "size": 213
   },
   {

@@ -1027,19 +1027,17 @@ function drawSettings(body){
   $('sSave').onclick=async()=>{const n=inS?{...s,name:$('sName').value.trim()||'우리 약국',tel:$('sTel').value.trim()}:{...s,...($('sSize')?{size:$('sSize').value,cov:+$('sCov').value,rop2:+$('sRop').value,zAdj:+$('sZ').value,leadDays:+$('sLead').value,periodDays:Math.max(30,+$('sPer').value||184)}:{}),...(!inS&&$('sBriefOn')?{briefOn:$('sBriefOn').checked,briefTime:$('sBrief').value||'13:30'}:{})};if($('sBriefTo')&&isMgr())n.briefTo=[...document.querySelectorAll('#sBriefTo input:checked')].map(x=>x.value);
    if(await saveDoc('settings/main',n)){S.settings=n;applySettings();renderToday();toast(inS?'약국 정보를 저장했어요':'재고 설정을 저장했어요');redrawPanel&&redrawPanel()}};
  }else if(t==='files'){
-  body.innerHTML=`<div class="card"><h3>재고현황 (한 달에 한 번)</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
-   <p class="muted">이팜: 재고관리 → 재고현황 및 재고 수정 → 사용약품전체 → 재고조회구분 <b>전체</b> → 조회 → 미리보기 → 출력 → 변환 → XLSX</p>
+  // 조제약품현황(매일) 위, 재고현황 아래 (v0.10.21: 반품 목록 올리기 카드는 뺌 — 예전에 올린 목록은 그대로 씀)
+  body.innerHTML=`<div class="card"><h3>조제약품현황</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}</p>
+   <p class="muted">이팜: 조제관리 → 조제내역현황 → 기간설정(6개월) → 조제약품별 → 조회 → 미리보기 → 출력 → 변환 → XLSX</p>
+   <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn primary" for="fDisp" role="button" tabindex="0">조제약품현황 올리기</label></div>
+   <p class="muted">매일 올리면 사용량·적정재고와 조제약 재고가 함께 바뀌어요. 재고현황및재고수정(단위수량 칸 있는 것)을 이 단추로 올리면 통 크기도 읽어요${S.packs&&S.packs.c?` (지금 ${fmt(Object.keys(S.packs.c).length)}품목)`:''}.</p></div>
+  <div class="card"><h3>재고현황</h3><p class="muted">${S.stock?`지금 자료: ${dateLabel(M&&M.date)} · ${fmt(S.stock.rows.length)}품목 · ${S.stock.source==='auto'?'자동 진단':'직접 올림'}`:'아직 없음'}</p>
+   <p class="muted">이팜: 재고관리 → 재고현황 및 재고 수정 → 기간설정(6개월) → 검색상세(사용약품전체) → 재고조회구분(현재고(+)) → 조회 → 미리보기 체크 → 출력 → 변환 → XLSX</p>
    <div class="upload"><input type="file" id="fStock" accept=".xls,.xlsx"><label class="btn primary" for="fStock" role="button" tabindex="0">재고현황 올리기</label></div></div>
-  <div class="card"><h3>조제약품현황 (매일)</h3><p class="muted">${S.profile&&S.profile.savedAt?`지금 자료: ${Object.values(S.profile.items).filter(x=>x.n>0).length}품목 · ${S.profile.periodDays}일 기준${S.profile.to?' · '+dateLabel(S.profile.to)+'까지':''} · 조제 기록 ${Object.keys(S.profile.hist||{}).length}품목 기억`:'아직 없음'}.</p><p class="muted">최근 6개월로 매일 뽑아 올리면 사용량·적정재고와 조제약 재고(재고총량)가 함께 갱신돼서 재고 소진·부족·장기미조제가 다 계산돼요. 재고현황은 한 번도 조제 안 한 약까지 포함한 전체 재고라 한 달에 한 번이면 돼요. 처음 한 번은 1~2년 기간으로 올려 두면 오래 안 나간 약까지 잡혀요.</p>
-   <div class="upload"><input type="file" id="fDisp" accept=".xls,.xlsx"><label class="btn" for="fDisp" role="button" tabindex="0">사용량·조제약품현황 올리기</label></div><p class="muted">포장 단위(통): 재고현황및재고수정(단위수량·사용량 칸이 있는 것)을 이 단추로 올리면 약마다 통 크기를 읽어 "온 통 1개" 기준에 써요. 한 달에 한 번이면 충분해요. ${S.packs&&S.packs.c?`지금: ${fmt(Object.keys(S.packs.c).length)}품목`:'아직 없음'}</p></div>
-  <div class="card"><h3>반품 목록 (선택)</h3><p class="muted">${S.ret&&S.ret.names?`지금 목록: ${fmt(S.ret.names.length)}개 약 이름 · ${M?`재고 0이라 주문 목록에서 뺀 약 ${M.items.filter(i=>i.ret).length}개`:''}`:'아직 없음'}</p>
-   <p class="muted">반품한 약 목록 엑셀을 올리면, 그중 지금 재고가 0인 약은 사입 안 하는 약으로 보고 주문 목록·재고 소진 알림에서 빼요. 나중에 다시 사서 재고가 생기면 저절로 다시 계산해요. "약품명" 칸만 읽어요(여러 도매 칸이 옆으로 있어도 돼요).</p>
-   ${M&&M.items.some(i=>i.ret)?`<p class="sub">뺀 약: ${M.items.filter(i=>i.ret).map(i=>esc(i.base)).join(', ')}</p>`:''}
-   <div class="upload"><input type="file" id="fRet" accept=".xls,.xlsx"><label class="btn" for="fRet" role="button" tabindex="0">반품 목록 올리기</label>${S.ret&&S.ret.names?'<button class="btn sm" type="button" id="fRetClr">목록 지우기</button>':''}</div></div>
   <div class="card"><h3>작년 같은 시기 (선택 · 한 달에 한 번)</h3><p class="muted">${S.season&&S.season.from?`지금 자료: ${S.season.from.slice(0,4)}년 ${dateLabel(S.season.from)}~${dateLabel(S.season.to)}${seasonOn()?' · 적용 중':' · 기간이 지나 적용 안 됨'}`:'아직 없음'}</p><p class="muted">조제약품현황을 <b>작년 오늘부터 한 달 뒤까지</b>로 뽑아 올리면, 작년 이맘때 더 많이 나간 약(겨울 감기약·항생제 등)을 미리 준비해요. 조제약품현황 올리기 단추로 올리면 날짜를 보고 알아서 구분해요.</p></div>
   ${window.deskFolderCard?deskFolderCard():''}<p class="muted">환자 정보가 들어 있는 파일(대체조제 내역 등)은 올리지 마세요. 약품별 합계 파일만 받아요.</p>`;
-  $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);$('fRet').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await importReturns(new Uint8Array(await f.arrayBuffer()))};
-  $('fRetClr')&&($('fRetClr').onclick=async()=>{if(await saveDoc('exceptions/returned',{names:[],at:Date.now()})){S.ret=null;renderToday();toast('반품 목록을 지웠어요');redrawPanel()}});window.bindDeskFolder&&bindDeskFolder(body);
+  $('fStock').onchange=e=>onStockFile(e);$('fDisp').onchange=e=>onDispFile(e);window.bindDeskFolder&&bindDeskFolder(body);
   body.querySelectorAll('label.btn').forEach(l=>l.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$(l.htmlFor).click()}});
  }else if(t==='exc'){
   const rows=Object.entries(S.exc);
@@ -3368,7 +3366,7 @@ setTimeout(todayXl,0);
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1793173371';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1793174435';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
