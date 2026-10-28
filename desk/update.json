@@ -1,11 +1,11 @@
 {
- "version": "0.10.24",
- "notes": "오늘의 재고: 조제약·일반약·유통기한 칸에 커서를 대면 테두리가 생겨요",
+ "version": "0.10.25",
+ "notes": "첫 화면 칸들에 커서를 대면 살짝 커져요",
  "files": [
   {
    "p": "index.html",
-   "sha256": "e383777ac60112e732c824650a48653a31ed6d37238d29f6b11c8f84d77ca8eb",
-   "size": 496210
+   "sha256": "bb25b454c000e273b79b11189c4d2c433294d1b1fe8f76c9fa372f66be633ec6",
+   "size": 496526
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "291c6e88e885cb14b2a09a43bdcc3d42a4c211d4059f9b521c20b784a9b31f95",
+   "sha256": "413505fee6e329015cb53ed2a24fc62014578e7bca5f589a10e1cff48ceafeb0",
    "size": 213
   },
   {

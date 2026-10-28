@@ -3016,6 +3016,9 @@ setTimeout(todaySplit,0);
 .today .tg:hover,.today .tg:focus-visible,.today .texp:hover,.today .texp:focus-visible{filter:brightness(1.03);box-shadow:inset 0 0 0 1.5px var(--accent,#2F5597),0 4px 12px -6px rgba(0,0,0,.35);transform:scale(1.025);z-index:2;outline:none}
 .today .texp:hover,.today .texp:focus-visible{transform:scale(1.01)}
 .today .tg:active,.today .texp:active{transform:scale(.99)}
+/* 첫 화면 다른 칸(공지사항·매뉴얼 등 큰 칸, 바로가기, 분류)도 커서를 대면 살짝 확대 (v0.10.25) */
+.fav:hover,.tile:hover,.cat:hover,.fav:focus-visible,.tile:focus-visible,.cat:focus-visible{transform:scale(1.02);z-index:2}
+.fav:active,.tile:active,.cat:active{transform:scale(.98)}
 div.today{cursor:pointer}
 /* 오늘의 재고 제목은 공지사항 칸 제목과 같은 글씨 (v0.10.7) */
 html .today:not(.empty) .d>span:first-child{font-family:var(--display);font-size:15.5px;font-weight:400;letter-spacing:0;color:var(--ink);line-height:1.25}html .today:not(.empty) .d>span:first-child .num{font-size:13px}html.sidemode .today:not(.empty) .d>span:first-child{font-size:13.5px}`;document.head.appendChild(st)})();
