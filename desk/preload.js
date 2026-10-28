@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('desk',{
  showMain:c=>ipcRenderer.send('show-main',c),
  config:()=>ipcRenderer.invoke('desk-config'),
  pickFolder:()=>ipcRenderer.invoke('pick-folder'),
+ epharmStock:()=>ipcRenderer.invoke('epharm-stock'),
  clearFolder:()=>ipcRenderer.send('clear-folder'),
  setAutostart:on=>ipcRenderer.send('set-autostart',on),
  backup:()=>ipcRenderer.invoke('backup'),

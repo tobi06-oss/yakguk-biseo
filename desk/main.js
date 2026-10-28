@@ -177,6 +177,30 @@ ipcMain.handle('restore',async()=>{const r=await dialog.showOpenDialog(win,{titl
 if(process.env.DESK_DATA)ipcMain.on('__test_dir',(e,dir)=>{data.desk.watchDir=dir;data.desk.watchSince=0;data.desk.seen={};scanFolder()});
 ipcMain.on('open-data-dir',()=>shell.openPath(DATA_DIR));
 
+/* ---------- 이팜에서 재고현황·조제약품현황 엑셀 저장 (이팜 화면을 대신 눌러 줌, 각각 약 30초) ---------- */
+// ipam_stock.ps1: 재고관리 › 재고현황및재고수정 › 최근6개월·사용약품전체·현재고(+) › 조회 › 미리보기 출력 › XLSX
+// ipam_disp.ps1 : 조제관리 › 조제내역현황 › 최근6개월 › 조제약품별 탭(환자 목록 탭에서는 조회 안 함) › 조회 › 미리보기 출력 › XLSX
+// 폴더 자동 읽기 폴더에 오늘 날짜 이름으로 저장 → scanFolder 가 바로 읽음. 그동안 이 프로그램 창은 숨겨서 이팜을 가리지 않게.
+const EP_JOBS=[['ipam_stock.ps1','재고현황및재고수정','재고현황'],['ipam_disp.ps1','조제약품현황','조제약품현황']];
+let epBusy=false;
+ipcMain.handle('epharm-stock',async()=>{
+ if(process.platform!=='win32')return{ok:false,err:'윈도우 PC에서만 돼요'};
+ const dir=data.desk.watchDir;if(!dir)return{ok:false,err:'이팜 엑셀 폴더를 먼저 정해 주세요'};
+ if(epBusy)return{ok:false,err:'벌써 가져오는 중이에요'};epBusy=true;
+ const d=new Date(),p2=n=>String(n).padStart(2,'0'),day=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate());
+ const logp=path.join(DATA_DIR,'이팜저장_로그.txt'),files=[];
+ const shown=BrowserWindow.getAllWindows().filter(w=>!w.isDestroyed()&&w.isVisible());shown.forEach(w=>w.hide());
+ try{
+  for(const [ps,name,label] of EP_JOBS){const out=path.join(dir,name+day+'.xlsx');
+   const code=await new Promise(res=>require('child_process').execFile('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(__dirname,ps),'-OutPath',out,'-LogPath',logp],{timeout:240000,windowsHide:true},err=>res(err?(typeof err.code==='number'?err.code:1):0)));
+   if(code!==0){let last='';try{last=fs.readFileSync(logp,'utf8').trim().split(/\r?\n/).pop()||''}catch(e){}
+    const m=last.match(/실패: (.*)$/);if(files.length)setTimeout(()=>scanFolder(),5000);
+    return{ok:false,files,err:label+' — '+(m?m[1]:'이팜 저장이 중간에 멈췄어요')}}
+   files.push(path.basename(out))}
+  setTimeout(()=>scanFolder(),5000);return{ok:true,files,file:files.join(', ')}
+ }finally{epBusy=false;shown.forEach(w=>{if(!w.isDestroyed())w.show()})}
+});
+
 /* ---------- 자동 업데이트 (GitHub Pages의 desk/ 에서 받음) ---------- */
 let upd={state:'idle',version:null,notes:'',err:''};
 function updSend(){if(win&&!win.isDestroyed())win.webContents.send('update',upd)}

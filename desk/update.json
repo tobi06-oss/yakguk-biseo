@@ -1,21 +1,21 @@
 {
- "version": "0.10.19",
- "notes": "다른 기기에서 받은 유통기한 자료도 첫 화면에 바로 보이게",
+ "version": "0.10.20",
+ "notes": "이팜에서 재고 가져오기 단추: 재고 설정 › 조제약에서 누르면 이팜을 대신 눌러 재고현황·조제약품현황을 저장해요",
  "files": [
   {
    "p": "index.html",
-   "sha256": "17ad89712baa0ecc9c4be31de2d412d92484f327df805bf24c703453278c57d5",
-   "size": 494155
+   "sha256": "b54a1ce61dd2c8777a089e3f01391a60dd7cae34b9be7f3a270037aedfb30546",
+   "size": 495065
   },
   {
    "p": "main.js",
-   "sha256": "e58a5d83d01d609ed9a9216beaee6bde9eb27cdbdc3cf9f44aef6fe0e1344768",
-   "size": 20198
+   "sha256": "ae44a7cac8bb59cf68fa5531834413543e4bbdabef93a4bceea7dab6c2830e45",
+   "size": 22506
   },
   {
    "p": "preload.js",
-   "sha256": "80cc228af72a85bde3c5410c14f5f455762f7f4aa9c76e04e3bb296f9890e6a4",
-   "size": 1835
+   "sha256": "59be8d44b7d2be2f3f5eca1c858824cdf398864fa96533181270181e4e5e8774",
+   "size": 1888
   },
   {
    "p": "alarmcore.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "d4cd07d2836c1c2f07b0658e2c3936c4f0c1ae753ca5d5c14d0a2cf048d7dc51",
+   "sha256": "d2809a8a180a3d21a36c71c4fb9f04a0697421456bca9172364068b9aec0d79b",
    "size": 213
   },
   {
@@ -56,6 +56,16 @@
    "p": "vendor/xlsx.full.min.js",
    "sha256": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
    "size": 881727
+  },
+  {
+   "p": "ipam_stock.ps1",
+   "sha256": "b4e2d590743ebf7a1a3d2a1169a42ea6f91982d5b65f6942559f5195384058a7",
+   "size": 14200
+  },
+  {
+   "p": "ipam_disp.ps1",
+   "sha256": "60f443e1a393fe19982eb0ea0a1f16ac2270b7f7858bc511557e9abd5a71ab7a",
+   "size": 17726
   }
  ]
 }
