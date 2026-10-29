@@ -1,11 +1,11 @@
 {
- "version": "0.10.25",
- "notes": "첫 화면 칸들에 커서를 대면 살짝 커져요",
+ "version": "0.10.26",
+ "notes": "대체약에서 클로피나·제이그렐처럼 같은 약을 함께 묶어요 · 오늘의 재고 바탕은 눌러도 안 열려요 · 업데이트 단추 글씨를 짧게",
  "files": [
   {
    "p": "index.html",
-   "sha256": "bb25b454c000e273b79b11189c4d2c433294d1b1fe8f76c9fa372f66be633ec6",
-   "size": 496526
+   "sha256": "09b9f60d1d148fd614213645b89e9f1b935c8ffc18d5962aea67a70be5f96eff",
+   "size": 498025
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "413505fee6e329015cb53ed2a24fc62014578e7bca5f589a10e1cff48ceafeb0",
+   "sha256": "a396cbd0ed9361852a9680860acebd8fd14c1b49209fd208b6d8b1f172e49ab1",
    "size": 213
   },
   {

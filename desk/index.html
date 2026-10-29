@@ -578,6 +578,8 @@ const CARDS=[
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm=s=>String(s||'').toLowerCase().replace(/[\s()\[\]_\-.,/·:]+/g,'');
+// 성분 묶을 때: 같은 염인데 이름만 다른 것 (예: 클로피도그렐황산수소염 = 클로피도그렐황산염, 둘 다 97.875mg)
+const ingNorm=s=>norm(s).replace(/황산수소염|중황산염/g,'황산염');
 const fmt=n=>{n=+n||0;return Number.isInteger(n)?n.toLocaleString('ko-KR'):n.toLocaleString('ko-KR',{maximumFractionDigits:1})};
 const r1=n=>Math.round(n*10)/10;
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
@@ -708,7 +710,7 @@ function buildModel(){
   const price=pf&&+pf.u||hi&&+hi.u||0,buy=pf&&+pf.b||hi&&+hi.b||0,days=daily>0?cur/daily:null;
   return{code,raw,co:String(r[2]||''),unit:String(r[3]||''),cur,opt,mn,src,ret,lumpy,sL,psy,tags,trend,recent:ds&&ds.recent,fileOpt,eo:pf&&pf.eo||0,ws:pf&&pf.w||hi&&hi.w||'',daily,perrx,n,price,cls,abc:g,ess,z,
    dead:cls==='N'&&!ess,last,idle,onOrd,need,pack,packSrc,days,ex,disp:!!cls,calcOpt,eoSet,buy,...p,
-   prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?norm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?norm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
+   prev:prevMap[code]?prevMap[code].cur:null,key:p.ing?ingNorm(p.ing)+'|'+norm(p.str):'',ikey:p.ing?ingNorm(p.ing):'',hay:norm(raw+' '+code+' '+r[2]+' '+(pf&&pf.w||''))}});
  const byKey={},byIng={},byCode={};
  items.forEach(i=>{byCode[i.code]=i;if(i.key){(byKey[i.key]=byKey[i.key]||[]).push(i);(byIng[i.ikey]=byIng[i.ikey]||[]).push(i)}});
  // 같은 성분·같은 함량 다른 제품: 대체 가능 재고 / 다른 제품으로 바뀐 약
@@ -911,7 +913,7 @@ function altStr(i){let s=altUnit(i.str).replace(/\/1(정|캡슐|캅셀|켑슐|t|
 const ALT_NOTING=/^(\d|1회용|일회용|무보존|수출명|구[:：]|\d+\s*(매|T|C|정|포|개))/i;
 function altIngRaw(i){let g=String(i.ing||'').trim();if(g&&!ALT_NOTING.test(g))return g;
  const ps=[...String(i.base||'').matchAll(/\(([^()]+)\)/g)].map(m=>m[1].trim()).filter(p=>!ALT_NOTING.test(p)&&/[가-힣]{2}/.test(p));return ps[0]||''}
-function altIng(i){const g=altIngRaw(i);return g?g.split(/[,+]/).map(x=>norm(x)).filter(Boolean).sort().join('+'):''}
+function altIng(i){const g=altIngRaw(i);return g?g.split(/[,+]/).map(x=>ingNorm(x)).filter(Boolean).sort().join('+'):''}
 function altNums(i){return (altUnit(i.str)+' '+altUnit(i.base)).match(/\d+(?:\.\d+)?/g)?.map(Number)||[]}
 let altCache=null;
 function altModel(){
@@ -2008,7 +2010,7 @@ async function ask(q){q=String(q||'').trim();if(!q)return;$('input').value='';au
  renderMemoHome();$('input').focus()}
 
 
-/* ===== 머리 줄 업데이트 단추: 설정 톱니 바로 왼쪽에 늘 있음. 평소 "업데이트 확인", 새 버전이 있으면 파란 "업데이트 가능" + 빨간 점 ===== */
+/* ===== 머리 줄 업데이트 단추: 설정 톱니 바로 왼쪽에 늘 있음. 평소 "업데이트", 새 버전이 있으면 파란 "업데이트 가능" + 빨간 점 ===== */
 function hdrUpdBtn(onClick){
  if($('upBtn'))return $('upBtn');const mb=$('menuBtn');if(!mb)return null;
  if(!document.getElementById('upBtnCss')){const st=document.createElement('style');st.id='upBtnCss';st.textContent=`
@@ -2023,10 +2025,10 @@ function hdrUpdBtn(onClick){
 @media (max-width:420px){.upbtn{padding:0 11px 0 9px;font-size:12.5px}.upbtn svg{display:none}}`;document.head.appendChild(st)}
  const w=document.createElement('div');w.className='hbtns';mb.parentNode.insertBefore(w,mb);
  const b=document.createElement('button');b.type='button';b.id='upBtn';b.className='upbtn';
- b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>업데이트 확인</span><i class="updot" aria-hidden="true"></i>';
+ b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>업데이트</span><i class="updot" aria-hidden="true"></i>';
  w.appendChild(b);w.appendChild(mb);b.onclick=()=>{if(!b.disabled)onClick(b)};return b}
-// state: idle(업데이트 확인) · checking(확인 중) · downloading(받는 중) · ready(업데이트 가능)
-function upBtnState(b,state,title){if(!b)return;const L={idle:'업데이트 확인',checking:'확인 중…',downloading:'받는 중…',ready:'업데이트 가능',applying:'적용 중…'};
+// state: idle(업데이트) · checking(확인 중) · downloading(받는 중) · ready(업데이트 가능)
+function upBtnState(b,state,title){if(!b)return;const L={idle:'업데이트',checking:'확인 중…',downloading:'받는 중…',ready:'업데이트 가능',applying:'적용 중…'};
  b.dataset.st=state;b.classList.toggle('ready',state==='ready');b.disabled=state==='checking'||state==='downloading'||state==='applying';
  b.querySelector('span').textContent=L[state]||L.idle;b.title=title||(state==='ready'?'누르면 새 버전을 적용해요':'새 버전이 있는지 확인해요');b.setAttribute('aria-label',b.title)}
 function upBtnShow(b,on,title){upBtnState(b,on?'ready':'idle',title)}
@@ -3382,6 +3384,15 @@ setTimeout(todayXl,0);
 (()=>{const st=document.createElement('style');st.textContent=`.today .gos{display:inline-flex;gap:6px;align-items:center;flex:0 0 auto}.today .gos .go{white-space:nowrap}.today .xlgo .s{display:none}@media (max-width:420px){.today .xlgo .l{display:none}.today .xlgo .s{display:inline}.today .gos{gap:4px}}.today .xlgo{cursor:pointer}.today .xlgo:focus-visible{outline:2px solid #fff;outline-offset:1px}
 .xlp .xlg{padding:10px 14px}.xlp .xlh{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;padding:4px 0}.xlp .xls{display:flex;align-items:center;gap:8px;padding:6px 0 6px 26px;cursor:pointer;border-top:1px solid var(--line,#eee)}.xlp .xls:first-of-type{border-top:0}
 .xlp .xls .c{margin-left:auto;font-size:12.5px;color:var(--muted,#888)}.xlp input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;margin:0}html.sidemode .today .xlgo{padding:2px 7px;font-size:11px}`;document.head.appendChild(st)})();
+/* --- 오늘의 재고: 색 있는 바탕은 눌러도 안 열림, 안의 단추(조제약·일반약·유통기한·자세히·엑셀·설정)만 열림 (v0.10.26) --- */
+function todayBgOff(){const t=$('today');if(!t||t.hidden)return;
+ if(t.classList.contains('empty')){t.setAttribute('role','button');t.tabIndex=0;t.style.cursor='';return}
+ t.onclick=null;t.removeAttribute('role');t.removeAttribute('tabindex');t.removeAttribute('aria-label');t.style.cursor='default';
+ const go=t.querySelector('.d .go:not(.xlgo)');if(!go||go.dataset.own)return;go.dataset.own='1';go.setAttribute('role','button');go.tabIndex=0;
+ const open=e=>{e.stopPropagation();e.preventDefault();openPanel('stock',S.prev&&M&&M.gone.length?'today':'order')};go.addEventListener('click',open);go.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)})}
+{const _rt4=renderToday;renderToday=function(){_rt4();todayBgOff()}}
+setTimeout(todayBgOff,0);
+(()=>{const st=document.createElement('style');st.textContent=`.today:not(.empty):hover{filter:none}.today:not(.empty):active{transform:none}.today:not(.empty) .d .go{cursor:pointer}.today:not(.empty) .d .go:not(.xlgo):hover,.today:not(.empty) .d .go:not(.xlgo):focus-visible{filter:brightness(1.15);outline:none}`;document.head.appendChild(st)})();
 
 /* ===== PC 프로그램 전용 (토큰 없이 로컬에서 동작) ===== */
 function renderStickies(){} // 포스트잇 팝업은 메인 프로세스가 항상 위 창으로 띄움
