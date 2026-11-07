@@ -1,11 +1,11 @@
 {
- "version": "0.10.27",
- "notes": "대체약: 이름 표기만 다른 같은 약도 함께 묶고(휴사드·리피트롤·이토벨 등), '대체 가능' 표시를 붙여요",
+ "version": "0.10.28",
+ "notes": "Firebase 읽기를 줄였어요: 앱을 열 때 같은 자료를 두 번 읽지 않고, 기기에 저장해 둔 자료는 바뀐 것만 받아요",
  "files": [
   {
    "p": "index.html",
-   "sha256": "d75b775490387454cc7d7cb8ed211ae0b1ca34c422f7545451b879527a3b93e0",
-   "size": 500069
+   "sha256": "e3ef5d19e53fdb219c1532fa8eab07d4a1241e7ce5fe0cfd432331c54bf1342c",
+   "size": 501431
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "287f964c4a465f3634ca5b6ec5e68050678d12e2781982f53514195bc01ffcd1",
+   "sha256": "701b8b73b0027a22525061222dedec1bdbc86ae12cda9dcbc383abc85d72d86b",
    "size": 213
   },
   {
@@ -49,8 +49,8 @@
   },
   {
    "p": "vendor/firebase.js",
-   "sha256": "f3029970f9c809a80956ed11d9798044cb66a605ce78a81ba9a171be9c50235e",
-   "size": 369260
+   "sha256": "72ea373c3a39d6c6d925368377604479e90f29192b152d415ed5bf0a3fddb63a",
+   "size": 451166
   },
   {
    "p": "vendor/xlsx.full.min.js",

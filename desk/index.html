@@ -1617,7 +1617,8 @@ const P=()=>'pharmacies/'+SY.pid;
 const hasDesk=()=>!!(window.desk&&window.desk.setMe);
 
 function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');const auth=F.initializeAuth(app,{persistence:F.browserLocalPersistence});try{auth.languageCode='ko'}catch(e){}
- const db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
+ // 기기에 자료를 저장해 두기(캐시): 다시 열 때 바뀐 것만 받아서 Firebase 읽기 횟수가 크게 줄어듦 (v0.10.28). 안 되는 기기는 예전처럼 메모리만 씀
+ let db;try{db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true,localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){console.warn('cache',e);db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true})}
  return{onAuth:cb=>F.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:u.email}:null)),login:(e,p)=>F.signInWithEmailAndPassword(auth,e,p),signup:(e,p)=>F.createUserWithEmailAndPassword(auth,e,p),
   reset:e=>F.sendPasswordResetEmail(auth,e),deleteMe:async()=>{const u=auth.currentUser;if(u)await u.delete()},logout:()=>F.signOut(auth),refreshUser:async()=>{const u=auth.currentUser;if(!u)return null;await u.reload();return{uid:u.uid,email:u.email}},
   // 다른 사람 계정을 만들고 그 사람으로 잠깐 들어가 fn 실행 (내 로그인은 그대로 유지)
@@ -1632,8 +1633,11 @@ function fbCloud(){const F=window.FB;const app=F.initializeApp(FB_CFG,'pharm');c
   getAll:async c=>{const s=await F.getDocs(F.collection(db,c));const o={};s.forEach(d=>o[d.id]=d.data());return o},
   set:(p,d,merge)=>F.setDoc(F.doc(db,p),d,merge?{merge:true}:{}),del:p=>F.deleteDoc(F.doc(db,p)),
   // mine=true: 내가 방금 쓴 것(아직 서버 확인 전)도 바로 반영. Firestore는 서버 확인 때 데이터가 같으면 다시 알려 주지 않아서, 건너뛰면 내가 쓴 글이 안 보였음(v0.7.6)
-  watchCol:(c,cb,err,mine)=>F.onSnapshot(F.collection(db,c),s=>{if(s.metadata.hasPendingWrites&&!mine)return;const o={};s.forEach(d=>o[d.id]=d.data());cb(o)},err),
-  watchDoc:(p,cb,err)=>F.onSnapshot(F.doc(db,p),s=>{if(s.metadata.hasPendingWrites)return;cb(s.exists()?s.data():null)},err)}}
+  // 캐시를 켜도 예전과 똑같이 동작하도록: 처음에는 서버에서 확인된 자료가 올 때까지 기다리고(기기에 저장된 옛 자료로 먼저 판단하지 않음), 그 뒤로는 내용이 바뀔 때만 알려 줌
+  watchCol:(c,cb,err,mine)=>{let live=false;return F.onSnapshot(F.collection(db,c),{includeMetadataChanges:true},s=>{if(!live){if(s.metadata.fromCache)return;live=true}else if(!s.docChanges().length)return;
+   if(s.metadata.hasPendingWrites&&!mine)return;const o={};s.forEach(d=>o[d.id]=d.data());cb(o)},err)},
+  watchDoc:(p,cb,err)=>{let live=false,last;return F.onSnapshot(F.doc(db,p),{includeMetadataChanges:true},s=>{if(!live&&s.metadata.fromCache)return;if(s.metadata.hasPendingWrites)return;
+   const d=s.exists()?s.data():null,j=JSON.stringify(d);if(live&&j===last)return;live=true;last=j;cb(d)},err)}}}
 
 const clean=o=>JSON.parse(JSON.stringify(o));
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((r,x)=>(r[x]=v[x],r),{}):v);
@@ -1710,21 +1714,22 @@ async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id)}catch(e)
 /* --- 약국 공간 시작·끝 --- */
 async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');setTimeout(wpSync,5000);
  try{
-  const remote=await SY.cloud.getAll(P()+'/data');const rm=await SY.cloud.getAll(P()+'/memos'),ra=await SY.cloud.getAll(P()+'/alarms');
+  const W=(f)=>SY.unsub.push(f);const err=e=>syStatus('err',errMsg(e));
+  // 재고·설정·메모·알림: 따로 한 번 읽고 또 지켜보던 것(두 번 읽기)을 지켜보기 하나로 합침. 첫 자료로 처음 맞추기를 하고, 그동안 온 새 자료는 끝난 뒤 반영 (v0.10.28)
+  let ready=false;const later={};const H={data:o=>syApplyWhole(o),memos:o=>syApplyMemo('memos',o),alarms:o=>syApplyMemo('alarms',o)};
+  const first=k=>new Promise((res,rej)=>{let got=false;W(SY.cloud.watchCol(P()+'/'+k,o=>{if(!got){got=true;res(o);return}if(!ready){later[k]=o;return}H[k](o)},e=>{if(!got){got=true;rej(e)}else err(e)}))});
+  const [remote,rm,ra]=await Promise.all([first('data'),first('memos'),first('alarms')]);
   const empty=!Object.keys(remote).length&&!Object.keys(rm).length&&!Object.keys(ra).length;let down=0;
   for(const p of WHOLE){const x=remote[enc(p)];const loc=DESKDB.get(p);
    if(x&&x.j){SY.seenAt[enc(p)]=x.at;DESKDB.applyRemote(p,JSON.parse(x.j));down++}else if(loc)await syPushWhole(p,loc)}
   SY.base={memos:{},alarms:{}};syApplyMemo('memos',rm);syApplyMemo('alarms',ra);syPushMemo();
-  const W=(f)=>SY.unsub.push(f);const err=e=>syStatus('err',errMsg(e));
+  ready=true;for(const k of ['data','memos','alarms'])if(later[k])H[k](later[k]);
   W(SY.cloud.watchDoc(P(),d=>{S.pharm=d;renderMemoHome();syRedraw()},err));
   W(SY.cloud.watchCol(P()+'/members',o=>{S.members=Object.entries(o).map(([u,m])=>({uid:u,...m})).sort((a,b)=>(a.role==='owner'?0:a.role==='admin'?1:2)-(b.role==='owner'?0:b.role==='admin'?1:2)||String(a.name).localeCompare(String(b.name)));
    if(SY.user&&!o[SY.user.uid]){toast('약국에서 나가졌어요');syLeaveLocal();return}renderMemoHome();syRedraw()},e=>{if(e&&e.code==='permission-denied'){toast('약국에서 나가졌어요');syLeaveLocal()}else err(e)},true));
   W(SY.cloud.watchCol(P()+'/notices',o=>{S.notices=Object.entries(o).map(([id,n])=>({id,...n}));syNoticesChanged()},err,true));
-  W(SY.cloud.watchCol(P()+'/data',syApplyWhole,err));
-  W(SY.cloud.watchCol(P()+'/memos',o=>syApplyMemo('memos',o),err));
   if(typeof teamWatch==='function')teamWatch(W,err);
   if(typeof myNoteInboxWatch==='function')myNoteInboxWatch(W);
-  W(SY.cloud.watchCol(P()+'/alarms',o=>syApplyMemo('alarms',o),err));
   syStatus('on');if(empty)toast('이 기기 자료를 약국 공간에 올렸어요');else if(down)toast('약국 자료를 받아 왔어요');
  }catch(e){console.error(e);syStatus('err',errMsg(e))}}
 function syStopPharm(){SY.unsub.forEach(f=>{try{f()}catch(e){}});SY.unsub=[];SY.pid=null;S.members=[];S.notices=[];S.pharm=null;SY.base={memos:{},alarms:{}};if(typeof teamReset==='function')teamReset();if(typeof myNoteInboxReset==='function')myNoteInboxReset();
