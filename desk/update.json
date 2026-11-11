@@ -1,6 +1,6 @@
 {
- "version": "0.10.28",
- "notes": "Firebase 읽기를 줄였어요: 앱을 열 때 같은 자료를 두 번 읽지 않고, 기기에 저장해 둔 자료는 바뀐 것만 받아요",
+ "version": "0.10.29",
+ "notes": "이팜 자동읽기: 중간에 뜬 알림창을 닫고 계속하고, 끝나면 결과를 팝업으로 알려 줘요",
  "files": [
   {
    "p": "index.html",
@@ -9,8 +9,8 @@
   },
   {
    "p": "main.js",
-   "sha256": "ae44a7cac8bb59cf68fa5531834413543e4bbdabef93a4bceea7dab6c2830e45",
-   "size": 22506
+   "sha256": "dc42a1eafb3f9f5656450dac74cf2f1a45a74423bb8a576f3607076a637fde06",
+   "size": 25052
   },
   {
    "p": "preload.js",
@@ -24,8 +24,8 @@
   },
   {
    "p": "popup.html",
-   "sha256": "f7713dc1d47da4e72dd5a6ad8e863a925b7165e80e8f69080b835c31bb8534ac",
-   "size": 5512
+   "sha256": "050c088bb303c60fa7a798bca40a3c61f603865a437515ec6eb6c1aec4c23ddf",
+   "size": 6053
   },
   {
    "p": "sticky.html",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "701b8b73b0027a22525061222dedec1bdbc86ae12cda9dcbc383abc85d72d86b",
+   "sha256": "4d80f5dd7c06c9f9d762d880f77cc7035e7129a5bdb1003db537ecabbdf39c72",
    "size": 213
   },
   {
@@ -59,13 +59,18 @@
   },
   {
    "p": "ipam_stock.ps1",
-   "sha256": "b4e2d590743ebf7a1a3d2a1169a42ea6f91982d5b65f6942559f5195384058a7",
-   "size": 14200
+   "sha256": "15ae77223bb9191bdb787ae9ac8cb8deedae006f5b8018302c9d9f5e63769133",
+   "size": 12898
   },
   {
    "p": "ipam_disp.ps1",
-   "sha256": "60f443e1a393fe19982eb0ea0a1f16ac2270b7f7858bc511557e9abd5a71ab7a",
-   "size": 17726
+   "sha256": "bd91e620c87da5f3e7384c82a460d85662c5a41627a6689ef8699b5729fa83cf",
+   "size": 16034
+  },
+  {
+   "p": "ipam_guard.ps1",
+   "sha256": "729f431aca7a09686097e038b8eaf6545ef5b5b105e1bfcdab1a642742e5c13f",
+   "size": 11841
   }
  ]
 }

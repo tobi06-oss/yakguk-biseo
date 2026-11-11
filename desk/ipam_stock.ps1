@@ -26,31 +26,12 @@ $root = $A::RootElement
 $log = if ($LogPath) { $LogPath } else { Join-Path $PSScriptRoot '재고저장_로그.txt' }
 
 function Log($msg) { $line = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ' ' + $msg; Add-Content -Path $log -Value $line -Encoding UTF8; Write-Output $line }
-function Fail($msg) { Log ('실패: ' + $msg); exit 1 }
 
-function Click($x, $y) { [void][EW]::SetCursorPos([int]$x, [int]$y); Start-Sleep -Milliseconds 150; [EW]::mouse_event(2,0,0,0,0); Start-Sleep -Milliseconds 60; [EW]::mouse_event(4,0,0,0,0) }
-# 이름 있는 단추 누르기: 위치가 0.4초 동안 그대로인지, 그 자리에 실제로 그 단추가 있는지 확인한 뒤 누름
-function ClickEl($el) {
-  $name = $el.Current.Name
-  for ($k = 0; $k -lt 10; $k++) {
-    $r1 = $el.Current.BoundingRectangle; Start-Sleep -Milliseconds 400; $r2 = $el.Current.BoundingRectangle
-    $x = [int]($r2.X + $r2.Width/2); $y = [int]($r2.Y + $r2.Height/2)
-    if ($r1 -eq $r2 -and -not $el.Current.IsOffscreen) {
-      [void][EW]::SetCursorPos($x, $y); Start-Sleep -Milliseconds 200
-      $at = $null; try { $at = $A::FromPoint((New-Object System.Windows.Point($x, $y))) } catch {}
-      $ok = $false; $e = $at
-      for ($u = 0; $e -and $u -lt 4; $u++) { if ($e.Current.Name -eq $name) { $ok = $true; break }; $e = [System.Windows.Automation.TreeWalker]::RawViewWalker.GetParent($e) }
-      if ($ok) { Log "누름 '$name' ($x,$y)"; Click $x $y; return }
-    }
-    Start-Sleep -Milliseconds 500
-  }
-  Fail "'$name' 단추 자리를 확인 못 함 (움직이거나 다른 창에 가려짐)"
-}
-# 엉뚱한 질문 창(초기화 등)이 뜨면 아니오 누르고 멈춤
+# 엉뚱한 질문 창(초기화 등)이 뜨면 아니오 누르고 멈춤 (다른 창 때문에 잘못 눌렸을 수 있어 처음부터 한 번 더 해 봄)
 function NoSurprise($m) {
   foreach ($n in '초기화 하시겠습니까 ?','다른 이름으로 저장 확인') {
     $d = ByName $m $n
-    if ($d) { foreach ($b in '아니오(N)','아니요(N)') { $no = ByName $m $b; if ($no) { $r = $no.Current.BoundingRectangle; Click ($r.X + $r.Width/2) ($r.Y + $r.Height/2); break } }; Fail "예상 못 한 질문 창 '$n' → 아니오 누르고 멈춤" }
+    if ($d) { foreach ($b in '아니오(N)','아니요(N)') { $no = ByName $m $b; if ($no) { $r = $no.Current.BoundingRectangle; RawClick ($r.X + $r.Width/2) ($r.Y + $r.Height/2); break } }; Retry "예상 못 한 질문 창 '$n' → 아니오 누르고 멈춤" }
   }
 }
 function Rect($el) { $el.Current.BoundingRectangle }
@@ -61,17 +42,6 @@ function ByNameType($parent, $name, $type) {
 }
 function ById($parent, $id) { $parent.FindFirst($Scope::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::AutomationIdProperty, $id))) }
 function Need($el, $what) { if (-not $el) { Fail "$what 못 찾음" }; $el }
-# 몇 초까지 기다리며 찾기
-function WaitFor([scriptblock]$find, $sec, $what) {
-  $t = (Get-Date).AddSeconds($sec)
-  while ((Get-Date) -lt $t) { $e = & $find; if ($e) { return $e }; Start-Sleep -Milliseconds 300 }
-  Fail "$what 이(가) ${sec}초 안에 안 나타남"
-}
-function WaitGone([scriptblock]$find, $sec, $what) {
-  $t = (Get-Date).AddSeconds($sec)
-  while ((Get-Date) -lt $t) { if (-not (& $find)) { return }; Start-Sleep -Milliseconds 300 }
-  Fail "$what 이(가) ${sec}초 안에 안 닫힘"
-}
 # 체크칸 켜짐 여부: 칸 가운데 11x11 안의 진한 점 수 (켜짐 약 7, 꺼짐 0)
 function IsChecked($x, $y) {
   $bmp = New-Object System.Drawing.Bitmap 11,11; $g = [System.Drawing.Graphics]::FromImage($bmp)
@@ -80,8 +50,9 @@ function IsChecked($x, $y) {
   $g.Dispose(); $bmp.Dispose(); $n -ge 3
 }
 function SetCheck($x, $y, $want, $what) {
+  ClearWay $x $y
   if ((IsChecked $x $y) -ne $want) { Click $x $y; Start-Sleep -Milliseconds 400 }
-  if ((IsChecked $x $y) -ne $want) { Fail "$what 체크 상태를 못 맞춤" }
+  if ((IsChecked $x $y) -ne $want) { Retry "$what 체크 상태를 못 맞춤" }
 }
 function TopWins { $root.FindAll($Scope::Children, [System.Windows.Automation.Condition]::TrueCondition) }
 function MainWin { foreach ($w in TopWins) { try { if ($w.Current.Name -like '이팜 (Ver*') { return $w } } catch {} } }
@@ -96,6 +67,8 @@ function CountBox($form) {
   }
   $best
 }
+# 알림창 닫기·가린 창 기다리기·Click·ClickEl·WaitFor·Fail·Retry·Cleanup
+. (Join-Path $PSScriptRoot 'ipam_guard.ps1')
 
 Log "시작 OutPath=$OutPath"
 $outDir = Split-Path $OutPath -Parent
@@ -105,10 +78,11 @@ if (-not (Test-Path $outDir)) { Fail "저장 폴더 없음: $outDir" }
 $m = MainWin; if (-not $m) { Fail '이팜 본창 (이팜 (Ver...)) 없음' }
 $h = [IntPtr]$m.Current.NativeWindowHandle
 [void][EW]::ShowWindow($h, 3); [void][EW]::SetForegroundWindow($h); Start-Sleep -Milliseconds 800
-# 윈도우가 앞으로 가져오기를 막으면 Alt 한 번 눌렀다 떼고 다시 (그래도 안 되면 엉뚱한 창을 누르지 않게 멈춤)
-if ([EW]::GetForegroundWindow() -ne $h) { [EW]::keybd_event(0x12,0,0,0); [EW]::keybd_event(0x12,0,2,0); [void][EW]::SetForegroundWindow($h); Start-Sleep -Milliseconds 800 }
-if ([EW]::GetForegroundWindow() -ne $h) { Fail '이팜 창을 앞으로 가져오지 못함' }
-foreach ($n in '출력 미리보기','다른 이름으로 저장','다른 이름으로 저장 확인','내보내기','XLSX 내보내기 옵션') { if (ByName $m $n) { Fail "시작 전에 이미 '$n' 창이 열려 있음" } }
+Front   # 윈도우가 앞으로 가져오기를 막으면 Alt 한 번 눌렀다 떼고 다시 (그래도 안 되면 엉뚱한 창을 누르지 않게 멈춤)
+# 지난번에 멈추며 남은 저장·미리보기 창이 있으면 닫고 시작. 이팜 알림창도 닫음
+$left = LeftOpen; if ($left) { Log "시작 전에 '$left' 창이 열려 있어 닫음"; Cleanup; Start-Sleep -Seconds 1 }
+$left = LeftOpen; if ($left) { Fail "시작 전에 이미 '$left' 창이 열려 있음 (이팜에서 닫고 다시 눌러 주세요)" }
+[void](Popups)
 
 # 2. 재고현황및재고수정 화면 (열려 있으면 그 탭, 없으면 재고관리 메뉴 6번째 항목)
 function Form { $f = ByNameType $m '재고현황및재고수정' ([System.Windows.Automation.ControlType]::Window); if ($f -and (Rect $f).X -ge 0) { $f } }
@@ -126,12 +100,16 @@ Log '재고현황및재고수정 화면 찾음'
 # 3. 검색기간 빠른선택 ▼ → 최근6개월 (10번째 항목). ▼ = 검색상세구분 왼쪽 12, 위에서 13
 $grp = Need (ByName $form '검색상세구분') '검색상세구분'
 $gr = Rect $grp
-Click ($gr.X - 12) ($gr.Y + 13); Start-Sleep -Milliseconds 700
-Click ($gr.X + 19) ($gr.Y + 167)   # 목록 첫 항목이 ▼ 아래 10, 간격 14.6 → 10번째
-Start-Sleep -Milliseconds 600
 $from = (Get-Date).AddMonths(-6).ToString('yyyy-MM-dd'); $to = (Get-Date).ToString('yyyy-MM-dd')
-$okFrom = ByName $form $from; $okTo = ByName $form $to
-if (-not $okFrom -or -not $okTo) { Fail "검색기간이 $from ~ $to 로 안 바뀜" }
+# 목록이 늦게 열리거나 알림창에 막히면 3번까지 다시 (2026-11-10 한 번 안 바뀐 적 있음)
+for ($try = 1; $try -le 3; $try++) {
+  Click ($gr.X - 12) ($gr.Y + 13); Start-Sleep -Milliseconds (500 + 400 * $try)
+  Click ($gr.X + 19) ($gr.Y + 167)   # 목록 첫 항목이 ▼ 아래 10, 간격 14.6 → 10번째
+  Start-Sleep -Milliseconds 600
+  if ((ByName $form $from) -and (ByName $form $to)) { break }
+  if ($try -lt 3) { Log "검색기간이 안 바뀌어 다시 ($try)"; [void](Popups); Front; Start-Sleep -Milliseconds 800 }
+}
+if (-not (ByName $form $from) -or -not (ByName $form $to)) { Retry "검색기간이 $from ~ $to 로 안 바뀜" }
 Log "검색기간 $from ~ $to"
 
 # 4. 검색상세구분: 사용약품전체만 켬 (기간사용약품·약품사용유무 끔)
@@ -152,13 +130,13 @@ Log '재고조회구분 현재고(+) 선택 (화면에서 값 확인 불가 - �
 ClickEl (Need (ByName $form '조회') '조회 단추')
 $t = (Get-Date).AddSeconds(60); $last = ''; $same = 0
 while ((Get-Date) -lt $t) {
-  Start-Sleep -Milliseconds 700
+  Start-Sleep -Milliseconds 700; [void](Popups)
   $cb = CountBox $form; $v = if ($cb) { $cb.Current.Name } else { '' }
   if ($v -match '^[\d,]+$' -and $v -ne '0') { if ($v -eq $last) { $same++ } else { $same = 0; $last = $v }; if ($same -ge 2) { break } }
 }
-if ($same -lt 2) { Fail '조회 결과(약품종수)가 안 나옴' }
+if ($same -lt 2) { Retry '조회 결과(약품종수)가 안 나옴' }
 $count = [int]($last -replace ',','')
-if ($count -lt 500) { Fail "약품종수 $count — 너무 적음 (조회 조건 확인 필요)" }
+if ($count -lt 500) { Retry "약품종수 $count — 너무 적음 (조회 조건 확인 필요)" }
 Log "조회 완료 약품종수=$count"
 Start-Sleep -Milliseconds 1500
 NoSurprise $m
@@ -186,12 +164,13 @@ Start-Sleep -Milliseconds 800
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('이팜저장_' + (Get-Date -Format 'HHmmssfff') + '.xlsx')
 $host1 = Need (ById $sa 'FileNameControlHost') '파일 이름 칸'
 $hr = Rect $host1
+Front
 Click ($hr.X + 40) ($hr.Y + $hr.Height/2); Start-Sleep -Milliseconds 300
 Set-Clipboard -Value $tmp
 [System.Windows.Forms.SendKeys]::SendWait('^a'); Start-Sleep -Milliseconds 150
 [System.Windows.Forms.SendKeys]::SendWait('^v'); Start-Sleep -Milliseconds 500
 $fnv = $sa.FindFirst($Scope::Descendants, (New-Object System.Windows.Automation.AndCondition((New-Object System.Windows.Automation.PropertyCondition($A::AutomationIdProperty, '1001')), (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Pane)))))
-if (-not $fnv -or $fnv.Current.Name -ne $tmp) { Fail "파일 이름이 안 들어감 (지금: '$($fnv.Current.Name)')" }
+if (-not $fnv -or $fnv.Current.Name -ne $tmp) { Retry "파일 이름이 안 들어감 (지금: '$($fnv.Current.Name)')" }
 # 저장 단추: 이름 '저장(S)' + 종류 Pane (파일 목록 항목도 AutomationId 1 이라 id 로 찾으면 안 됨)
 ClickEl (Need (ByNameType $sa '저장(S)' ([System.Windows.Automation.ControlType]::Pane)) '저장(S) 단추')
 Start-Sleep -Seconds 1

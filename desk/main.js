@@ -15,6 +15,7 @@ if(!(global.__desk&&global.__desk.locked)&&!app.requestSingleInstanceLock()){app
 const ICON=path.join(__dirname,'icon.png');
 let DATA_DIR,DATA_FILE,data={docs:{},desk:{}};
 let win=null,tray=null,popup=null,quitting=false,popupItems=[],brief=null;
+let epBusy=false,epNote=null,stickyLater=false; // 이팜에서 재고 가져오는 중 · 끝난 뒤 알림 · 그동안 미룬 메모 창
 const stickyWins=new Map();
 const startHidden=process.argv.includes('--hidden');
 
@@ -76,10 +77,12 @@ function buildTray(){
 /* ---------- 포스트잇 알림 창 (항상 위, 화면 중앙) ---------- */
 let shownKeys=new Set();
 let workInit=false;
-function checkAlarms(){if(!workInit){workInit=true;core.setWork(data.desk&&data.desk.work)}
+function checkAlarms(){if(epBusy)return; // 이팜 가져오는 동안은 알림 창을 띄우지 않음 (이팜을 가리면 멈춤) — 끝나면 바로 다시 확인
+ if(!workInit){workInit=true;core.setWork(data.desk&&data.desk.work)}
  const now=new Date();const me=data.desk.me||'local';const due=me==='local'?[]:core.dueAlarms(memo().alarms,now,me); // 로그아웃(local)이면 메모 알림 안 띄움
  const items=due.map(a=>{const o=core.latestOcc(a,now);return{kind:'alarm',id:a.id,text:a.text,color:a.color||'yellow',when:core.whenLabel(o),rep:core.repLabel(a),late:now-o>15*60e3,key:a.id+':'+o.getTime()}});
  if(brief)items.unshift(brief);
+ if(epNote)items.unshift(epNote);
  (data.desk.notices||[]).forEach(n=>items.unshift({kind:'notice',key:'n:'+n.id,...n}));
  const fresh=items.some(x=>!shownKeys.has(x.key));items.forEach(x=>shownKeys.add(x.key));
  popupItems=items;
@@ -99,6 +102,7 @@ ipcMain.on('popup-fit',(e,hgt)=>{if(!popup||popup.isDestroyed())return;const wa=
  popup.setBounds({width:w,height:h,x:Math.round(wa.x+(wa.width-w)/2),y:Math.round(wa.y+(wa.height-h)/2)})});
 ipcMain.on('alarm-act',(e,id,act)=>{
  if(String(id).startsWith('n:')){data.desk.notices=(data.desk.notices||[]).filter(n=>'n:'+n.id!==id);if(win)win.webContents.send('notice-read',id.slice(2));checkAlarms();return}
+ if(id==='__ep'){epNote=null;if(act==='open')showWin('openStock');checkAlarms();if(act==='retry')runEpharm();return}
  if(id==='__brief'){brief=null;if(act==='open')showWin('openStock');checkAlarms();return}
  const m=memo();const a=m.alarms.find(x=>x.id===id);if(!a)return;
  const me=data.desk.me||'local';a.acks=a.acks||{};a.snz=a.snz||{};
@@ -114,7 +118,7 @@ ipcMain.on('set-notices',(e,list)=>{data.desk.notices=list||[];checkAlarms()});
 ipcMain.on('show-brief',(e,b)=>{brief={kind:'brief',key:'brief:'+Date.now(),...b};checkAlarms()});
 
 /* ---------- 바탕화면 메모 ---------- */
-function syncStickies(){
+function syncStickies(){if(epBusy){stickyLater=true;return} // 이팜 가져오는 동안 새 메모 창을 띄우지 않음
  const ms=memo().memos.filter(m=>m.desk);const ids=new Set(ms.map(m=>m.id));
  for(const [id,w] of stickyWins){if(!ids.has(id)){if(!w.isDestroyed())w.destroy();stickyWins.delete(id)}}
  ms.forEach((m,i)=>{let w=stickyWins.get(m.id);
@@ -136,7 +140,7 @@ ipcMain.on('memo-update',(e,id,patch)=>{const m=memo();const x=m.memos.find(y=>y
 });
 
 /* ---------- 이팜 엑셀 폴더 자동 읽기 ---------- */
-function scanFolder(force){
+function scanFolder(force){if(epBusy)return; // 이팜 가져오는 동안은 읽지 않음 (끝나고 바로 읽음)
  const dir=data.desk.watchDir;if(!dir||!win)return;let files;
  try{files=fs.readdirSync(dir).filter(f=>/\.(xlsx|xls)$/i.test(f)&&!f.startsWith('~$')).map(f=>{const p=path.join(dir,f);const st=fs.statSync(p);return{p,f,t:st.mtimeMs,size:st.size}})}catch(e){return}
  const seen=data.desk.seen||(data.desk.seen={});
@@ -182,24 +186,36 @@ ipcMain.on('open-data-dir',()=>shell.openPath(DATA_DIR));
 // ipam_disp.ps1 : 조제관리 › 조제내역현황 › 최근6개월 › 조제약품별 탭(환자 목록 탭에서는 조회 안 함) › 조회 › 미리보기 출력 › XLSX
 // 폴더 자동 읽기 폴더에 오늘 날짜 이름으로 저장 → scanFolder 가 바로 읽음. 그동안 이 프로그램 창은 숨겨서 이팜을 가리지 않게.
 const EP_JOBS=[['ipam_stock.ps1','재고현황및재고수정','재고현황'],['ipam_disp.ps1','조제약품현황','조제약품현황']];
-let epBusy=false;
-ipcMain.handle('epharm-stock',async()=>{
+// 중간에 이팜 알림창이 뜨면 스크립트가 닫고 계속함. 다른 창이 가려서 멈추면(끝 코드 2) 열린 창을 정리하고 그 단계부터가 아니라 처음부터 한 번 더 해 봄.
+// 끝나면 성공·실패를 알림 창(포스트잇)으로 띄움.
+function epRun(ps,out,logp){return new Promise(res=>require('child_process').execFile('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(__dirname,ps),'-OutPath',out,'-LogPath',logp],{timeout:240000,windowsHide:true},err=>res(err?(typeof err.code==='number'?err.code:1):0)))}
+function epLogFrom(logp,pos){try{const b=fs.readFileSync(logp);return b.slice(Math.min(pos,b.length)).toString('utf8').split(/\r?\n/).filter(Boolean)}catch(e){return[]}}
+const epFail=lines=>{const l=[...lines].reverse().find(x=>/실패: /.test(x));return l?l.replace(/^.*?실패: /,''):'이팜 저장이 중간에 멈췄어요'};
+async function runEpharm(){
  if(process.platform!=='win32')return{ok:false,err:'윈도우 PC에서만 돼요'};
  const dir=data.desk.watchDir;if(!dir)return{ok:false,err:'이팜 엑셀 폴더를 먼저 정해 주세요'};
- if(epBusy)return{ok:false,err:'벌써 가져오는 중이에요'};epBusy=true;
+ if(epBusy)return{ok:false,err:'벌써 가져오는 중이에요'};epBusy=true;epNote=null;
  const d=new Date(),p2=n=>String(n).padStart(2,'0'),day=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate());
- const logp=path.join(DATA_DIR,'이팜저장_로그.txt'),files=[];
+ const logp=path.join(DATA_DIR,'이팜저장_로그.txt'),files=[],done=[];let pops=0,retried=0,res;
  const shown=BrowserWindow.getAllWindows().filter(w=>!w.isDestroyed()&&w.isVisible());shown.forEach(w=>w.hide());
  try{
-  for(const [ps,name,label] of EP_JOBS){const out=path.join(dir,name+day+'.xlsx');
-   const code=await new Promise(res=>require('child_process').execFile('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(__dirname,ps),'-OutPath',out,'-LogPath',logp],{timeout:240000,windowsHide:true},err=>res(err?(typeof err.code==='number'?err.code:1):0)));
-   if(code!==0){let last='';try{last=fs.readFileSync(logp,'utf8').trim().split(/\r?\n/).pop()||''}catch(e){}
-    const m=last.match(/실패: (.*)$/);if(files.length)setTimeout(()=>scanFolder(),5000);
-    return{ok:false,files,err:label+' — '+(m?m[1]:'이팜 저장이 중간에 멈췄어요')}}
-   files.push(path.basename(out))}
-  setTimeout(()=>scanFolder(),5000);return{ok:true,files,file:files.join(', ')}
- }finally{epBusy=false;shown.forEach(w=>{if(!w.isDestroyed())w.show()})}
-});
+  for(const [ps,name,label] of EP_JOBS){const out=path.join(dir,name+day+'.xlsx');let code,lines;
+   for(let k=0;k<2;k++){let pos=0;try{pos=fs.statSync(logp).size}catch(e){}
+    code=await epRun(ps,out,logp);lines=epLogFrom(logp,pos);pops+=lines.filter(x=>/알림창 닫음/.test(x)).length;
+    if(code!==2||k===1)break;retried++;await new Promise(r=>setTimeout(r,2500))} // 다른 창 때문에 멈춤 → 한 번 더
+   if(code!==0){res={ok:false,files,err:label+' — '+epFail(lines)};break}
+   const ok=[...lines].reverse().find(x=>/성공: /.test(x))||'';const n=(ok.match(/약품종수 ([\d,]+)|약품 ([\d,]+)줄/)||[]);
+   files.push(path.basename(out));done.push(label+(n[1]?` ${Number(n[1].replace(/,/g,'')).toLocaleString('ko-KR')}종`:n[2]?` ${Number(n[2].replace(/,/g,'')).toLocaleString('ko-KR')}가지 약`:'')+' 저장')}
+  if(!res)res={ok:true,files,file:files.join(', ')};
+ }finally{epBusy=false;shown.forEach(w=>{if(!w.isDestroyed())w.show()});if(stickyLater){stickyLater=false;syncStickies()}}
+ if(files.length)setTimeout(()=>scanFolder(),5000);
+ const t=new Date().toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+ const extra=[pops?`중간에 뜬 이팜 알림창 ${pops}개는 닫았어요`:'',retried?`다른 창 때문에 멈춰서 ${retried}번 다시 했어요`:''].filter(Boolean);
+ epNote=res.ok?{kind:'ep',ok:true,key:'ep:'+Date.now(),title:'이팜에서 재고 가져오기 완료',sub:t,lines:[...done,'재고 화면에 곧 반영돼요',...extra]}
+  :{kind:'ep',ok:false,key:'ep:'+Date.now(),title:'이팜에서 재고를 못 가져왔어요',sub:t,lines:[res.err,...(files.length?['재고현황은 저장했어요 (조제약품현황만 못 함)']:[]),...extra,'이팜에 떠 있는 창을 닫고 다시 해 보세요']};
+ checkAlarms();
+ return res}
+ipcMain.handle('epharm-stock',()=>runEpharm());
 
 /* ---------- 자동 업데이트 (GitHub Pages의 desk/ 에서 받음) ---------- */
 let upd={state:'idle',version:null,notes:'',err:''};

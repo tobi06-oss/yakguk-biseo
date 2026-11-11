@@ -3413,7 +3413,7 @@ setTimeout(todayBgOff,0);
 (()=>{const st=document.createElement('style');st.textContent=`.today:not(.empty):hover{filter:none}.today:not(.empty):active{transform:none}.today:not(.empty) .d .go{cursor:pointer}.today:not(.empty) .d .go:not(.xlgo):hover,.today:not(.empty) .d .go:not(.xlgo):focus-visible{filter:brightness(1.15);outline:none}`;document.head.appendChild(st)})();
 
 /* ===== 웹(휴대폰) 버전 ===== */
-const WEB_BUILD='1794010519';let DESKDB=null;const WEB_KEY='cb-web-docs';
+const WEB_BUILD='1794380606';let DESKDB=null;const WEB_KEY='cb-web-docs';
 async function deskDb(){let docs={};try{docs=JSON.parse(localStorage.getItem(WEB_KEY)||'{}')}catch(e){}
  const subs={};const persist=()=>{try{localStorage.setItem(WEB_KEY,JSON.stringify(docs))}catch(e){}};
  const fire=(p,d)=>(subs[p]||[]).forEach(f=>f({exists:!!d,data:()=>d}));
