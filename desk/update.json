@@ -1,11 +1,11 @@
 {
- "version": "0.10.29",
- "notes": "이팜 자동읽기: 중간에 뜬 알림창을 닫고 계속하고, 끝나면 결과를 팝업으로 알려 줘요",
+ "version": "0.10.30",
+ "notes": "실수로 지운 것을 10초 안에 '되돌리기'로 살릴 수 있어요(PC는 Ctrl+Z). 쓰던 글 창을 닫아도 되살리고, 글이 다 빠져도 분류는 남아요",
  "files": [
   {
    "p": "index.html",
-   "sha256": "e3ef5d19e53fdb219c1532fa8eab07d4a1241e7ce5fe0cfd432331c54bf1342c",
-   "size": 501431
+   "sha256": "ab4d1c06c6701d924657625fecc2b0ebeaf95932b6100bfb80ee17bcd818ad78",
+   "size": 509741
   },
   {
    "p": "main.js",
@@ -39,7 +39,7 @@
   },
   {
    "p": "package.json",
-   "sha256": "4d80f5dd7c06c9f9d762d880f77cc7035e7129a5bdb1003db537ecabbdf39c72",
+   "sha256": "7319600c3697caa99ee76461332b97d2c61188d4d6989f9d7ddfa5b671bfacaf",
    "size": 213
   },
   {

@@ -210,6 +210,11 @@ tbody tr:hover td{background:var(--surface-2)}
 .preset button:hover{border-color:var(--accent);color:var(--accent)}
 .upload input{position:absolute;width:1px;height:1px;opacity:0}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:12.5px;z-index:20;max-width:90%;box-shadow:var(--shadow-lg)}
+.toast.up{bottom:calc(152px + env(safe-area-inset-bottom,0px))}
+.undobar{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:10px;font-size:13.5px;z-index:21;max-width:92%;box-shadow:var(--shadow-lg)}
+.undobar[hidden]{display:none}
+.undobar span{flex:1;min-width:0}
+.undobar button{flex:none;font:inherit;font-weight:700;background:var(--bg);color:var(--ink);border:0;border-radius:7px;padding:8px 14px;cursor:pointer;min-height:36px}
 textarea.fb{width:100%;height:120px;font-size:12.5px;font-family:var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:8px}
 mark{background:var(--warn-soft);color:inherit;border-radius:3px}
 
@@ -406,6 +411,7 @@ header{padding-block:calc(18px + env(safe-area-inset-top,0px)) 16px}
   </div></form>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="undobar" id="undoBar" role="status" hidden><span></span><button type="button">되돌리기</button></div>
 <div class="stickies" id="stickies" hidden aria-live="assertive"></div>
 
 <script src="vendor/xlsx.full.min.js"></script><script src="vendor/firebase.js"></script><script src="fakecloud.js"></script>
@@ -590,7 +596,17 @@ function ingHydAlias(keys){const num=/(일|이|삼|사|오|육|반|\d+(?:\.\d+)?
  const map={};for(const st in stem)if(stem[st].size===1)map[st]=[...stem[st]][0];return k=>map[k]||k}
 const fmt=n=>{n=+n||0;return Number.isInteger(n)?n.toLocaleString('ko-KR'):n.toLocaleString('ko-KR',{maximumFractionDigits:1})};
 const r1=n=>Math.round(n*10)/10;
-function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;const u=$('undoBar');t.classList.toggle('up',!!(u&&!u.hidden));clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+// 실행취소 (v0.10.30): 지우거나 쓰던 글을 닫은 뒤 10초 동안 '되돌리기'. 마지막 한 가지만. PC는 Ctrl+Z 로도 됨.
+// 되돌리면 지운 것을 클라우드에 다시 써서 다른 기기에도 그대로 돌아옴 (읽기는 그 한 번만 늘어남)
+let undoFn=null,undoT=null;
+function offerUndo(msg,fn,ms){const u=$('undoBar');if(!u){toast(msg);return}$('toast').hidden=true;clearTimeout(toast._t);
+ u.querySelector('span').textContent=msg;u.hidden=false;undoFn=fn;clearTimeout(undoT);undoT=setTimeout(undoClear,ms||10000)}
+function undoClear(){const u=$('undoBar');if(u)u.hidden=true;undoFn=null;clearTimeout(undoT)}
+async function undoRun(){const f=undoFn;if(!f)return;undoClear();let ok;try{ok=await f()}catch(e){console.warn(e);ok=false}toast(ok===false?'되돌리지 못했어요':'되돌렸어요')}
+document.addEventListener('click',e=>{if(e.target.closest('#undoBar button'))undoRun()});
+document.addEventListener('keydown',e=>{if(!undoFn||!(e.ctrlKey||e.metaKey)||e.shiftKey||e.altKey||String(e.key).toLowerCase()!=='z')return;
+ const a=document.activeElement;if(a&&a.closest('input,textarea,[contenteditable]'))return;e.preventDefault();undoRun()});
 function local(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
 function tokens(q){return String(q).split(/[\s,.?!·/()]+/).map(t=>t.replace(/(은|는|이|가|을|를|에|에서|으로|로|도|요|야|해|해줘|알려줘|어떻게|뭐|있어|몇|개|좀)$/,'')).filter(t=>t.length>=2)}
 function copyText(txt){const ok=()=>toast('복사했어요');try{navigator.clipboard.writeText(txt).then(ok,()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}}
@@ -805,7 +821,14 @@ function openPanel(kind,tab,all){
   p.addEventListener('touchstart',e=>{on=false;dy=0;if(window.innerWidth>600||e.touches.length!==1)return;const t=e.target;if(t.closest('input,textarea,select,.tabs'))return;const b=t.closest('.panel-body');if(b&&b.scrollTop>0)return;sy=e.touches[0].clientY;sx=e.touches[0].clientX;on=true},{passive:true});
   p.addEventListener('touchmove',e=>{if(!on)return;const y=e.touches[0].clientY-sy,x=e.touches[0].clientX-sx;if(y<=0||Math.abs(x)>y*0.7){if(dy===0)on=false;return}dy=y;p.style.animation='none';p.style.transition='none';p.style.transform='translateY('+Math.min(y,400)+'px)'},{passive:true});
   p.addEventListener('touchend',()=>{if(!on||dy===0)return;if(dy>90){close()}else{p.style.transition='transform .18s';p.style.transform=''}on=false;dy=0});}
- function close(){scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs()}
+ // 쓰던 글이 있는데 ✕·바깥·쓸어내리기로 닫으면 '되돌리기'로 그 창을 그대로 다시 붙임 (v0.10.30)
+ const dirty=new Set();p.addEventListener('input',e=>{const x=e.target;if(x.isContentEditable||x.matches('textarea,input[type=text],input:not([type])'))dirty.add(x.closest('[contenteditable=true]')||x)});
+ function close(){const draft=[...dirty].some(x=>x.isConnected&&p.contains(x)&&String(x.isContentEditable?x.textContent:x.value).trim());
+  const st={memoEdit,alarmEdit,ps:{...panelState}};
+  scrim.remove();redrawPanel=null;memoEdit=null;alarmEdit=null;renderFavs();
+  if(draft)offerUndo('쓰던 글이 있는 창을 닫았어요',()=>{document.querySelector('.scrim')?.remove();memoEdit=st.memoEdit;alarmEdit=st.alarmEdit;panelState=st.ps;
+   p.style.transition='';p.style.transform='';p.style.animation='';document.body.appendChild(scrim);redrawPanel=draw;
+   const f=[...dirty].find(x=>x.isConnected);if(f)setTimeout(()=>f.focus(),30);return true})}
  const TITLES={alt:'보유약·대체약',stock:'재고',manual:'약국 매뉴얼',mynote:'개인 업무수첩',memo:'메모·알림',settings:'설정',team:'약국',stockset:'재고 설정'};
  function draw(){
   if(!scrim.isConnected){if(redrawPanel===draw)redrawPanel=null;return}
@@ -982,8 +1005,8 @@ function drawManual(body){
  if(panelState.tab==='add'){editId=null;body.appendChild(manualForm(null));return}
  body.innerHTML='<input class="search" id="mq" type="search" placeholder="매뉴얼 검색"><div id="mlist" style="display:flex;flex-direction:column;gap:8px"></div>';
  const run=()=>{const q=$('mq').value.trim(),nq=norm(q),list=$('mlist');
-  if(!S.manual.length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
-  const cats=groupBy(S.manual.filter(m=>mSecOf(m)),mSecOf),loose=S.manual.filter(m=>!mSecOf(m)),top=!q&&!manualCat;
+  if(!S.manual.length&&!(S.manualSecs||[]).length){list.innerHTML='<div class="card"><p class="muted">매뉴얼이 비어 있어요. "새 항목"에서 약국 규칙과 업무 순서를 적어 두세요.</p></div>';return}
+  const cats=withEmptyCats(groupBy(S.manual.filter(m=>mSecOf(m)),mSecOf),S.manualSecs),loose=S.manual.filter(m=>!mSecOf(m)),top=!q&&!manualCat;
   const items=q?S.manual.filter(m=>norm(mSecOf(m)+' '+m.h+' '+m.body).includes(nq)):top?loose:S.manual.filter(m=>mSecOf(m)===manualCat);
   const head=q?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'cat',canWrite)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mBack">‹ 전체 분류</button><b>${esc(manualCat)}</b></div>${items.length?`<div class="row"><button class="btn sm" type="button" id="mExpAll">모두 펼치기</button><button class="btn sm" type="button" id="mColAll">모두 접기</button>${SY.user?`<button class="btn sm" type="button" id="mToNoteAll">이 분류 ${items.length}개 모두 내 수첩에 담기</button>`:''}</div>`:''}`;
   list.innerHTML=head+(items.map(m=>editId===m.id?`<div data-form="${esc(m.id)}"></div>`:`<div class="acc" data-open="${mOpenHas(m.id)||q?1:0}"><button type="button" data-item="${esc(m.id)}" aria-expanded="${mOpenHas(m.id)||!!q}">${esc(m.h)}${q&&mSecOf(m)?` <span class="sub">${esc(mSecOf(m))}</span>`:''}</button>${mOpenHas(m.id)||q?`<div class="ab">${esc(m.body)}<div class="row">${canWrite?`<button class="btn sm" type="button" data-edit="${esc(m.id)}">고치기</button>`:''}${SY.user?`<button class="btn sm" type="button" data-tonote="${esc(m.id)}">내 수첩에 담기</button>`:''}</div></div>`:''}</div>`).join('')||(top?'':'<p class="muted">맞는 항목이 없어요.</p>'));
@@ -1000,8 +1023,16 @@ function drawManual(body){
  };
  $('mq').oninput=run;run();
 }
+// 매뉴얼 저장 (v0.10.30): 안의 항목이 다 없어져도 분류는 남김(secs = 항목 없는 분류 이름). drop = 일부러 지운 분류, add = 새로 생긴 빈 분류
+async function manualPut(items,drop,add){const sec=m=>String((m&&m.sec)||'').trim(),now=new Set(items.map(sec).filter(Boolean)),dr=new Set(drop||[]);
+ const secs=[...new Set(S.manual.map(sec).concat(S.manualSecs||[],add||[]).filter(Boolean))].filter(s=>!now.has(s)&&!dr.has(s));
+ if(!await saveDoc('manual/main',{items,secs,updatedAt:new Date().toISOString()}))return false;S.manual=items;S.manualSecs=secs;typeof renderBook==='function'&&renderBook();return true}
+// 지운 매뉴얼 항목 되돌리기: [[원래 자리, 항목]] (지금 목록에 같은 id가 있으면 건너뜀)
+function manualBack(pairs,keepSec){const items=S.manual.map(x=>({...x})),have=new Set(items.map(x=>x.id));
+ pairs.slice().sort((a,b)=>a[0]-b[0]).forEach(([i,m])=>{if(!have.has(m.id))items.splice(Math.min(i,items.length),0,{...m})});
+ return manualPut(items).then(ok=>{redrawPanel&&redrawPanel();return ok})}
 function manualForm(m,after){
- const secs=[...new Set(S.manual.map(x=>x.sec).filter(Boolean))];
+ const secs=[...new Set(S.manual.map(x=>x.sec).concat(S.manualSecs||[]).filter(Boolean))];
  const f=document.createElement('div');f.className='card';
  f.innerHTML=`<div class="field">분류 (선택 · 비워 두면 분류 없이 제목만)<input id="mfSec" list="mfSecs" value="${esc(m?mSecOf(m):'')}" placeholder="없음"><datalist id="mfSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
  <div class="field">제목<input id="mfH" value="${esc(m?m.h:'')}" placeholder=""></div>
@@ -1010,10 +1041,11 @@ function manualForm(m,after){
  const q=s=>f.querySelector(s);
   q('#mfSave').onclick=async()=>{const h=q('#mfH').value.trim(),b=q('#mfB').value.trim(),sec=q('#mfSec').value.trim();if(!h){toast('제목을 적어 주세요');return}
    const items=S.manual.map(x=>({...x}));if(m){const t=items.find(x=>x.id===m.id);Object.assign(t,{h,body:b,sec})}else items.push({id:'m'+Date.now().toString(36),sec,h,body:b});
-   if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('매뉴얼에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
+   if(await manualPut(items)){editId=null;toast('매뉴얼에 저장했어요');if(after)after();else{panelState.tab='list';redrawPanel&&redrawPanel()}}};
   m&&(q('#mfCancel').onclick=()=>{editId=null;after&&after()});
   m&&(q('#mfDel').onclick=async()=>{const b=q('#mfDel');if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='한 번 더 누르면 지워져요';return}
-   const items=S.manual.filter(x=>x.id!==m.id);if(await saveDoc('manual/main',{items,updatedAt:new Date().toISOString()})){S.manual=items;editId=null;toast('지웠어요');after&&after()}});
+   const i=S.manual.findIndex(x=>x.id===m.id),old={...S.manual[i]},items=S.manual.filter(x=>x.id!==m.id);if(await manualPut(items)){editId=null;after&&after();
+    offerUndo('지웠어요',()=>manualBack([[i,old]]))}});
  return f}
 
 /* ----- 설정 패널 ----- */
@@ -1425,6 +1457,9 @@ document.addEventListener('visibilitychange',()=>{renderStickies();if(!document.
 
 /* 패널 */
 let memoEdit=null,alarmEdit=null,memoQ='';
+// 지운 메모·알림 되돌리기: 다른 기기에는 이미 '지움' 표시가 갔으므로 새 번호로 다시 넣음 (v0.10.30)
+async function undoMemoBack(kind,old,i){const x={...JSON.parse(JSON.stringify(old)),id:uid()};if(old.desk)x.desk=old.desk;const a=S.memo[kind];a.splice(Math.max(0,Math.min(i,a.length)),0,x);
+ const ok=await saveMemo();redrawPanel&&redrawPanel();return ok}
 function colorPick(name,sel){return `<div class="cpick" role="radiogroup" aria-label="색">${Object.entries(MCOLORS).map(([k,l])=>`<label class="cdot c-${k}" title="${l}"><input type="radio" name="${name}" value="${k}" ${k===sel?'checked':''} aria-label="${l}"></label>`).join('')}</div>`}
 function drawMemo(body){
  if(panelState.tab==='alarms')return drawAlarms(body);
@@ -1451,7 +1486,8 @@ function drawMemo(body){
   grid.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{memoEdit=b.dataset.ed;drawMemo(body);body.scrollTop=0});
   grid.querySelectorAll('[data-al]').forEach(b=>b.onclick=()=>{const m=S.memo.memos.find(x=>x.id===b.dataset.al);alarmEdit={new:true,text:m.text,color:m.color};panelState.tab='alarms';redrawPanel()});
   grid.querySelectorAll('[data-del]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';b.classList.add('arm');setTimeout(()=>{armed=false;b.textContent='삭제';b.classList.remove('arm')},3000);return}
-   S.memo.memos=S.memo.memos.filter(x=>x.id!==b.dataset.del);saveMemo();redrawPanel()}})};
+   const i=S.memo.memos.findIndex(x=>x.id===b.dataset.del),old=S.memo.memos[i];S.memo.memos=S.memo.memos.filter(x=>x.id!==b.dataset.del);saveMemo();redrawPanel();
+   if(old)offerUndo('메모를 지웠어요',()=>undoMemoBack('memos',old,i))}})};
  q('#mSearch').oninput=e=>{memoQ=e.target.value;list()};list();
 }
 function alarmForm(a){
@@ -1505,7 +1541,8 @@ function drawAlarms(body){
  body.querySelectorAll('[data-on]').forEach(b=>b.onchange=()=>{const a=S.memo.alarms.find(x=>x.id===b.dataset.on);a.on=b.checked;if(a.on){a.ack=Date.now();a.snooze=0;if(a.rep==='once'&&aStart(a)<=new Date()){a.on=false;b.checked=false;toast('지난 한 번 알림이에요. 고치기로 날짜를 바꿔 주세요');return}}saveMemo();redrawPanel()});
  body.querySelectorAll('[data-aed]').forEach(b=>b.onclick=()=>{alarmEdit={id:b.dataset.aed};drawAlarms(body);body.scrollTop=0});
  body.querySelectorAll('[data-adel]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}
-  S.memo.alarms=S.memo.alarms.filter(x=>x.id!==b.dataset.adel);saveMemo();redrawPanel()}});
+  const i=S.memo.alarms.findIndex(x=>x.id===b.dataset.adel),old=S.memo.alarms[i];S.memo.alarms=S.memo.alarms.filter(x=>x.id!==b.dataset.adel);saveMemo();redrawPanel();
+  if(old)offerUndo('알림을 지웠어요',()=>undoMemoBack('alarms',old,i))}});
 }
 
 /* AI 도구 */
@@ -1542,7 +1579,7 @@ function drawNotices(body){
     if(n0.text===t.slice(0,2000)&&!!n0.important===q('#neImp').checked){noticeEdit=null;toast('바뀐 내용이 없어요');redrawPanel();return} /* 그대로 저장하면 다시 알리지 않음 */
     const {id:_i,...base}=n0;const doc={...base,text:t.slice(0,2000),important:q('#neImp').checked,edAt:Date.now(),reads:{}};
     await SY.cloud.set(P()+'/notices/'+noticeEdit,doc,false);Object.assign(n0,doc);noticeEdit=null;toast('공지를 고쳤어요 — 모두에게 새 공지처럼 다시 알려요');redrawPanel()}catch(e){toast('고치지 못했어요: '+(e.code||e.message));q('#neSave').disabled=false}}}
- body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}noticeDel(b.dataset.nd)}});
+ body.querySelectorAll('[data-nd]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='정말 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}const n=S.notices.find(x=>x.id===b.dataset.nd);noticeDel(b.dataset.nd).then(ok=>{if(ok&&n)offerUndo('공지를 지웠어요',()=>noticeBack(n))})}});
 }
 
 
@@ -1709,7 +1746,8 @@ function syNoticesChanged(){renderMemoHome();
 async function noticePost(text,important,popup){try{const id=uid();await SY.cloud.set(P()+'/notices/'+id,{text:text.slice(0,2000),important:!!important,popup:popup!==false,by:SY.user.uid,byName:myName(),at:Date.now(),reads:{}});return true}catch(e){toast('보내지 못했어요: '+errMsg(e));return false}}
 async function noticeRead(id){if(String(id).startsWith('o:'))return orderMark(String(id).slice(2),'seen');if(String(id).startsWith('h:'))return handMarkRead(String(id).slice(2));const n=S.notices.find(x=>x.id===id);if(n){n.reads={...(n.reads||{}),[ME()]:Date.now()};syNoticesChanged()}
  try{await SY.cloud.set(P()+'/notices/'+id,{reads:{[ME()]:Date.now()}},true)}catch(e){toast('읽음 표시 실패: '+errMsg(e))}}
-async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id)}catch(e){toast(errMsg(e))}}
+async function noticeDel(id){try{await SY.cloud.del(P()+'/notices/'+id);return true}catch(e){toast(errMsg(e));return false}}
+async function noticeBack(n){const {id,...d}=n;try{await SY.cloud.set(P()+'/notices/'+id,JSON.parse(JSON.stringify(d)));return true}catch(e){toast(errMsg(e));return false}}
 
 /* --- 약국 공간 시작·끝 --- */
 async function syStartPharm(pid){SY.pid=pid;SY.phase='in';syStatus('wait');setTimeout(wpSync,5000);
@@ -1744,7 +1782,7 @@ function syLoginBtn(){const mb=$('menuBtn');if(!mb)return;let b=$('loginBtn');
 // 로그아웃 상태: 첫 화면에서 무엇을 누르든 로그인 창부터 띄우고, 메모 알림은 울리지 않음 (설정 창 안·로그인·설정·업데이트 단추는 그대로)
 const syOut=()=>!!(SY.cloud&&SY.phase==='out');
 document.addEventListener('click',e=>{if(!syOut())return;const t=e.target&&e.target.closest&&e.target.closest('button,a,input,select,textarea,label,[role=button],.tile');
- if(!t||t.closest('.scrim,#loginBtn,#menuBtn,#upBtn'))return;e.preventDefault();e.stopPropagation();
+ if(!t||t.closest('.scrim,#loginBtn,#menuBtn,#upBtn,#undoBar'))return;e.preventDefault();e.stopPropagation();
  openPanel('settings','account');toast('먼저 로그인해 주세요');setTimeout(()=>{const i=$('syE');if(i)i.focus()},250)},true);
 if(typeof dueAlarms==='function'){const _due=dueAlarms;dueAlarms=function(now){return syOut()?[]:_due(now)}}
 // 로그인·이메일 변경 뒤 화면에 결과를 확실히 보여 주기
@@ -2061,6 +2099,9 @@ const todayS=()=>ymd(new Date());
 const nlbr=s=>esc(s);
 async function tSet(path,d,merge){try{await SY.cloud.set(path,d,merge);return true}catch(e){toast('저장하지 못했어요: '+errMsg(e));return false}}
 async function tDel(path){try{await SY.cloud.del(path);return true}catch(e){toast('지우지 못했어요: '+errMsg(e));return false}}
+// 지우고 '되돌리기' (v0.10.30): 지우기 전 내용을 같은 자리에 다시 씀
+async function tDelUndo(col,id,msg){const x=(S[col]||[]).find(y=>y.id===id);const keep=x&&(({id,...d})=>JSON.parse(JSON.stringify(d)))(x);
+ if(!await tDel(P()+'/'+col+'/'+id))return false;if(keep)offerUndo(msg||'지웠어요',()=>tSet(P()+'/'+col+'/'+id,keep));return true}
 function armBtn(b,fn,label){let armed=false;const t=b.textContent;b.onclick=()=>{if(!armed){armed=true;b.textContent=label||'한 번 더 누르면 삭제';setTimeout(()=>{armed=false;if(b.isConnected)b.textContent=t},3000);return}fn()}}
 
 /* 공휴일 (일요일·공휴일·약국 휴무는 빨간색). 2026~2027, 대체공휴일 포함 */
@@ -2115,7 +2156,7 @@ function drawOrders(body){
  body.querySelectorAll('[data-os]').forEach(b=>b.onclick=()=>orderMark(b.dataset.os,'seen'));
  body.querySelectorAll('[data-od]').forEach(b=>b.onclick=async()=>{if(await orderMark(b.dataset.od,'done'))toast('완료로 표시했어요')});
  body.querySelectorAll('[data-ou]').forEach(b=>b.onclick=()=>orderMark(b.dataset.ou,'done',false));
- body.querySelectorAll('[data-ox]').forEach(b=>armBtn(b,()=>tDel(P()+'/orders/'+b.dataset.ox)));
+ body.querySelectorAll('[data-ox]').forEach(b=>armBtn(b,()=>tDelUndo('orders',b.dataset.ox,'전달사항을 지웠어요')));
  body.querySelectorAll('[data-oe]').forEach(b=>b.onclick=()=>{orderEdit=b.dataset.oe;redrawPanel()});
  if(q('#oeBox')){const te=q('#oeText');te.focus();q('#oeCancel').onclick=()=>{orderEdit=null;redrawPanel()};
   q('#oeSave').onclick=async()=>{const text=te.value.trim();if(!text){toast('전달할 내용을 적어 주세요');return}q('#oeSave').disabled=true;
@@ -2253,7 +2294,7 @@ function calBind(body){
   if(dbl)setTimeout(()=>calQuickMemo(calSel,document.querySelector('[data-d="'+calSel+'"]')),30)}); // 날짜 더블클릭 = 그 자리에서 바로 메모 입력
  body.querySelectorAll('[data-cf]').forEach(b=>b.onclick=()=>{calForm=calForm===b.dataset.cf?null:b.dataset.cf;redrawPanel();setTimeout(()=>{const f=body.querySelector('.cform');f&&f.scrollIntoView({block:'nearest'})},30)});
  body.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{calForm=null;redrawPanel()});
- body.querySelectorAll('[data-evx]').forEach(b=>armBtn(b,()=>tDel(P()+'/events/'+b.dataset.evx)));
+ body.querySelectorAll('[data-evx]').forEach(b=>armBtn(b,()=>tDelUndo('events',b.dataset.evx,'일정을 지웠어요')));
  const f=body.querySelector('.cform'),k=f&&f.dataset.k,s=calSel;
  const done=msg=>{calForm=null;calDraft=null;toast(msg);redrawPanel()};
  if(q('#fSave'))q('#fSave').onclick=async()=>{
@@ -2380,11 +2421,12 @@ function drawHand(body){
  const send=async id=>{const i=body.querySelector(`[data-ci="${id}"]`);const t=i.value.trim();if(!t)return;i.value='';await tSet(P()+'/handover/'+id,{cm:{[uid()]:{by:ME(),byName:myName(),text:t.slice(0,500),at:Date.now()}}},true)};
  body.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>send(b.dataset.cs));
  body.querySelectorAll('[data-ci]').forEach(i=>enterSubmit(i,()=>send(i.dataset.ci)));
- body.querySelectorAll('[data-cx]').forEach(b=>armBtn(b,()=>{const [h,c]=b.dataset.cx.split('|');tSet(P()+'/handover/'+h,{cm:{[c]:deleteMark()}},true)},'정말?'));
+ body.querySelectorAll('[data-cx]').forEach(b=>armBtn(b,async()=>{const [h,c]=b.dataset.cx.split('|');const hh=S.handover.find(x=>x.id===h),old=hh&&hh.cm&&hh.cm[c]&&JSON.parse(JSON.stringify(hh.cm[c]));
+  if(await tSet(P()+'/handover/'+h,{cm:{[c]:deleteMark()}},true)&&old)offerUndo('댓글을 지웠어요',()=>tSet(P()+'/handover/'+h,{cm:{[c]:old}},true))},'정말?'));
  body.querySelectorAll('[data-hh]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hh);handSetHold(b.dataset.hh,!handHold(h))});
  body.querySelectorAll('[data-hd]').forEach(b=>b.onclick=()=>{const h=S.handover.find(x=>x.id===b.dataset.hd);handSetDone(b.dataset.hd,!handDone(h))});
  body.querySelectorAll('[data-he]').forEach(b=>b.onclick=()=>{handEdit=b.dataset.he;redrawPanel()});
- body.querySelectorAll('[data-hx]').forEach(b=>armBtn(b,()=>tDel(P()+'/handover/'+b.dataset.hx)));
+ body.querySelectorAll('[data-hx]').forEach(b=>armBtn(b,()=>tDelUndo('handover',b.dataset.hx,'인수인계를 지웠어요')));
 }
 // 댓글 지우기: Firestore에서는 필드 삭제 표시, 가짜 서버에서는 null
 function deleteMark(){return window.FB&&window.FB.deleteField&&!window.__fakeCloud?window.FB.deleteField():null}
@@ -2497,11 +2539,13 @@ body.dsorting,body.dsorting *{-webkit-user-select:none!important;user-select:non
 `;document.head.appendChild(st)})();
 
 const LOCK_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '';const v=String(m.sec||'').trim();if(v)return v;if(m.fromName==='약국 매뉴얼'&&m.sec==null){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return String(x.sec).trim()}return ''};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
+S.mynotes=[];let mnCat=null;const mnOpenSet=new Set();const mnSec=m=>{if(!m)return '';const v=String(m.sec||'').trim();if(v)return v;if(m.fromName==='약국 매뉴얼'&&m.sec==null){const x=(S.manual||[]).find(y=>y.h===m.title);if(x&&x.sec)return String(x.sec).trim()}return ''};const mnOpenHas=id=>mnOpen===id||mnOpenSet.has(id);let mnSecs=[],mnSecUnsub=null,mnPre=new Set(),mnUnsub=null,mnEdit=null,mnOpen=null,mnQ='';
 const mnPath=()=>'users/'+SY.user.uid+'/notes';
 function myNoteStart(u){myNoteStop();if(!SY.cloud||!u)return;
- try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e),true)}catch(e){console.warn(e)}}
-function myNoteStop(){if(mnUnsub){try{mnUnsub()}catch(e){}}mnUnsub=null;S.mynotes=[];mnEdit=null;mnOpen=null;mnQ='';myNoteChanged()}
+ try{mnUnsub=SY.cloud.watchCol('users/'+u.uid+'/notes',o=>{S.mynotes=Object.entries(o||{}).map(([id,x])=>({id,...x}));myNoteChanged()},e=>console.warn('mynote',e),true)}catch(e){console.warn(e)}
+ // 항목이 없어도 남겨 둘 분류 이름 (v0.10.30): 문서 하나라 읽기는 로그인 때 1번 + 바뀔 때만
+ try{mnSecUnsub=SY.cloud.watchDoc('users/'+u.uid+'/meta/notecats',d=>{mnSecs=(d&&Array.isArray(d.secs))?d.secs:[];myNoteChanged()},e=>console.warn('notecats',e))}catch(e){console.warn(e)}}
+function myNoteStop(){if(mnUnsub){try{mnUnsub()}catch(e){}}mnUnsub=null;if(mnSecUnsub){try{mnSecUnsub()}catch(e){}}mnSecUnsub=null;mnSecs=[];S.mynotes=[];mnEdit=null;mnOpen=null;mnQ='';myNoteChanged()}
 function myNoteChanged(){renderMyNoteTile();if(redrawPanel&&panelState.kind==='mynote'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel [contenteditable]'))redrawPanel()}
 function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynotes.length,ib=mnInboxCount();
  const tile=$('myNoteTile');if(tile)tile.classList.toggle('ring',!!ib);
@@ -2511,10 +2555,17 @@ function renderMyNoteTile(){const s=$('myNoteSub');if(!s)return;const n=S.mynote
 const mnOrdCmp=(a,b)=>(a.ord==null?0:1)-(b.ord==null?0:1)||(a.ord||0)-(b.ord||0)||(b.upd||b.at||0)-(a.upd||a.at||0);
 const mnSorted=()=>S.mynotes.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||mnOrdCmp(a,b));
 const mnDate=ms=>{if(!ms)return '';const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()}`};
-async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id);
- if(old)Object.assign(old,d);else S.mynotes.push({id,...d});myNoteChanged();
+const mnSecNow=()=>S.mynotes.map(mnSec).filter(Boolean);
+// 글이 다 빠진 분류는 이름만 남겨 둠. drop = 일부러 지운 분류, add = 다시 살릴 빈 분류
+function mnSecsSync(before,drop,add){if(!SY.user)return;const now=new Set(mnSecNow()),dr=new Set(drop||[]);
+ const nx=[...new Set([...(before||[]),...mnSecs,...(add||[])])].filter(s=>s&&!now.has(s)&&!dr.has(s));
+ if(JSON.stringify(nx)===JSON.stringify(mnSecs))return;mnSecs=nx;myNoteChanged();tSet('users/'+SY.user.uid+'/meta/notecats',{secs:nx,at:Date.now()})}
+async function mnPut(id,d){const old=S.mynotes.find(x=>x.id===id),before=mnSecNow();
+ if(old)Object.assign(old,d);else S.mynotes.push({id,...d});myNoteChanged();mnSecsSync(before);
  return tSet(mnPath()+'/'+id,d,true)}
-async function mnDel(id){S.mynotes=S.mynotes.filter(x=>x.id!==id);myNoteChanged();return tDel(mnPath()+'/'+id)}
+async function mnDel(id){const before=mnSecNow();S.mynotes=S.mynotes.filter(x=>x.id!==id);myNoteChanged();mnSecsSync(before);return tDel(mnPath()+'/'+id)}
+// 지운 글 되돌리기: 같은 번호로 다시 씀
+async function mnBack(list){let ok=true;for(const m of list){const {id,...d}=m;if(!await mnPut(id,JSON.parse(JSON.stringify(d))))ok=false}redrawPanel&&redrawPanel();return ok}
 
 // 전체 분류 화면에서 분류 이름 바꾸기·지우기 (내 수첩 · 약국 매뉴얼 공통)
 function catListHtml(cats,attr,can){if(!cats.length)return '';return '<div class="catgrid">'+cats.map(([sec,arr])=>`<div class="catrow"><button class="cat" type="button" data-${attr}="${esc(sec)}"><span>${esc(sec)}</span><span class="c">${arr.length}</span></button>${can?`<span class="catact"><button class="btn sm" type="button" data-crn="${esc(sec)}" title="분류 이름 바꾸기" aria-label="${esc(sec)} 이름 바꾸기">✎</button><button class="btn sm" type="button" data-crx="${esc(sec)}" data-n="${arr.length}" title="분류 지우기 (안의 항목도 함께)" aria-label="${esc(sec)} 지우기">✕</button></span>`:''}</div>`).join('')+'</div>'}
@@ -2525,14 +2576,18 @@ function bindCatManage(list,o){if(!o.can)return;
   no.onclick=()=>o.run();
   const go=async()=>{const nw=inp.value.trim().slice(0,40);if(!nw){toast('이름을 적어 주세요');return}if(nw===old){o.run();return}ok.disabled=true;if(await o.rename(old,nw)){toast('분류 이름을 바꿨어요');o.run()}else ok.disabled=false};
   ok.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();else if(e.key==='Escape')o.run()}});
- list.querySelectorAll('[data-crx]').forEach(b=>{const n=b.dataset.n;armBtn(b,async()=>{if(await o.del(b.dataset.crx)){toast('분류를 지웠어요');o.run()}},`${n}개 지워요?`)})}
-async function mnCatRename(old,nw){for(const m of S.mynotes.filter(x=>mnSec(x)===old)){if(!await mnPut(m.id,{sec:nw}))return false}return true}
-async function mnCatDel(sec){for(const m of S.mynotes.filter(x=>mnSec(x)===sec)){if(!await mnDel(m.id))return false}return true}
-async function manualCatSave(fn){const out=fn(S.manual.map(x=>({...x})));if(await saveDoc('manual/main',{items:out,updatedAt:new Date().toISOString()})){S.manual=out;renderBook&&renderBook();return true}return false}
+ list.querySelectorAll('[data-crx]').forEach(b=>{const n=b.dataset.n;armBtn(b,async()=>{if(await o.del(b.dataset.crx))o.run()},+n?`${n}개 지워요?`:'분류 지워요?')})}
+async function mnCatRename(old,nw){for(const m of S.mynotes.filter(x=>mnSec(x)===old)){if(!await mnPut(m.id,{sec:nw}))return false}mnSecsSync(null,[old],[nw]);return true}
+async function mnCatDel(sec){const gone=S.mynotes.filter(x=>mnSec(x)===sec).map(x=>JSON.parse(JSON.stringify(x)));for(const m of gone){if(!await mnDel(m.id))return false}mnSecsSync(null,[sec]);
+ offerUndo(gone.length?`'${sec}' 분류와 안의 ${gone.length}개를 지웠어요`:`'${sec}' 분류를 지웠어요`,async()=>{const ok=gone.length?await mnBack(gone):true;if(!gone.length){mnSecsSync(null,null,[sec]);redrawPanel&&redrawPanel()}return ok});return true}
+async function manualCatSave(fn,drop,add){const out=fn(S.manual.map(x=>({...x})));return manualPut(out,drop,add)}
+// 항목이 없는 분류도 전체 분류 화면에 남김 (v0.10.30). 빈 분류는 맨 뒤에
+const withEmptyCats=(cats,names)=>{const have=new Set(cats.map(c=>c[0]));return cats.concat([...new Set(names||[])].filter(s=>s&&!have.has(s)).map(s=>[s,[]]))};
 // 매뉴얼 분류: 비어 있으면 분류 없음 (v0.7.5부터 기본값. 예전에 저장된 '기타'는 그대로 분류로 보임)
 const mSecOf=m=>String((m&&m.sec)||'').trim();
-const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>mSecOf(x)===old?{...x,sec:nw}:x));
-const manualCatDel=sec=>manualCatSave(a=>a.filter(x=>mSecOf(x)!==sec));
+const manualCatRename=(old,nw)=>manualCatSave(a=>a.map(x=>mSecOf(x)===old?{...x,sec:nw}:x),[old],[nw]);
+async function manualCatDel(sec){const gone=S.manual.map((x,i)=>[i,{...x}]).filter(([i,x])=>mSecOf(x)===sec);if(!await manualCatSave(a=>a.filter(x=>mSecOf(x)!==sec),[sec]))return false;
+ offerUndo(gone.length?`'${sec}' 분류와 안의 ${gone.length}개를 지웠어요`:`'${sec}' 분류를 지웠어요`,async()=>{const ok=gone.length?await manualBack(gone):await manualPut(S.manual.map(x=>({...x})),null,[sec]);redrawPanel&&redrawPanel();return ok});return true}
 
 /* --- 끌어서 순서 바꾸기 (약국 매뉴얼 · 개인 업무수첩 공통, v0.10.18)
    PC는 마우스로 끌고, 휴대폰은 길게 눌렀다가 끌어요. 놓으면 done(새 순서의 키 목록) --- */
@@ -2602,10 +2657,10 @@ function drawMyNote(body){
  if(panelState.tab==='add'||mnEdit){body.innerHTML=lock;body.appendChild(mnForm(panelState.tab==='add'?null:S.mynotes.find(x=>x.id===mnEdit)));return}
  body.innerHTML=lock+mnInboxHtml()+`<input class="search" id="mnQ" type="search" placeholder="내 수첩 검색" value="${esc(mnQ)}"><div id="mnList" style="display:flex;flex-direction:column;gap:8px"></div>`;
  const run=()=>{mnQ=body.querySelector('#mnQ').value;const nq=norm(mnQ.trim()),list=body.querySelector('#mnList');
-  if(!S.mynotes.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
+  if(!S.mynotes.length&&!mnSecs.length){list.innerHTML='<div class="card"><p class="muted">아직 적은 게 없어요. "새로 쓰기"에서 나만 알면 되는 업무 메모, 할 일, 개인 정리를 적어 두세요. "매뉴얼에서 가져오기"로 약국 매뉴얼 항목을 분류째 담을 수도 있어요.</p></div>';return}
   if(mnOpen&&!mnCat){const o=S.mynotes.find(x=>x.id===mnOpen);if(o)mnCat=mnSec(o)||null}
   // 분류 없이 적은 글은 전체 분류 화면에 바로 (약국 매뉴얼과 같게, v0.9.9)
-  const cats=groupBy(S.mynotes.slice().sort(mnOrdCmp).filter(m=>mnSec(m)),mnSec),loose=mnSorted().filter(m=>!mnSec(m)),top=!nq&&!mnCat;
+  const cats=withEmptyCats(groupBy(S.mynotes.slice().sort(mnOrdCmp).filter(m=>mnSec(m)),mnSec),mnSecs),loose=mnSorted().filter(m=>!mnSec(m)),top=!nq&&!mnCat;
   const items=nq?mnSorted().filter(m=>norm(mnSec(m)+' '+(m.title||'')+' '+(m.body||'')).includes(nq)):top?loose:mnSorted().filter(m=>mnSec(m)===mnCat);
   const head=nq?`<p class="muted">${items.length}개 찾았어요</p>`:top?catListHtml(cats,'mc',true)+(cats.length&&loose.length?'<p class="sub" style="margin:6px 2px 0">분류 없는 항목</p>':''):`<div class="row" style="justify-content:space-between"><button class="btn sm" type="button" id="mnBack">‹ 전체 분류</button><b>${esc(mnCat)}</b></div>
    ${items.length?`<div class="row"><button class="btn sm" type="button" id="mnExp">모두 펼치기</button><button class="btn sm" type="button" id="mnCol">모두 접기</button></div>`:''}`;
@@ -2621,13 +2676,13 @@ function drawMyNote(body){
   list.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{mnEdit=b.dataset.me;redrawPanel();body.scrollTop=0});
   list.querySelectorAll('[data-mp]').forEach(b=>b.onclick=()=>{const m=S.mynotes.find(x=>x.id===b.dataset.mp);if(m)mnPut(m.id,{pin:!m.pin})});
   list.querySelectorAll('[data-ms]').forEach(b=>b.onclick=()=>{mnPre=new Set([b.dataset.ms]);panelState.tab='send';redrawPanel()});
-  list.querySelectorAll('[data-mx]').forEach(b=>armBtn(b,async()=>{if(await mnDel(b.dataset.mx))toast('지웠어요')},'한 번 더 누르면 지워져요'));
+  list.querySelectorAll('[data-mx]').forEach(b=>armBtn(b,async()=>{const m=S.mynotes.find(x=>x.id===b.dataset.mx),old=m&&JSON.parse(JSON.stringify(m));if(await mnDel(b.dataset.mx)&&old)offerUndo('지웠어요',()=>mnBack([old]))},'한 번 더 누르면 지워져요'));
  };
  body.querySelector('#mnQ').oninput=run;run();bindMnInbox(body);
 }
 function mnForm(m){
  const f=document.createElement('div');f.className='card';
- const secs=[...new Set(S.mynotes.map(mnSec).concat((S.manual||[]).map(mSecOf)).filter(Boolean))];
+ const secs=[...new Set(S.mynotes.map(mnSec).concat(mnSecs,(S.manual||[]).map(mSecOf)).filter(Boolean))];
  f.innerHTML=`<div class="field">분류 (선택 · 비워 두면 분류 없이 제목만)<input id="mnS" list="mnSecs" maxlength="40" placeholder="없음" value="${esc(m?mnSec(m):(mnCat||''))}"><datalist id="mnSecs">${secs.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
  <div class="field">제목<input id="mnT" maxlength="100" value="${esc(m?m.title||'':'')}"></div>
  <div class="field">내용<textarea id="mnB" rows="8" maxlength="5000">${esc(m?m.body||'':'')}</textarea></div>
@@ -2661,7 +2716,7 @@ function bindMnInbox(body){
    S.mynotes.push({id,...d});if(!(await tSet(mnPath()+'/'+id,d,true))){ok=false;break}}
   if(ok){await tDel(P()+'/inbox/'+SY.user.uid+'/items/'+x.id);S.mninbox=S.mninbox.filter(y=>y.id!==x.id);toast(`${(x.notes||[]).length}개를 내 수첩에 넣었어요`)}
   myNoteChanged();if(redrawPanel)redrawPanel()});
- body.querySelectorAll('[data-mnno]').forEach(b=>armBtn(b,async()=>{const id=b.dataset.mnno;if(await tDel(P()+'/inbox/'+SY.user.uid+'/items/'+id)){S.mninbox=S.mninbox.filter(y=>y.id!==id);toast('받지 않았어요');redrawPanel&&redrawPanel()}},'한 번 더 누르면 버려요'))}
+ body.querySelectorAll('[data-mnno]').forEach(b=>armBtn(b,async()=>{const id=b.dataset.mnno,x=S.mninbox.find(y=>y.id===id),keep=x&&(({id,...d})=>JSON.parse(JSON.stringify(d)))(x),pth=P()+'/inbox/'+SY.user.uid+'/items/'+id;if(await tDel(pth)){S.mninbox=S.mninbox.filter(y=>y.id!==id);redrawPanel&&redrawPanel();if(keep)offerUndo('받지 않았어요',async()=>{const ok=await tSet(pth,keep);if(ok&&!S.mninbox.some(y=>y.id===id)){S.mninbox.push({id,...keep});redrawPanel&&redrawPanel();renderMyNoteTile()}return ok})}},'한 번 더 누르면 버려요'))}
 function mnSendForm(){
  const f=document.createElement('div');f.className='card';
  if(!S.pharm){f.innerHTML='<p class="muted">약국에 들어가 있어야 동료에게 보낼 수 있어요.</p>';return f}
@@ -3577,7 +3632,7 @@ renderFavs();
  // 아래 자료는 화면 코드가 DESKDB에서 바로 읽음 → 다른 기기에서 바뀌어 들어와도 첫 화면·패널을 다시 그리도록 지켜봄 (v0.10.18)
  ['stock/otcuse','stock/expiry','exceptions/expiry','exceptions/dead'].forEach(p=>watch(p,()=>{}));
  watch('settings/amode',d=>{S.amode=d||null;window.alertSync&&alertSync()});
- watch('manual/main',d=>{S.manual=(d&&d.items)||[];renderBook()});
+ watch('manual/main',d=>{S.manual=(d&&d.items)||[];S.manualSecs=(d&&d.secs)||[];renderBook()});
  watch('memo/main',d=>{S.memo={memos:(d&&d.memos)||[],alarms:(d&&d.alarms)||[]};renderMemoHome();if(redrawPanel&&panelState.kind==='memo'&&!document.activeElement?.closest('.panel input,.panel textarea,.panel select'))redrawPanel()});
  deskBoot();
 })();
